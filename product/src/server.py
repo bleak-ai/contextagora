@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 BASE_DIR = Path(__file__).resolve().parent
-MODULES_DIR = Path(os.environ.get("MODULES_DIR", BASE_DIR.parent / "modules"))
+MODULES_DIR = Path(os.environ.get("MODULES_DIR", BASE_DIR.parent.parent / "fixtures"))
 CONTEXT_DIR = BASE_DIR / "context"
 CONTEXT_DIR.mkdir(exist_ok=True)
 
@@ -56,7 +56,7 @@ app.mount("/files", StaticFiles(directory=str(CONTEXT_DIR)), name="files")
 def main():
     import uvicorn
 
-    uvicorn.run("app.server:app", host="0.0.0.0", port=8080, reload=True)
+    uvicorn.run("src.server:app", host="0.0.0.0", port=8080, reload=True)
 
 
 if __name__ == "__main__":
