@@ -1,0 +1,12 @@
+services:
+  context-loader:
+    build:
+      context: ..
+      dockerfile: app/Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - context-data:/app/context
+
+volumes:
+  context-data:

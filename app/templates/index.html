@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Context Loader</title>
+    <style>
+        body { font-family: system-ui; max-width: 600px; margin: 40px auto; padding: 0 20px; }
+        h1 { font-size: 1.4em; }
+        .module { padding: 8px 0; }
+        .module label { cursor: pointer; font-size: 1.1em; }
+        button { margin-top: 16px; padding: 8px 24px; font-size: 1em; cursor: pointer; }
+        .loaded { margin-top: 24px; padding: 16px; background: #f0f7f0; border-radius: 8px; }
+        .loaded h2 { margin-top: 0; font-size: 1.1em; }
+        .loaded ul { margin: 0; padding-left: 20px; }
+        a { color: #0066cc; }
+    </style>
+</head>
+<body>
+    <h1>Context Loader</h1>
+    <form method="post" action="/load">
+        <p>Select modules to load into <code>/context/</code>:</p>
+        {% for mod in modules %}
+        <div class="module">
+            <label>
+                <input type="checkbox" name="modules" value="{{ mod }}"
+                    {{ 'checked' if mod in loaded else '' }}>
+                {{ mod }}
+            </label>
+        </div>
+        {% endfor %}
+        <button type="submit">Load Selected</button>
+    </form>
+
+    {% if loaded %}
+    <div class="loaded">
+        <h2>Currently loaded:</h2>
+        <ul>
+            {% for mod in loaded %}
+            <li><a href="/files/{{ mod }}/">{{ mod }}/</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</body>
+</html>

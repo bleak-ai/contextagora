@@ -1,0 +1,27 @@
+[project]
+name = "context-loader-poc"
+version = "0.1.0"
+description = "Minimal POC for the context module loader system"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "jinja2",
+    "python-multipart",
+]
+
+[project.scripts]
+start = "app.server:main"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["app"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]

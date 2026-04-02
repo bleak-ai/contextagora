@@ -1,0 +1,19 @@
+# Context Loader POC
+
+> Minimal proof-of-concept for the context module loader system.
+
+## App (deployable)
+- [app/server.py](app/server.py) — FastAPI web app serving the module picker UI and load endpoint
+- [app/templates/index.html](app/templates/index.html) — Module picker HTML template
+- [app/Dockerfile](app/Dockerfile) — Container image definition
+- [app/docker-compose.yml](app/docker-compose.yml) — Docker Compose config for local deployment
+
+## Modules (shared registry)
+- [modules/linear/llms.txt](modules/linear/llms.txt) — Linear integration sample module
+- [modules/sqlite/llms.txt](modules/sqlite/llms.txt) — SQLite integration sample module
+
+## Plans
+- [plans/01-filebrowser-quantum.md](plans/01-filebrowser-quantum.md) — Plan to add FileBrowser Quantum for visual file management
+- [plans/02-claude-code-agent.md](plans/02-claude-code-agent.md) — Plan to auto-start Claude Code inside the container
+- [plans/03-varlock-secrets.md](plans/03-varlock-secrets.md) — Plan to add per-module secrets with Varlock
+- [plans/04-cli-cmux.md](plans/04-cli-cmux.md) — Plan for a CLI selector with cmux multi-pane layout
