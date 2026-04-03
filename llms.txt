@@ -23,6 +23,7 @@
 
 ## Guides
 - [docs/guides/infisical-setup.md](docs/guides/infisical-setup.md) — Step-by-step Infisical setup for module secrets
+- [docs/guides/git-module-loading-test.md](docs/guides/git-module-loading-test.md) — Testing GitHub API module loading with a private repo and token
 
 ## Reference
 - [STATUS.md](STATUS.md) — Project overview, architecture, and current state
