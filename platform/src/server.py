@@ -9,7 +9,7 @@ from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 # --- Paths ---
 BASE_DIR = Path(__file__).resolve().parent
 # Local modules directory (fallback when GH_OWNER/GH_REPO are not set)
-MODULES_DIR = Path(os.environ.get("MODULES_DIR", BASE_DIR.parent.parent / "fixtures"))
+MODULES_DIR = Path(os.environ.get("MODULES_DIR", BASE_DIR.parent.parent / "modules"))
 
 # --- GitHub-based module loading ---
 GH_OWNER = os.environ.get("GH_OWNER")  # e.g. "bleak-ai"
@@ -276,6 +276,38 @@ async def api_context():
 async def refresh_modules():
     """Force-refresh the module list from GitHub (bypasses cache)."""
     return {"status": "ok", "modules": list_available_modules(bypass_cache=True)}
+
+
+@app.post("/chat")
+async def chat(prompt: str = Form()):
+    """Run claude -p with the given prompt, streaming the response."""
+
+    def generate():
+        env = {
+            **os.environ,
+            "DISABLE_AUTOUPDATER": "1",
+            "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
+            "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+            "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
+        }
+        proc = subprocess.Popen(
+            ["claude", "-p", prompt, "--continue",
+             "--allowedTools", "Bash(*)", "Read(*)", "Write(*)", "Edit(*)", "Glob(*)", "Grep(*)"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=str(CONTEXT_DIR),
+            env=env,
+            text=True,
+        )
+        for line in proc.stdout:
+            yield line
+        proc.wait()
+        if proc.returncode != 0:
+            stderr = proc.stderr.read()
+            if stderr:
+                yield f"\n[error: {stderr.strip()}]"
+
+    return StreamingResponse(generate(), media_type="text/plain")
 
 
 @app.post("/run")
