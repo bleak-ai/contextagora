@@ -27,6 +27,68 @@ CONTEXT_DIR.mkdir(exist_ok=True)
 # Files in context/ that should survive when modules are reloaded
 PRESERVED_FILES = {"CLAUDE.md"}
 
+# Infisical site URL (EU vs US)
+INFISICAL_SITE_URL = os.environ.get("INFISICAL_SITE_URL", "https://app.infisical.com")
+
+# Varlock Infisical plugin version
+VARLOCK_INFISICAL_PLUGIN = "@varlock/infisical-plugin@0.0.6"
+
+
+def augment_schema(schema_text: str, module_name: str) -> str:
+    """Wrap a module's .env.schema with Infisical plugin config.
+
+    Modules declare only what secrets they need. This function injects the
+    platform-level Infisical connection so varlock can fetch the values.
+    Only empty variable declarations (KEY=) are rewritten to use infisical();
+    variables with existing values (KEY=value) are left as-is.
+    """
+    header_lines = []
+    separator_seen = False
+    body_lines = []
+
+    for line in schema_text.splitlines():
+        if not separator_seen:
+            if line.strip() == "# ---":
+                separator_seen = True
+            header_lines.append(line)
+        else:
+            body_lines.append(line)
+
+    # If no separator found, treat all non-comment lines as body
+    if not separator_seen:
+        body_lines = header_lines
+        header_lines = ["# ---"]
+
+    # Rewrite empty variable declarations: KEY= → KEY=infisical()
+    augmented_body = []
+    for line in body_lines:
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#") and "=" in stripped:
+            key, value = stripped.split("=", 1)
+            if not value:
+                augmented_body.append(f"{key}=infisical()")
+            else:
+                augmented_body.append(line)
+        else:
+            augmented_body.append(line)
+
+    infisical_header = f"""# @import(../../.env.schema)
+# @plugin({VARLOCK_INFISICAL_PLUGIN})
+# @initInfisical(
+#   projectId=$INFISICAL_PROJECT_ID,
+#   environment=$INFISICAL_ENVIRONMENT,
+#   clientId=$INFISICAL_CLIENT_ID,
+#   clientSecret=$INFISICAL_CLIENT_SECRET,
+#   secretPath=/{module_name},
+#   siteUrl={INFISICAL_SITE_URL}
+# )"""
+
+    parts = [infisical_header]
+    parts.extend(header_lines)
+    parts.extend(augmented_body)
+    return "\n".join(parts) + "\n"
+
+
 # --- App setup ---
 app = FastAPI()
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
@@ -37,6 +99,9 @@ def list_modules(directory: Path) -> list[str]:
     return sorted(p.name for p in directory.iterdir() if p.is_dir())
 
 
+INFISICAL_VARS = {"INFISICAL_PROJECT_ID", "INFISICAL_ENVIRONMENT", "INFISICAL_CLIENT_ID", "INFISICAL_CLIENT_SECRET"}
+
+
 def get_secrets_status(directory: Path) -> dict[str, dict[str, str | None]]:
     """Return per-module secret availability with preview using varlock printenv."""
     status = {}
@@ -44,12 +109,14 @@ def get_secrets_status(directory: Path) -> dict[str, dict[str, str | None]]:
         schema_file = directory / mod / ".env.schema"
         if not schema_file.exists():
             continue
-        # Parse schema for declared var names
+        # Parse schema for declared var names (exclude platform-level Infisical vars)
         var_names = []
         for line in schema_file.read_text().splitlines():
             line = line.strip()
             if line and not line.startswith("#"):
-                var_names.append(line.split("=")[0])
+                name = line.split("=")[0]
+                if name not in INFISICAL_VARS:
+                    var_names.append(name)
         # Check each var with varlock printenv
         mod_path = str(directory / mod)
         status[mod] = {}
@@ -101,6 +168,12 @@ async def load(modules: list[str] = Form(default=[])):
             continue
         shutil.copytree(MODULES_DIR / name, CONTEXT_DIR / name)
 
+        # Augment .env.schema with Infisical config if it exists
+        schema_file = CONTEXT_DIR / name / ".env.schema"
+        if schema_file.exists():
+            original = schema_file.read_text()
+            schema_file.write_text(augment_schema(original, name))
+
     # Validate secrets for each loaded module
     for name in modules:
         module_dir = CONTEXT_DIR / name
@@ -112,7 +185,7 @@ async def load(modules: list[str] = Form(default=[])):
             text=True,
         )
         if result.returncode != 0:
-            log.warning("varlock: %s has missing secrets:\n%s", name, result.stderr)
+            log.warning("varlock: %s has missing secrets:\n%s\n%s", name, result.stderr, result.stdout)
         else:
             log.info("varlock: %s secrets validated", name)
 

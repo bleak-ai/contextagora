@@ -51,6 +51,6 @@ docs/                 ← documentation
 
 - FileBrowser Quantum integration for visual file browsing
 - Claude Code auto-start inside the container
-- Per-module secrets via Varlock
+- Per-module secrets via Varlock + Infisical (in progress — `.env.schema` files configured, needs Infisical project setup)
 - CLI selector with cmux multi-pane layout
 - Module manifest schema (`module.yaml`) with validation

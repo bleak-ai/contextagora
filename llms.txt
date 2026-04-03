@@ -21,5 +21,8 @@
 - [docs/plans/06-git-module-loading.md](docs/plans/06-git-module-loading.md) — Plan: Git-based module loading from remote repos
 - [docs/plans/07-demo-modules-repo.md](docs/plans/07-demo-modules-repo.md) — Plan: Standalone demo modules repo
 
+## Guides
+- [docs/guides/infisical-setup.md](docs/guides/infisical-setup.md) — Step-by-step Infisical setup for module secrets
+
 ## Reference
 - [STATUS.md](STATUS.md) — Project overview, architecture, and current state
