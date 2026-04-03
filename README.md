@@ -22,7 +22,7 @@ docker compose up --build
 
 Open http://localhost:8080
 
-The container includes Python 3.12, Node.js 22, Claude Code, Varlock, and Git. It mounts `fixtures/` as the modules directory and serves the app on port 8080.
+The container includes Python 3.12, Node.js 22, Claude Code, Varlock, and Git. Modules are loaded from GitHub at runtime via the `GH_OWNER`/`GH_REPO`/`GH_TOKEN` env vars.
 
 ## Test with Claude Code
 

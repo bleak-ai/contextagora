@@ -57,9 +57,9 @@ The Dockerfile installs:
 - Application dependencies from `pyproject.toml` / `uv.lock`
 - Application source from `platform/src/`
 
-## Volumes
+## Modules
 
-The `fixtures/` directory from the project root is mounted into the container at `/app/fixtures`, so changes to fixtures on the host are reflected immediately without rebuilding.
+Modules are loaded at runtime from a GitHub repo via the `GH_OWNER`, `GH_REPO`, and `GH_TOKEN` env vars. See `docs/guides/git-module-loading-test.md` for setup.
 
 ## Common commands
 

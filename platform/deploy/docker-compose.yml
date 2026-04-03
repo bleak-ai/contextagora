@@ -22,5 +22,3 @@ services:
       - GH_OWNER=${GH_OWNER:-}
       - GH_REPO=${GH_REPO:-}
       - GH_TOKEN=${GH_TOKEN:-}
-    volumes:
-      - ../../fixtures:/app/fixtures
