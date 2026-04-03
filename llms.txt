@@ -17,6 +17,9 @@
 - [docs/plans/02-claude-code-agent.md](docs/plans/02-claude-code-agent.md) — Plan: Claude Code agent
 - [docs/plans/03-varlock-secrets.md](docs/plans/03-varlock-secrets.md) — Plan: Varlock secrets
 - [docs/plans/04-cli-cmux.md](docs/plans/04-cli-cmux.md) — Plan: CLI with cmux
+- [docs/plans/05-infisical-integration.md](docs/plans/05-infisical-integration.md) — Plan: Infisical secret management integration
+- [docs/plans/06-git-module-loading.md](docs/plans/06-git-module-loading.md) — Plan: Git-based module loading from remote repos
+- [docs/plans/07-demo-modules-repo.md](docs/plans/07-demo-modules-repo.md) — Plan: Standalone demo modules repo
 
 ## Reference
 - [STATUS.md](STATUS.md) — Project overview, architecture, and current state
