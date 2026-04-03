@@ -17,9 +17,9 @@ The simplest path. Users pick modules through the web UI, files land on disk, th
 │  ┌──────────────┐     ┌───────────────────────┐ │
 │  │  File Browser │     │  /context/            │ │
 │  │  (Web UI)     │────>│    linear/            │ │
-│  │              │     │    sqlite/            │ │
+│  │              │     │    supabase/            │ │
 │  │  [x] linear  │     │    llms.txt           │ │
-│  │  [x] sqlite  │     └───────────┬───────────┘ │
+│  │  [x] supabase  │     └───────────┬───────────┘ │
 │  │  [ ] slack   │                 │             │
 │  │  [ ] jira    │                 │ reads       │
 │  └──────────────┘                 │             │
@@ -118,7 +118,7 @@ Both systems exist but don't talk to each other. The web UI manages files, the M
 │  │  (Web UI)     │               │   /context/       │   │
 │  └──────────────┘                │                   │   │
 │                                  │    linear/        │   │
-│  ┌──────────────┐                │    sqlite/        │   │
+│  ┌──────────────┐                │    supabase/        │   │
 │  │  MCP Server  │──── writes ──>│    jira/          │   │
 │  │              │               │                   │   │
 │  └──────┬───────┘                └────────┬──────────┘   │
@@ -217,7 +217,7 @@ File Browser handles initial setup (human picks modules). MCP server handles age
 │  │  File Browser │     │  /context/                       │   │
 │  │  (Web UI)     │────>│    .modules.json  <── state ──┐ │   │
 │  │              │     │    linear/                     │ │   │
-│  │  Picks       │     │    sqlite/                     │ │   │
+│  │  Picks       │     │    supabase/                     │ │   │
 │  │  modules     │     └──────────────┬───────────────────┘   │
 │  │  at start    │                    │                   │   │
 │  └──────────────┘                    │ reads             │   │
@@ -241,7 +241,7 @@ File Browser handles initial setup (human picks modules). MCP server handles age
 {
   "loaded": {
     "linear": { "loaded_at": "2026-04-01T10:00:00Z", "loaded_by": "user" },
-    "sqlite": { "loaded_at": "2026-04-01T10:00:00Z", "loaded_by": "user" }
+    "supabase": { "loaded_at": "2026-04-01T10:00:00Z", "loaded_by": "user" }
   },
   "available": ["jira", "slack", "stripe", "notion"]
 }
@@ -284,7 +284,7 @@ Drop File Browser entirely. Build a custom web UI (chat + module picker) that ta
 │  │  │  Module Picker   │  │  Chat Interface             │ │  │
 │  │  │                 │  │                             │ │  │
 │  │  │  [x] linear     │  │  User: check SUP-123       │ │  │
-│  │  │  [x] sqlite     │  │  Agent: loading linear...  │ │  │
+│  │  │  [x] supabase     │  │  Agent: loading linear...  │ │  │
 │  │  │  [ ] slack      │  │  Agent: the ticket says... │ │  │
 │  │  │  [+] Add module │  │                             │ │  │
 │  │  └────────┬────────┘  └──────────────┬──────────────┘ │  │

@@ -46,7 +46,7 @@ RUN apt-get install -y ttyd
 The following modules are loaded in /app/context/:
 
 - linear/ — see linear/llms.txt for navigation
-- sqlite/ — see sqlite/llms.txt for navigation
+- supabase/ — see supabase/llms.txt for navigation
 
 Read the llms.txt in each module before answering questions.
 ```
@@ -66,7 +66,7 @@ Claude Code starts, sees `/app/context/CLAUDE.md`, reads modules.
 1. Load modules via picker
 2. Exec into container, run `claude`
 3. Ask: "What modules are available?" — agent should list them
-4. Ask: "Show me the SQLite schema" — agent should read from context
+4. Ask: "Show me the Supabase schema" — agent should read from context
 
 ## Out of scope
 

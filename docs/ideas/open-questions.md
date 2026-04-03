@@ -4,7 +4,7 @@
   - Who can create/publish modules? Is there an approval process or can any team member push to
   the registry?                                                                                  
   - How do you handle module dependencies? (e.g., a "support-workflow" task module that requires 
-  both linear and sqlite modules)                                                               
+  both linear and supabase modules)                                                               
                                                                                                  
   Container Management                                  
   - What's the container lifecycle? Idle timeout? Max lifetime? How do you prevent resource      

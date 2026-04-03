@@ -1,0 +1,6 @@
+# Supabase Module
+
+> Integration module for Supabase (Postgres) database operations via REST API.
+
+- [info.md](info.md) — Module metadata and description
+- [docs/queries.md](docs/queries.md) — Common queries, schema, and API usage

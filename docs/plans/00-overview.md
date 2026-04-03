@@ -4,7 +4,7 @@
 
 Context Loader is a system that gives AI coding agents (Claude Code, opencode, etc.) the right context for a task — documentation, integration guides, API references — without the user having to manually copy-paste or point the agent at random files.
 
-Think of it as a **module loader for AI context**. A user picks what they're working on (e.g. "Linear integration" + "SQLite queries"), and the system assembles the relevant docs into a `/context/` directory the agent can read natively.
+Think of it as a **module loader for AI context**. A user picks what they're working on (e.g. "Linear integration" + "Supabase queries"), and the system assembles the relevant docs into a `/context/` directory the agent can read natively.
 
 ## What the POC Does Today
 

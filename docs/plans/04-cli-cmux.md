@@ -78,11 +78,11 @@ cmux send-key Return
 │                      │                      │
 │  Select modules:     │  > What modules are  │
 │  [x] linear          │    available?         │
-│  [x] sqlite          │                      │
+│  [x] supabase          │                      │
 │  [ ] slack           │  I can see linear/   │
-│                      │  and sqlite/ in      │
+│                      │  and supabase/ in      │
 │  Loaded: [linear,    │  /context/...        │
-│           sqlite]    │                      │
+│           supabase]    │                      │
 └──────────────────────┴──────────────────────┘
 ```
 

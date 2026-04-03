@@ -28,7 +28,7 @@ File Browser handles initial setup (human picks modules). MCP server handles age
 │  │  File Browser │     │  /context/                       │   │
 │  │  (Web UI)     │────>│    .modules.json  <── state ──┐ │   │
 │  │              │     │    linear/                     │ │   │
-│  │  Picks       │     │    sqlite/                     │ │   │
+│  │  Picks       │     │    supabase/                     │ │   │
 │  │  modules     │     └──────────────┬───────────────────┘   │
 │  │  at start    │                    │                   │   │
 │  └──────────────┘                    │ reads             │   │
@@ -63,7 +63,7 @@ Lives at `/context/.modules.json`. Single source of truth for what's loaded and 
       "version": "1.2.0",
       "has_secrets": true
     },
-    "sqlite": {
+    "supabase": {
       "loaded_at": "2026-04-01T10:00:00Z",
       "loaded_by": "user",
       "version": "1.0.0",
@@ -103,7 +103,7 @@ The MCP server runs inside each container and exposes tools to the coding agent.
 {
   "loaded": [
     { "name": "linear", "type": "integration", "loaded_by": "user", "doc_count": 12 },
-    { "name": "sqlite", "type": "integration", "loaded_by": "user", "doc_count": 8 }
+    { "name": "supabase", "type": "integration", "loaded_by": "user", "doc_count": 8 }
   ],
   "available": [
     { "name": "jira", "type": "integration", "summary": "Jira project management — tickets, boards, sprints" },
@@ -174,7 +174,7 @@ When the team needs centralized secret management, add Infisical as the storage 
 ```bash
 # .env.schema with Infisical backend
 # @plugin(@varlock/infisical-plugin)
-# @initOp(projectId=$INFISICAL_PROJECT, env=$CONTEXT_ENV, path=/modules/sqlite)
+# @initOp(projectId=$INFISICAL_PROJECT, env=$CONTEXT_ENV, path=/modules/supabase)
 # ---
 # @required @sensitive @type=string
 DB_PATH=

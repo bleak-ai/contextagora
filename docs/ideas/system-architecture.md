@@ -24,8 +24,8 @@
 | | Agent     | |    | | Agent     |     |    | | Agent     |      |
 | +-----------+ |    | +-----------+     |    | +-----------+      |
 | | /context  | |    | | /context  |     |    | | /context  |      |
-| |  linear/  | |    | |  sqlite/  |     |    | |  linear/  |      |
-| |  sqlite/  | |    | |  jira/    |     |    | |  slack/   |      |
+| |  linear/  | |    | |  supabase/  |     |    | |  linear/  |      |
+| |  supabase/  | |    | |  jira/    |     |    | |  slack/   |      |
 | +-----------+ |    | +-----------+     |    | +-----------+      |
 +---------------+    +-------------------+    +--------------------+
      :8081                :8082                     :8083
@@ -55,9 +55,9 @@ Each user gets a Docker container with a web-based file manager (File Browser). 
 │  ┌──────────────┐     ┌───────────────────────┐ │
 │  │  File Browser │     │  /context/            │ │
 │  │  (Web UI)     │────>│    linear/            │ │
-│  │              │     │    sqlite/            │ │
+│  │              │     │    supabase/            │ │
 │  │  [x] linear  │     │    llms.txt           │ │
-│  │  [x] sqlite  │     └───────────┬───────────┘ │
+│  │  [x] supabase  │     └───────────┬───────────┘ │
 │  │  [ ] slack   │                 │             │
 │  │  [ ] jira    │                 │ reads       │
 │  └──────────────┘                 │             │
@@ -149,7 +149,7 @@ ctx start -i                     # force interactive TUI
 Each module uses Varlock's `.env.schema` as its secret manifest.
 
 ```
-sqlite-module/
+supabase-module/
   .env.schema       # declares what secrets the module needs
   .env              # local values (git-ignored)
   docs/

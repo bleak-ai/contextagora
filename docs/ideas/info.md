@@ -34,9 +34,9 @@ When enabled this is loaded as simple folders and claude code has access to it. 
 Example:
 New Conversation:
 
-- User chooses "LINEAR" and "sqlite"
+- User chooses "LINEAR" and "supabase"
 
-- Now opencode / claude have two integrations loaded, one for sqlite and one for linear it looks like this.
+- Now opencode / claude have two integrations loaded, one for supabase and one for linear it looks like this.
 
 
 context (what the AI can see)
@@ -44,12 +44,12 @@ context (what the AI can see)
 /context
     llms.txt = references to each file inside context
     info.md = general idea of what the user / organisation is
-    sqlite-module/ (loads secret env for sqlite)
+    supabase-module/ (loads secret env for supabase)
     linear-module/ (loads secret env for linear)
 
 
 - Then when the user Ask a question. = Take a look at the ticket from linear SUP-123 and how to solve it. 
 - The Agent sees that in context there is something for linear-module, it loads it and how to access, it has the env variables for it.
 - Then the agent says something about to change a variable in a user. The agent looks again in the context, it sees that in 
-  the sqlite there is a db called users, it has to do an operation. To do so it creates a script in python with uv run to 
+  the supabase there is a db called users, it has to do an operation. To do so it creates a script in python with uv run to 
   execute it then it performs the operation and returns the info to the user

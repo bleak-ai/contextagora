@@ -6,7 +6,7 @@
   Without MCP (current File Browser approach)                                                    
                                                                                                 
   User picks modules via web UI                                                                  
-    → Files land in /context/linear/, /context/sqlite/  
+    → Files land in /context/linear/, /context/supabase/  
     → Agent reads files directly from disk                                                       
     → Agent has no way to load more modules mid-conversation                                     
     → Agent doesn't know what other modules exist                                                
@@ -22,7 +22,7 @@
     → Agent can call tools like:                                                                 
    
        list_available_modules()                                                                  
-       → ["linear", "sqlite", "jira", "slack", "stripe"]
+       → ["linear", "supabase", "jira", "slack", "stripe"]
                                                                                                  
        load_module("jira")                              
        → pulls jira module into /context, injects secrets, returns summary                       

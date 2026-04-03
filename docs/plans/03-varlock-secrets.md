@@ -21,8 +21,8 @@ Add per-module secret management using Varlock's `.env.schema` format. When a mo
 ```
 modules/linear/.env.schema  — declares LINEAR_API_KEY
 modules/linear/.env         — local test value (git-ignored)
-modules/sqlite/.env.schema  — declares DB_PATH, DB_USER
-modules/sqlite/.env         — local test value (git-ignored)
+modules/supabase/.env.schema  — declares DB_PATH, DB_USER
+modules/supabase/.env         — local test value (git-ignored)
 Dockerfile                  — install varlock
 app.py                      — validate secrets on load, add /run endpoint
 .gitignore                  — ignore .env files
@@ -55,7 +55,7 @@ subprocess.run(["varlock", "check"], cwd=f"context/{module_name}")
 On `POST /run`:
 ```python
 # Run a command with secrets injected
-# e.g. body: {"module": "sqlite", "cmd": "uv run script.py"}
+# e.g. body: {"module": "supabase", "cmd": "uv run script.py"}
 subprocess.run(["varlock", "run", "--", *cmd], cwd=f"context/{module_name}")
 ```
 
