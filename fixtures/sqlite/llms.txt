@@ -1,6 +1,0 @@
-# SQLite Module
-
-> Integration module for local SQLite database operations.
-
-- [info.md](info.md) — Module metadata and description
-- [docs/queries.md](docs/queries.md) — Common SQL queries and database schema
