@@ -5,8 +5,11 @@ services:
       dockerfile: platform/deploy/Dockerfile
     ports:
       - "8080:8080"
+    environment:
+      - ANTHROPIC_AUTH_TOKEN=${ANTHROPIC_AUTH_TOKEN}
+      - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL}
+      - ANTHROPIC_DEFAULT_OPUS_MODEL=glm-5.1
+      - ANTHROPIC_DEFAULT_SONNET_MODEL=glm-5.1
+      - ANTHROPIC_DEFAULT_HAIKU_MODEL=glm-5.1-flash
     volumes:
-      - context-data:/app/src/context
-
-volumes:
-  context-data:
+      - ../../fixtures:/app/fixtures

@@ -12,12 +12,17 @@ Open http://localhost:8080
 
 ## Run with Docker
 
+Set your Anthropic API key and run:
+
 ```bash
+export ANTHROPIC_AUTH_TOKEN=your-key-here
 cd platform/deploy
 docker compose up --build
 ```
 
 Open http://localhost:8080
+
+The container includes Python 3.12, Node.js 22, Claude Code, Varlock, and Git. It mounts `fixtures/` as the modules directory and serves the app on port 8080.
 
 ## Test with Claude Code
 
