@@ -1,0 +1,9 @@
+*.env
+.env.*
+!*.env.schema
+.envrc
+.venv/
+__pycache__/
+*.egg-info/
+.git/
+platform/src/context/
