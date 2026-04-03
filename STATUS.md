@@ -10,13 +10,13 @@ Single FastAPI app with a web UI. User checks modules from a list, clicks Load, 
 
 ## How it works
 
-1. Modules are structured folders with `info.md`, `llms.txt`, and `docs/`. In production they'll live in a separate repo. For local dev, sample modules are in `fixtures/`.
+1. Modules are structured folders with a single `info.md` file containing all documentation. In production they'll live in a separate repo. For local dev, sample modules are in `fixtures/`.
 2. `platform/src/server.py` serves a picker UI at `:8080`. Three endpoints:
    - `GET /` — renders checkbox list of available modules, shows which are loaded
    - `POST /load` — clears context, copies selected modules, generates `CLAUDE.md`
    - `GET /api/context` — returns loaded module names as JSON
 3. `platform/src/context/` is the runtime output directory (gitignored). This is what agents read from.
-4. On load, a `CLAUDE.md` is generated inside `context/` listing all loaded modules with their type, description, and `llms.txt` path. The agent starts in this directory.
+4. A static `CLAUDE.md` lives in `context/` instructing the agent to only use files within that directory. The agent starts here.
 5. `MODULES_DIR` is configurable via env var (defaults to `../../fixtures` relative to `src/`).
 
 ## Project structure
@@ -34,8 +34,8 @@ platform/             ← everything that makes the app work
     Dockerfile
     docker-compose.yml
 fixtures/             ← sample modules for local dev/testing
-  linear/
-  sqlite/
+  linear/             ← Linear integration module (info.md)
+  supabase/           ← Supabase integration module (info.md)
 docs/                 ← documentation
   ideas/              ← early design explorations
   plans/              ← enhancement plans

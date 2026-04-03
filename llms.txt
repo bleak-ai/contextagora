@@ -9,8 +9,8 @@
 - [platform/deploy/docker-compose.yml](platform/deploy/docker-compose.yml) — Docker Compose config
 
 ## Fixtures (sample modules for dev/testing)
-- [fixtures/linear/llms.txt](fixtures/linear/llms.txt) — Linear integration sample module
-- [fixtures/sqlite/llms.txt](fixtures/sqlite/llms.txt) — SQLite integration sample module
+- [fixtures/linear/info.md](fixtures/linear/info.md) — Linear integration sample module
+- [fixtures/supabase/info.md](fixtures/supabase/info.md) — Supabase integration sample module
 
 ## Docs
 - [docs/plans/01-filebrowser-quantum.md](docs/plans/01-filebrowser-quantum.md) — Plan: FileBrowser Quantum
