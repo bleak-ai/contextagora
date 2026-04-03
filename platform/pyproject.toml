@@ -8,6 +8,7 @@ dependencies = [
     "uvicorn",
     "jinja2",
     "python-multipart",
+    "httpx",
 ]
 
 [project.scripts]

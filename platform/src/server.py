@@ -1,10 +1,13 @@
+import base64
 import logging
 import os
 import shlex
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
+import httpx
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -13,12 +16,66 @@ from fastapi.templating import Jinja2Templates
 log = logging.getLogger(__name__)
 
 # --- Paths ---
-# Where the app source lives
 BASE_DIR = Path(__file__).resolve().parent
-# Where available modules are read from (the "registry")
-# Set MODULES_DIR to point at your team's module repo/directory.
-# Defaults to local fixtures/ for development.
+# Local modules directory (fallback when GH_OWNER/GH_REPO are not set)
 MODULES_DIR = Path(os.environ.get("MODULES_DIR", BASE_DIR.parent.parent / "fixtures"))
+
+# --- GitHub-based module loading ---
+GH_OWNER = os.environ.get("GH_OWNER")  # e.g. "bleak-ai"
+GH_REPO = os.environ.get("GH_REPO")  # e.g. "context-loader-module-demo"
+GH_TOKEN = os.environ.get("GH_TOKEN")
+
+# Cache for remote module list (avoids hitting GitHub API on every page load)
+_modules_cache: list[str] = []
+_modules_cache_ts: float = 0
+_CACHE_TTL = 60  # seconds
+
+
+def _gh_headers() -> dict[str, str]:
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    if GH_TOKEN:
+        headers["Authorization"] = f"Bearer {GH_TOKEN}"
+    return headers
+
+
+def _gh_api(path: str) -> list | dict:
+    """Call the GitHub API and return parsed JSON."""
+    url = f"https://api.github.com/repos/{GH_OWNER}/{GH_REPO}/contents/{path}"
+    resp = httpx.get(url, headers=_gh_headers(), timeout=15)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def list_remote_modules(*, bypass_cache: bool = False) -> list[str]:
+    """List module names (top-level directories) from the GitHub repo."""
+    global _modules_cache, _modules_cache_ts
+    if not GH_OWNER:
+        return []
+    if not bypass_cache and _modules_cache and (time.monotonic() - _modules_cache_ts) < _CACHE_TTL:
+        return _modules_cache
+    items = _gh_api("")
+    _modules_cache = sorted(item["name"] for item in items if item["type"] == "dir")
+    _modules_cache_ts = time.monotonic()
+    return _modules_cache
+
+
+_MAX_DOWNLOAD_DEPTH = 10
+
+
+def download_module(name: str, dest: Path, *, _depth: int = 0) -> None:
+    """Download a module directory from GitHub into dest."""
+    if _depth > _MAX_DOWNLOAD_DEPTH:
+        raise ValueError(f"Module directory too deeply nested (>{_MAX_DOWNLOAD_DEPTH} levels)")
+    dest.mkdir(parents=True, exist_ok=True)
+    items = _gh_api(name)
+    for item in items:
+        target = dest / item["name"]
+        if item["type"] == "file":
+            # Use the API content endpoint (not download_url) to avoid leaking tokens
+            content_resp = _gh_api(f"{name}/{item['name']}")
+            target.write_bytes(base64.b64decode(content_resp["content"]))
+        elif item["type"] == "dir":
+            download_module(f"{name}/{item['name']}", target, _depth=_depth + 1)
 
 # Where selected modules get copied to (the agent's workspace)
 CONTEXT_DIR = BASE_DIR / "context"
@@ -137,6 +194,17 @@ def get_secrets_status(directory: Path) -> dict[str, dict[str, str | None]]:
 # --- Routes ---
 
 
+def list_available_modules(*, bypass_cache: bool = False) -> list[str]:
+    """List available modules from GitHub (if configured) or local directory."""
+    if GH_OWNER:
+        try:
+            return list_remote_modules(bypass_cache=bypass_cache)
+        except httpx.HTTPError as exc:
+            log.error("Failed to list modules from GitHub: %s", exc)
+            return _modules_cache if _modules_cache else []
+    return list_modules(MODULES_DIR)
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     """Render the module picker UI."""
@@ -144,7 +212,7 @@ async def index(request: Request):
         request=request,
         name="index.html",
         context={
-            "modules": list_modules(MODULES_DIR),
+            "modules": list_available_modules(),
             "loaded": list_modules(CONTEXT_DIR),
             "secrets": get_secrets_status(CONTEXT_DIR),
         },
@@ -161,12 +229,18 @@ async def load(modules: list[str] = Form(default=[])):
         elif p.name not in PRESERVED_FILES:
             p.unlink()
 
-    # Only copy modules that actually exist in the registry (prevents path traversal)
-    available = set(list_modules(MODULES_DIR))
+    available = set(list_available_modules())
     for name in modules:
         if name not in available:
             continue
-        shutil.copytree(MODULES_DIR / name, CONTEXT_DIR / name)
+        try:
+            if GH_OWNER:
+                download_module(name, CONTEXT_DIR / name)
+            else:
+                shutil.copytree(MODULES_DIR / name, CONTEXT_DIR / name)
+        except (httpx.HTTPError, ValueError) as exc:
+            log.error("Failed to download module '%s': %s", name, exc)
+            continue
 
         # Augment .env.schema with Infisical config if it exists
         schema_file = CONTEXT_DIR / name / ".env.schema"
@@ -196,6 +270,12 @@ async def load(modules: list[str] = Form(default=[])):
 async def api_context():
     """Return the list of currently loaded modules as JSON."""
     return {"loaded_modules": list_modules(CONTEXT_DIR)}
+
+
+@app.post("/refresh-modules")
+async def refresh_modules():
+    """Force-refresh the module list from GitHub (bypasses cache)."""
+    return {"status": "ok", "modules": list_available_modules(bypass_cache=True)}
 
 
 @app.post("/run")
