@@ -11,6 +11,7 @@
         .loaded { margin-top: 24px; padding: 16px; background: #f0f7f0; border-radius: 8px; }
         .loaded h2 { margin-top: 0; font-size: 1.1em; }
         .loaded ul { margin: 0; padding-left: 20px; }
+        .agent-cmd { margin-top: 16px; padding: 12px; background: #1e1e1e; color: #d4d4d4; border-radius: 6px; font-family: monospace; font-size: 0.9em; }
         a { color: #0066cc; }
     </style>
 </head>
@@ -38,6 +39,10 @@
             <li><a href="/files/{{ mod }}/">{{ mod }}/</a></li>
             {% endfor %}
         </ul>
+        <div class="agent-cmd">
+            <strong>Start agent:</strong><br>
+            cd platform/src/context && claude
+        </div>
     </div>
     {% endif %}
 </body>

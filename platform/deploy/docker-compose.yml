@@ -2,7 +2,7 @@ services:
   context-loader:
     build:
       context: ../..
-      dockerfile: product/deploy/Dockerfile
+      dockerfile: platform/deploy/Dockerfile
     ports:
       - "8080:8080"
     volumes:

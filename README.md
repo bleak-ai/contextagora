@@ -3,7 +3,7 @@
 ## Run locally
 
 ```bash
-cd product
+cd platform
 uv sync
 uv run start
 ```
@@ -13,7 +13,7 @@ Open http://localhost:8080
 ## Run with Docker
 
 ```bash
-cd product/deploy
+cd platform/deploy
 docker compose up --build
 ```
 

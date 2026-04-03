@@ -2,11 +2,11 @@
 
 > System for selecting and loading context modules into a coding agent's workspace.
 
-## Product
-- [product/src/server.py](product/src/server.py) — FastAPI web app serving the module picker UI and load endpoint
-- [product/src/templates/index.html](product/src/templates/index.html) — Module picker HTML template
-- [product/deploy/Dockerfile](product/deploy/Dockerfile) — Container image definition
-- [product/deploy/docker-compose.yml](product/deploy/docker-compose.yml) — Docker Compose config
+## Platform
+- [platform/src/server.py](platform/src/server.py) — FastAPI web app serving the module picker UI and load endpoint
+- [platform/src/templates/index.html](platform/src/templates/index.html) — Module picker HTML template
+- [platform/deploy/Dockerfile](platform/deploy/Dockerfile) — Container image definition
+- [platform/deploy/docker-compose.yml](platform/deploy/docker-compose.yml) — Docker Compose config
 
 ## Fixtures (sample modules for dev/testing)
 - [fixtures/linear/llms.txt](fixtures/linear/llms.txt) — Linear integration sample module
