@@ -6,18 +6,37 @@ A system that lets users select "context modules" (curated docs, configs, API re
 
 ## Current state: Minimal POC
 
-Single FastAPI app with a web UI. User checks modules from a list, clicks Load, modules get copied to `platform/src/context/`. A `CLAUDE.md` is auto-generated listing loaded modules so the agent knows what's available.
+Single FastAPI app with a web UI. User checks modules from a list, clicks Load, modules get downloaded to `platform/src/context/`. A `CLAUDE.md` is auto-generated listing loaded modules so the agent knows what's available.
 
 ## How it works
 
-1. Modules are structured folders with a single `info.md` file containing all documentation. In production they'll live in a separate repo. For local dev, sample modules are in `fixtures/`.
-2. `platform/src/server.py` serves a picker UI at `:8080`. Three endpoints:
-   - `GET /` — renders checkbox list of available modules, shows which are loaded
-   - `POST /load` — clears context, copies selected modules, generates `CLAUDE.md`
+1. Modules are structured folders with a single `info.md` file containing all documentation. They live in a separate GitHub repo (e.g. `bleak-ai/context-loader-module-demo`).
+2. `platform/src/server.py` serves a picker UI at `:8080`. Endpoints:
+   - `GET /` — renders checkbox list of available modules (fetched from GitHub), shows which are loaded
+   - `POST /load` — clears context, downloads selected modules from GitHub, generates `CLAUDE.md`
    - `GET /api/context` — returns loaded module names as JSON
+   - `POST /refresh-modules` — force-refreshes the module list from GitHub (bypasses cache)
 3. `platform/src/context/` is the runtime output directory (gitignored). This is what agents read from.
 4. A static `CLAUDE.md` lives in `context/` instructing the agent to only use files within that directory. The agent starts here.
-5. `MODULES_DIR` is configurable via env var (defaults to `../../fixtures` relative to `src/`).
+5. Module source is configured via `GH_OWNER` and `GH_REPO` env vars. When not set, falls back to a local `MODULES_DIR` directory.
+
+## Module loading (GitHub API)
+
+Modules are listed and downloaded on demand via the GitHub Contents API. No git clone at startup — the app calls GitHub when the UI loads and downloads only the modules the user selects.
+
+- Module list is cached for 60s to avoid GitHub API rate limits
+- `POST /refresh-modules` bypasses the cache to pick up newly added modules
+- Auth via `GH_TOKEN` (fine-grained PAT with Contents read-only)
+
+### Configuration
+
+GitHub module loading is configured via env vars (`.envrc` for local dev, `platform/deploy/.env` for Docker):
+
+```
+GH_OWNER=bleak-ai
+GH_REPO=context-loader-module-demo
+GH_TOKEN=github_pat_...
+```
 
 ## Secret management
 
@@ -32,7 +51,7 @@ Module secrets (API keys, credentials) are managed via **Infisical** and resolve
    ```
 2. When a module is loaded via the UI, `server.py` augments its `.env.schema` in `context/` — prepending the `@varlock/infisical-plugin` config, `@initInfisical(...)` with platform credentials, and rewriting `KEY=` → `KEY=infisical()`.
 3. Varlock reads the augmented schema, connects to Infisical using bootstrap credentials (passed as container env vars), and fetches the secret values.
-4. The original module `.env.schema` in `fixtures/` stays clean and portable.
+4. The original module `.env.schema` in the remote repo stays clean and portable.
 
 ### Key files
 
@@ -73,18 +92,14 @@ platform/             ← everything that makes the app work
   deploy/             ← deployment config
     Dockerfile
     docker-compose.yml
-fixtures/             ← sample modules for local dev/testing
-  linear/             ← Linear integration module (info.md, .env.schema)
-  supabase/           ← Supabase integration module (info.md, .env.schema)
 docs/                 ← documentation
-  guides/             ← setup guides (Infisical, etc.)
-  ideas/              ← early design explorations
+  guides/             ← setup guides (Infisical, GitHub module loading)
   plans/              ← enhancement plans
 ```
 
 ## Run
 
-- Local: `cd platform && uv sync && uv run start` (requires Infisical env vars in `.envrc`)
+- Local: `cd platform && uv sync && uv run start` (requires GitHub + Infisical env vars in `.envrc`)
 - Docker: `cd platform/deploy && docker compose up --build` (requires `.env` with credentials)
 - Start agent: `cd platform/src/context && claude`
 
