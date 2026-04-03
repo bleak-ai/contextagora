@@ -2,3 +2,7 @@ platform/src/context/
 platform/.venv/
 __pycache__/
 *.egg-info/
+
+
+*.env
+.envrc

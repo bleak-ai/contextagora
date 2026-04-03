@@ -1,6 +1,0 @@
-# Linear Module
-
-> Integration module for interacting with Linear project management.
-
-- [info.md](info.md) — Module metadata and description
-- [docs/api-reference.md](docs/api-reference.md) — Linear API endpoints and usage examples
