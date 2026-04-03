@@ -10,12 +10,9 @@
 
 ## Docs
 - [docs/plans/01-filebrowser-quantum.md](docs/plans/01-filebrowser-quantum.md) — Plan: FileBrowser Quantum
-- [docs/plans/02-claude-code-agent.md](docs/plans/02-claude-code-agent.md) — Plan: Claude Code agent
-- [docs/plans/03-varlock-secrets.md](docs/plans/03-varlock-secrets.md) — Plan: Varlock secrets
 - [docs/plans/04-cli-cmux.md](docs/plans/04-cli-cmux.md) — Plan: CLI with cmux
-- [docs/plans/05-infisical-integration.md](docs/plans/05-infisical-integration.md) — Plan: Infisical secret management integration
-- [docs/plans/06-git-module-loading.md](docs/plans/06-git-module-loading.md) — Plan: Git-based module loading from remote repos
-- [docs/plans/07-demo-modules-repo.md](docs/plans/07-demo-modules-repo.md) — Plan: Standalone demo modules repo
+- [docs/plans/08-module-management-html.md](docs/plans/08-module-management-html.md) — Plan: Module management UI with HTML + Jinja2 + htmx
+- [docs/plans/09-module-management-react.md](docs/plans/09-module-management-react.md) — Plan: Module management UI with React SPA
 
 ## Guides
 - [docs/guides/infisical-setup.md](docs/guides/infisical-setup.md) — Step-by-step Infisical setup for module secrets
