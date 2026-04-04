@@ -1,8 +1,8 @@
 <div id="module-registry">
     <div class="flex justify-between items-center mb-4">
-        <h2 class="text-lg font-semibold">Module Registry</h2>
+        <h2 class="text-lg font-semibold text-white">Module Registry</h2>
         <button hx-get="/registry/create" hx-target="#registry-form" hx-swap="innerHTML"
-                class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+                class="px-3 py-1.5 bg-accent text-accent-t font-medium rounded text-sm hover:bg-accent-h">
             + New Module
         </button>
     </div>
@@ -10,19 +10,19 @@
     {% if modules %}
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {% for mod in modules %}
-        <div class="border rounded-lg p-4 bg-white">
-            <div class="font-medium">{{ mod }}</div>
+        <div class="border border-border rounded-lg p-4 bg-bg-raised">
+            <div class="font-medium text-text">{{ mod }}</div>
             <div class="mt-3 flex gap-3">
                 <button hx-get="/registry/{{ mod }}/edit" hx-target="#registry-form" hx-swap="innerHTML"
-                        class="text-sm text-blue-600 hover:underline">Edit</button>
+                        class="text-sm text-accent hover:underline">Edit</button>
                 <button hx-post="/registry/{{ mod }}/delete" hx-target="#module-registry" hx-swap="outerHTML"
                         hx-confirm="Delete module '{{ mod }}'?"
-                        class="text-sm text-red-600 hover:underline">Delete</button>
+                        class="text-sm text-danger hover:underline">Delete</button>
             </div>
         </div>
         {% endfor %}
     </div>
     {% else %}
-    <p class="text-sm text-gray-500">No modules found in the source repository.</p>
+    <p class="text-sm text-text-muted">No modules found in the source repository.</p>
     {% endif %}
 </div>

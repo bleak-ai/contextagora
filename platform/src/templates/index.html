@@ -4,19 +4,57 @@
     <title>Context Loader</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <style>
+    :root {
+        --bg:            #111111;
+        --bg-raised:     #1a1a1a;
+        --bg-input:      #151515;
+        --border:        #2a2a2a;
+        --text:          #e5e5e5;
+        --text-secondary:#9a9a9a;
+        --text-muted:    #666666;
+        --accent:        #e2a93b;
+        --accent-hover:  #f0c060;
+        --accent-text:   #111111;
+        --danger:        #ef6b6b;
+        --success:       #6bcf8e;
+    }
+    </style>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    bg:           'var(--bg)',
+                    'bg-raised':  'var(--bg-raised)',
+                    'bg-input':   'var(--bg-input)',
+                    border:       'var(--border)',
+                    text:         'var(--text)',
+                    'text-sec':   'var(--text-secondary)',
+                    'text-muted': 'var(--text-muted)',
+                    accent:       'var(--accent)',
+                    'accent-h':   'var(--accent-hover)',
+                    'accent-t':   'var(--accent-text)',
+                    danger:       'var(--danger)',
+                    success:      'var(--success)',
+                }
+            }
+        }
+    }
+    </script>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-bg text-text min-h-screen">
     <div class="max-w-3xl mx-auto px-4 py-8">
-        <h1 class="text-2xl font-bold mb-6">Context Loader</h1>
+        <h1 class="text-2xl font-bold mb-6 text-white">Context Loader</h1>
 
         <!-- Tabs -->
-        <div class="flex gap-1 mb-6 border-b">
+        <div class="flex gap-1 mb-6 border-b border-border">
             <button onclick="showTab('picker')" id="tab-picker"
-                    class="px-4 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600">
+                    class="px-4 py-2 text-sm font-medium border-b-2 border-accent text-accent">
                 Load Modules
             </button>
             <button onclick="showTab('registry')" id="tab-registry"
-                    class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                    class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-text-sec hover:text-text">
                 Manage Modules
             </button>
         </div>
@@ -28,8 +66,8 @@
 
         <!-- Registry Tab -->
         <div id="registry-content" class="hidden"
-             hx-get="/registry" hx-trigger="load" hx-swap="innerHTML">
-            <p class="text-sm text-gray-500">Loading modules...</p>
+             hx-get="/registry" hx-trigger="intersect once" hx-swap="innerHTML">
+            <p class="text-sm text-text-muted">Loading modules...</p>
         </div>
     </div>
 
@@ -38,11 +76,11 @@
         document.getElementById('picker-content').classList.toggle('hidden', tab !== 'picker');
         document.getElementById('registry-content').classList.toggle('hidden', tab !== 'registry');
         document.getElementById('tab-picker').className = tab === 'picker'
-            ? 'px-4 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600'
-            : 'px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700';
+            ? 'px-4 py-2 text-sm font-medium border-b-2 border-accent text-accent'
+            : 'px-4 py-2 text-sm font-medium border-b-2 border-transparent text-text-sec hover:text-text';
         document.getElementById('tab-registry').className = tab === 'registry'
-            ? 'px-4 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600'
-            : 'px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700';
+            ? 'px-4 py-2 text-sm font-medium border-b-2 border-accent text-accent'
+            : 'px-4 py-2 text-sm font-medium border-b-2 border-transparent text-text-sec hover:text-text';
     }
     </script>
 </body>
