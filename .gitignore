@@ -1,4 +1,5 @@
-platform/src/context/
+platform/src/context/*
+!platform/src/context/CLAUDE.md
 platform/.venv/
 __pycache__/
 *.egg-info/

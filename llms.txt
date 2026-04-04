@@ -2,8 +2,17 @@
 
 > System for selecting and loading context modules into a coding agent's workspace.
 
-## Platform
-- [platform/src/server.py](platform/src/server.py) — FastAPI JSON API backend (modules, workspace, chat SSE)
+## Platform Backend
+- [platform/src/server.py](platform/src/server.py) — FastAPI app factory, constants, SPA fallback, entry point
+- [platform/src/models.py](platform/src/models.py) — Pydantic request/response models
+- [platform/src/llms.py](platform/src/llms.py) — llms.txt generation and parsing helpers
+- [platform/src/routes/modules.py](platform/src/routes/modules.py) — Module CRUD and file CRUD endpoints
+- [platform/src/routes/workspace.py](platform/src/routes/workspace.py) — Workspace load, secrets endpoints
+- [platform/src/routes/chat.py](platform/src/routes/chat.py) — Chat SSE streaming endpoint
+- [platform/src/routes/health.py](platform/src/routes/health.py) — Health check endpoint
+- [platform/src/services/github.py](platform/src/services/github.py) — GitHub API client, module download, cache
+- [platform/src/services/schemas.py](platform/src/services/schemas.py) — Env schema generation, parsing, Infisical augmentation
+- [platform/src/services/secrets.py](platform/src/services/secrets.py) — Varlock secret status and loading
 - [platform/frontend/](platform/frontend/) — React SPA (Vite + TanStack Router + TanStack Query)
 - [platform/frontend/src/api/](platform/frontend/src/api/) — API client layer (fetch wrapper, modules, workspace, chat)
 - [platform/frontend/src/components/](platform/frontend/src/components/) — React components (Sidebar, Chat, ModuleRegistry, etc.)
@@ -19,6 +28,7 @@
 - [docs/plans/04-cli-cmux.md](docs/plans/04-cli-cmux.md) — Plan: CLI with cmux
 - [docs/plans/09-module-management-react.md](docs/plans/09-module-management-react.md) — Plan: Module management UI with React SPA
 - [docs/plans/10-module-llms-txt.md](docs/plans/10-module-llms-txt.md) — Plan: Multi-file module structure with llms.txt navigation
+- [docs/plans/11-registry-ux.md](docs/plans/11-registry-ux.md) — Plan: Module registry UX improvements (detail panel, multi-file, secrets)
 
 ## Guides
 - [docs/guides/infisical-setup.md](docs/guides/infisical-setup.md) — Step-by-step Infisical setup for module secrets
