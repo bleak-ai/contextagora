@@ -7,6 +7,8 @@ export interface ToolCall {
   name: string;
   input: Record<string, unknown>;
   output?: string;
+  startedAt: number;
+  completedAt?: number;
 }
 
 export interface ChatMessage {
@@ -16,6 +18,7 @@ export interface ChatMessage {
   thinking: string;
   toolCalls: ToolCall[];
   streaming: boolean;
+  error?: string;
 }
 
 interface ChatState {
@@ -100,6 +103,7 @@ export const useChatStore = create<ChatState>()(
                   id: event.tool_id,
                   name: event.tool,
                   input: event.input,
+                  startedAt: Date.now(),
                 },
               ],
             }));
@@ -109,7 +113,7 @@ export const useChatStore = create<ChatState>()(
               ...m,
               toolCalls: m.toolCalls.map((tc) =>
                 tc.id === event.tool_id
-                  ? { ...tc, output: event.output }
+                  ? { ...tc, output: event.output, completedAt: Date.now() }
                   : tc,
               ),
             }));
@@ -122,7 +126,7 @@ export const useChatStore = create<ChatState>()(
           case "error":
             updateAssistant((m) => ({
               ...m,
-              content: m.content + `\n\nError: ${event.message}`,
+              error: event.message,
             }));
             break;
           case "done":
@@ -140,7 +144,7 @@ export const useChatStore = create<ChatState>()(
           err instanceof Error ? err.message : "Unknown error";
         updateAssistant((m) => ({
           ...m,
-          content: m.content + `\n\nError: ${errorText}`,
+          error: errorText,
           streaming: false,
         }));
       }
