@@ -6,6 +6,7 @@
 - [platform/src/server.py](platform/src/server.py) — FastAPI backend: JSON API routes, GitHub module integration, SPA static serving
 - [platform/frontend/](platform/frontend/) — React SPA frontend (Vite + TanStack Router + TanStack Query + Tailwind)
 - [platform/frontend/src/api/](platform/frontend/src/api/) — Frontend API client layer: fetch wrapper, modules/workspace/chat API functions
+- [platform/frontend/src/components/](platform/frontend/src/components/) — React UI components: Sidebar with module picker and workspace state
 - [Dockerfile](Dockerfile) — Container image definition
 ## Self-Hosting
 - [docker-compose.yml](docker-compose.yml) — Docker Compose for deployment (pulls image) and dev (--build)
