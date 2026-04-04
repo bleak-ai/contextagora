@@ -5,6 +5,7 @@
 ## Platform
 - [platform/src/server.py](platform/src/server.py) — FastAPI web app serving the module picker UI and load endpoint
 - [platform/src/templates/index.html](platform/src/templates/index.html) — Module picker HTML template
+- [platform/frontend/](platform/frontend/) — React SPA frontend (Vite + TanStack Router + TanStack Query + Tailwind)
 - [Dockerfile](Dockerfile) — Container image definition
 ## Self-Hosting
 - [docker-compose.yml](docker-compose.yml) — Docker Compose for deployment (pulls image) and dev (--build)
@@ -16,6 +17,7 @@
 - [docs/plans/04-cli-cmux.md](docs/plans/04-cli-cmux.md) — Plan: CLI with cmux
 - [docs/plans/08-module-management-html.md](docs/plans/08-module-management-html.md) — Plan: Module management UI with HTML + Jinja2 + htmx
 - [docs/plans/09-module-management-react.md](docs/plans/09-module-management-react.md) — Plan: Module management UI with React SPA
+- [docs/plans/10-module-llms-txt.md](docs/plans/10-module-llms-txt.md) — Plan: Multi-file module structure with llms.txt navigation
 
 ## Guides
 - [docs/guides/infisical-setup.md](docs/guides/infisical-setup.md) — Step-by-step Infisical setup for module secrets
