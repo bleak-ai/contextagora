@@ -128,17 +128,20 @@ def _validate_module_name(name: str) -> str:
 class CreateModuleRequest(BaseModel):
     name: str
     content: str
+    summary: str = ""
     secrets: list[str] = []
 
 
 class UpdateModuleRequest(BaseModel):
     content: str
+    summary: str = ""
     secrets: list[str] = []
 
 
 class ModuleDetail(BaseModel):
     name: str
     content: str
+    summary: str
     secrets: list[str]
 
 
@@ -148,6 +151,43 @@ class ChatRequest(BaseModel):
 
 class WorkspaceLoadRequest(BaseModel):
     modules: list[str]
+
+
+def _generate_module_llms_txt(name: str, summary: str, files: list[str]) -> str:
+    """Generate a per-module llms.txt from the module name, summary, and file list."""
+    lines = [f"# {name}"]
+    if summary:
+        lines.append(f"> {summary}")
+    lines.append("")
+    for f in files:
+        lines.append(f"- [{f}]({f})")
+    return "\n".join(lines) + "\n"
+
+
+def _extract_module_summary(llms_txt_content: str) -> str:
+    """Extract the > blockquote description from a module's llms.txt."""
+    for line in llms_txt_content.splitlines():
+        if line.startswith("> "):
+            return line[2:].strip()
+    return ""
+
+
+def _generate_root_llms_txt(context_dir: Path) -> None:
+    """Generate root llms.txt from loaded modules' llms.txt files."""
+    entries = []
+    for mod_dir in sorted(context_dir.iterdir()):
+        if not mod_dir.is_dir():
+            continue
+        llms_file = mod_dir / "llms.txt"
+        if llms_file.exists():
+            summary = _extract_module_summary(llms_file.read_text())
+        else:
+            summary = "Context module"
+        entries.append(f"- [{mod_dir.name}]({mod_dir.name}/llms.txt): {summary}")
+
+    lines = ["# Loaded Context Modules", ""]
+    lines.extend(entries)
+    (context_dir / "llms.txt").write_text("\n".join(lines) + "\n")
 
 
 _MAX_DOWNLOAD_DEPTH = 10
@@ -347,6 +387,8 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
         if result.returncode != 0:
             log.warning("varlock: %s has missing secrets:\n%s\n%s", name, result.stderr, result.stdout)
 
+    _generate_root_llms_txt(CONTEXT_DIR)
+
     global _secrets_cache
     _secrets_cache = get_secrets_status(CONTEXT_DIR)
 
@@ -467,7 +509,7 @@ async def api_list_modules():
 
 @app.get("/api/modules/{name}")
 async def api_get_module(name: str):
-    """Get module detail: info.md content and secrets schema."""
+    """Get module detail: info.md content, summary, and secrets schema."""
     try:
         file_data = _gh_api(f"{name}/info.md")
         content = base64.b64decode(file_data["content"]).decode()
@@ -475,6 +517,14 @@ async def api_get_module(name: str):
         if exc.response.status_code == 404:
             return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
         raise
+
+    summary = ""
+    try:
+        llms_data = _gh_api(f"{name}/llms.txt")
+        llms_text = base64.b64decode(llms_data["content"]).decode()
+        summary = _extract_module_summary(llms_text)
+    except httpx.HTTPStatusError:
+        pass
 
     secrets: list[str] = []
     try:
@@ -484,12 +534,12 @@ async def api_get_module(name: str):
     except httpx.HTTPStatusError:
         pass
 
-    return {"name": name, "content": content, "secrets": secrets}
+    return {"name": name, "content": content, "summary": summary, "secrets": secrets}
 
 
 @app.post("/api/modules", status_code=201)
 async def api_create_module(body: CreateModuleRequest):
-    """Create a new module with info.md and optional .env.schema."""
+    """Create a new module with info.md, llms.txt, and optional .env.schema."""
     name = _validate_module_name(body.name)
     try:
         _gh_create_file(f"{name}/info.md", body.content, f"Create module {name}")
@@ -498,9 +548,15 @@ async def api_create_module(body: CreateModuleRequest):
             return JSONResponse({"error": f"Module '{name}' already exists"}, status_code=409)
         raise
 
+    files = ["info.md"]
+
     if body.secrets:
         schema = _generate_env_schema(body.secrets)
         _gh_create_file(f"{name}/.env.schema", schema, f"Add secrets schema for {name}")
+        files.append(".env.schema")
+
+    llms_txt = _generate_module_llms_txt(name, body.summary, files)
+    _gh_create_file(f"{name}/llms.txt", llms_txt, f"Add llms.txt for {name}")
 
     global _modules_cache_ts
     _modules_cache_ts = 0
@@ -509,7 +565,7 @@ async def api_create_module(body: CreateModuleRequest):
 
 @app.put("/api/modules/{name}")
 async def api_update_module(name: str, body: UpdateModuleRequest):
-    """Update a module's info.md and .env.schema. Fetches SHAs internally."""
+    """Update a module's info.md, llms.txt, and .env.schema. Fetches SHAs internally."""
     try:
         file_data = _gh_api(f"{name}/info.md")
     except httpx.HTTPStatusError as exc:
@@ -525,14 +581,31 @@ async def api_update_module(name: str, body: UpdateModuleRequest):
     except httpx.HTTPStatusError:
         pass
 
+    files = ["info.md"]
+
     if body.secrets:
         schema = _generate_env_schema(body.secrets)
         if schema_sha:
             _gh_update_file(f"{name}/.env.schema", schema, schema_sha, f"Update secrets schema for {name}")
         else:
             _gh_create_file(f"{name}/.env.schema", schema, f"Add secrets schema for {name}")
+        files.append(".env.schema")
     elif schema_sha:
         _gh_delete_file(f"{name}/.env.schema", schema_sha, f"Remove secrets schema for {name}")
+
+    # Regenerate llms.txt
+    llms_txt = _generate_module_llms_txt(name, body.summary, files)
+    llms_sha = ""
+    try:
+        llms_data = _gh_api(f"{name}/llms.txt")
+        llms_sha = llms_data["sha"]
+    except httpx.HTTPStatusError:
+        pass
+
+    if llms_sha:
+        _gh_update_file(f"{name}/llms.txt", llms_txt, llms_sha, f"Update llms.txt for {name}")
+    else:
+        _gh_create_file(f"{name}/llms.txt", llms_txt, f"Add llms.txt for {name}")
 
     return {"name": name}
 

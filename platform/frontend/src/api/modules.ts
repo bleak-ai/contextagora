@@ -3,6 +3,7 @@ import { apiFetch } from "./client";
 export interface ModuleDetail {
   name: string;
   content: string;
+  summary: string;
   secrets: string[];
 }
 
@@ -17,6 +18,7 @@ export function fetchModule(name: string): Promise<ModuleDetail> {
 export function createModule(data: {
   name: string;
   content: string;
+  summary: string;
   secrets: string[];
 }): Promise<{ name: string }> {
   return apiFetch("/modules", {
@@ -27,7 +29,7 @@ export function createModule(data: {
 
 export function updateModule(
   name: string,
-  data: { content: string; secrets: string[] },
+  data: { content: string; summary: string; secrets: string[] },
 ): Promise<{ name: string }> {
   return apiFetch(`/modules/${name}`, {
     method: "PUT",

@@ -4,8 +4,9 @@ interface ModuleFormProps {
   mode: "create" | "edit";
   initialName?: string;
   initialContent?: string;
+  initialSummary?: string;
   initialSecrets?: string[];
-  onSubmit: (data: { name: string; content: string; secrets: string[] }) => void;
+  onSubmit: (data: { name: string; content: string; summary: string; secrets: string[] }) => void;
   onCancel: () => void;
   isPending?: boolean;
 }
@@ -14,6 +15,7 @@ export function ModuleForm({
   mode,
   initialName = "",
   initialContent = "",
+  initialSummary = "",
   initialSecrets = [],
   onSubmit,
   onCancel,
@@ -21,6 +23,7 @@ export function ModuleForm({
 }: ModuleFormProps) {
   const [name, setName] = useState(initialName);
   const [content, setContent] = useState(initialContent);
+  const [summary, setSummary] = useState(initialSummary);
   const [secrets, setSecrets] = useState(initialSecrets.join("\n"));
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -29,7 +32,7 @@ export function ModuleForm({
       .split("\n")
       .map((s) => s.trim())
       .filter(Boolean);
-    onSubmit({ name, content, secrets: secretsList });
+    onSubmit({ name, content, summary, secrets: secretsList });
   };
 
   return (
@@ -51,6 +54,19 @@ export function ModuleForm({
           Editing: <span className="text-accent">{initialName}/info.md</span>
         </div>
       )}
+      <div>
+        <label className="block text-xs text-text-secondary mb-1">Summary</label>
+        <input
+          value={summary}
+          onChange={(e) => setSummary(e.target.value)}
+          placeholder="e.g. Access Linear issues, projects, and teams via the GraphQL API"
+          required
+          className="w-full bg-bg-input border border-border rounded px-3 py-2 text-sm text-text placeholder-text-muted outline-none focus:border-accent/40"
+        />
+        <p className="text-[10px] text-text-muted mt-1">
+          One-line description of what this module provides
+        </p>
+      </div>
       <div>
         <label className="block text-xs text-text-secondary mb-1">Content (info.md)</label>
         <textarea

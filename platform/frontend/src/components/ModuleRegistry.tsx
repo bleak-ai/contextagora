@@ -25,6 +25,7 @@ export function ModuleRegistry() {
 
   const [editData, setEditData] = useState<{
     content: string;
+    summary: string;
     secrets: string[];
   } | null>(null);
 
@@ -39,7 +40,7 @@ export function ModuleRegistry() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ name, data }: { name: string; data: { content: string; secrets: string[] } }) =>
+    mutationFn: ({ name, data }: { name: string; data: { content: string; summary: string; secrets: string[] } }) =>
       updateModule(name, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["modules"] });
@@ -57,7 +58,7 @@ export function ModuleRegistry() {
 
   const handleEdit = async (name: string) => {
     const detail = await fetchModule(name);
-    setEditData({ content: detail.content, secrets: detail.secrets });
+    setEditData({ content: detail.content, summary: detail.summary, secrets: detail.secrets });
     setFormState({ mode: "edit", name });
   };
 
@@ -98,11 +99,12 @@ export function ModuleRegistry() {
             mode="edit"
             initialName={formState.name}
             initialContent={editData.content}
+            initialSummary={editData.summary}
             initialSecrets={editData.secrets}
             onSubmit={(data) =>
               updateMutation.mutate({
                 name: formState.name,
-                data: { content: data.content, secrets: data.secrets },
+                data: { content: data.content, summary: data.summary, secrets: data.secrets },
               })
             }
             onCancel={() => {
