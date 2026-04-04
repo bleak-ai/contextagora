@@ -9,7 +9,7 @@ from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -334,15 +334,8 @@ async def load(request: Request, modules: list[str] = Form(default=[])):
     global _secrets_cache
     _secrets_cache = get_secrets_status(CONTEXT_DIR)
 
-    return templates.TemplateResponse(
-        request=request,
-        name="partials/module_picker.html",
-        context={
-            "modules": list_available_modules(),
-            "loaded": list_modules(CONTEXT_DIR),
-            "secrets": _secrets_cache,
-        },
-    )
+    # Full page reload so the chat area updates with the new loaded state
+    return RedirectResponse(url="/", status_code=303)
 
 
 @app.get("/api/context")

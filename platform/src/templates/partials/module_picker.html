@@ -1,107 +1,69 @@
-<div id="module-picker">
-    <form hx-post="/load" hx-target="#module-picker" hx-swap="outerHTML">
-        <p class="text-sm text-text-sec mb-4">
-            Select modules to load into <code class="bg-bg-raised px-1.5 py-0.5 rounded text-accent font-mono">/context/</code>:
-        </p>
-        {% for mod in modules %}
-        <div class="py-1.5">
-            <label class="flex items-center gap-2 cursor-pointer text-text hover:text-white">
-                <input type="checkbox" name="modules" value="{{ mod }}"
-                    {{ 'checked' if mod in loaded else '' }}
-                    class="rounded border-border bg-bg-input text-accent focus:ring-accent">
-                <span>{{ mod }}</span>
-            </label>
+<form method="post" action="/load">
+    <div class="px-4 pt-3 pb-2">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-medium text-text-sec uppercase tracking-wider">Modules</span>
+            <span class="text-[10px] text-text-muted">{{ loaded|length }}/{{ modules|length }}</span>
         </div>
+    </div>
+
+    <div class="px-2 space-y-0.5">
+        {% for mod in modules %}
+        <label class="module-chip flex items-center gap-2.5 px-2 py-1.5 rounded cursor-pointer">
+            <input type="checkbox" name="modules" value="{{ mod }}"
+                {{ 'checked' if mod in loaded else '' }}
+                class="rounded border-border bg-bg-input text-accent focus:ring-accent/30 focus:ring-offset-0 w-3.5 h-3.5">
+            <span class="text-sm text-text-sec">{{ mod }}</span>
+            {% if mod in loaded %}
+            <span class="ml-auto w-1.5 h-1.5 rounded-full bg-success flex-shrink-0"></span>
+            {% endif %}
+        </label>
         {% endfor %}
+    </div>
+
+    {% if modules %}
+    <div class="px-4 pt-3 pb-2">
         <button type="submit"
-                class="mt-4 px-4 py-2 bg-accent text-accent-t font-medium rounded hover:bg-accent-h text-sm">
+                class="w-full px-3 py-2 bg-accent text-accent-t font-medium rounded-lg hover:bg-accent-h text-xs transition-colors">
             Load Selected
         </button>
-    </form>
+    </div>
+    {% else %}
+    <div class="px-4 py-6 text-center">
+        <p class="text-xs text-text-muted">No modules available</p>
+    </div>
+    {% endif %}
 
     {% if loaded %}
-    <div class="mt-6 p-4 bg-bg-raised border border-border rounded-lg">
+    <div class="mx-4 mt-2 mb-3 p-3 rounded-lg bg-bg border border-border">
         <div class="flex items-center justify-between mb-2">
-            <h2 class="font-semibold text-sm text-accent">Currently loaded:</h2>
-            <button hx-post="/inject-secrets" hx-target="#module-picker" hx-swap="outerHTML"
-                    class="text-xs px-2 py-1 border border-border rounded text-text-sec hover:text-text hover:border-accent">
-                Inject secrets
+            <span class="text-[10px] font-medium text-text-muted uppercase tracking-wider">Loaded</span>
+            <button hx-post="/inject-secrets" hx-target="#module-picker" hx-swap="innerHTML"
+                    type="button"
+                    class="text-[10px] text-accent hover:text-accent-h">
+                Refresh secrets
             </button>
         </div>
-        <ul class="text-sm space-y-1">
+        <div class="space-y-2.5">
             {% for mod in loaded %}
-            <li>
-                <a href="/files/{{ mod }}/" class="text-accent hover:underline">{{ mod }}/</a>
+            <div>
+                <a href="/files/{{ mod }}/" class="text-xs text-accent hover:text-accent-h">{{ mod }}/</a>
                 {% if mod in secrets %}
-                <span class="ml-2">
+                <div class="mt-1 space-y-0.5">
                     {% for var, preview in secrets[mod].items() %}
-                    <span class="{{ 'text-success' if preview else 'text-danger' }} text-xs font-mono">
-                        {{ '&#10003;' if preview else '&#10007;' }} {{ var }}{% if preview %} <code>{{ preview }}</code>{% endif %}
-                    </span>
+                    <div class="flex items-center gap-1.5 text-[11px] font-mono">
+                        <span class="{{ 'text-success' if preview else 'text-danger' }}">{{ '✓' if preview else '✗' }}</span>
+                        <span class="text-text-muted">{{ var }}</span>
+                        {% if preview %}<code class="text-text-sec">{{ preview }}</code>{% endif %}
+                    </div>
                     {% endfor %}
-                </span>
+                </div>
                 {% endif %}
-            </li>
+            </div>
             {% endfor %}
-        </ul>
-        <div class="mt-3 p-2 bg-bg text-text-sec rounded text-xs font-mono border border-border">
-            cd platform/src/context && claude
+        </div>
+        <div class="mt-2 pt-2 border-t border-border">
+            <code class="text-[10px] text-text-muted font-mono block truncate">cd platform/src/context && claude</code>
         </div>
     </div>
     {% endif %}
-
-    {% if loaded %}
-    <div class="mt-6 border border-border rounded-lg overflow-hidden">
-        <div id="chat-messages" class="h-72 overflow-y-auto p-3 bg-bg space-y-3"></div>
-        <form id="chat-form" class="flex border-t border-border">
-            <input type="text" name="prompt" placeholder="Ask Claude about your modules..."
-                   autocomplete="off" required
-                   class="flex-1 px-3 py-2 text-sm outline-none bg-bg-raised text-text placeholder-text-muted">
-            <button type="submit"
-                    class="px-4 py-2 bg-accent text-accent-t text-sm font-medium hover:bg-accent-h disabled:opacity-40">
-                Send
-            </button>
-        </form>
-    </div>
-    <script>
-    (function() {
-        const form = document.getElementById('chat-form');
-        const messages = document.getElementById('chat-messages');
-        const input = form.querySelector('input[name="prompt"]');
-        const btn = form.querySelector('button');
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const prompt = input.value.trim();
-            if (!prompt) return;
-            const userMsg = document.createElement('div');
-            userMsg.className = 'ml-auto max-w-[85%] bg-bg-raised border border-border rounded-lg px-3 py-2 text-sm text-text';
-            userMsg.textContent = prompt;
-            messages.appendChild(userMsg);
-            input.value = '';
-            btn.disabled = true;
-            const assistantMsg = document.createElement('div');
-            assistantMsg.className = 'max-w-[85%] bg-bg-raised border border-border rounded-lg px-3 py-2 text-sm whitespace-pre-wrap text-text-sec';
-            messages.appendChild(assistantMsg);
-            messages.scrollTop = messages.scrollHeight;
-            try {
-                const body = new FormData();
-                body.append('prompt', prompt);
-                const resp = await fetch('/chat', { method: 'POST', body });
-                const reader = resp.body.getReader();
-                const decoder = new TextDecoder();
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    assistantMsg.textContent += decoder.decode(value);
-                    messages.scrollTop = messages.scrollHeight;
-                }
-            } catch (err) {
-                assistantMsg.textContent = '[error: ' + err.message + ']';
-            }
-            btn.disabled = false;
-            input.focus();
-        });
-    })();
-    </script>
-    {% endif %}
-</div>
+</form>
