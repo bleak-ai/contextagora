@@ -26,13 +26,21 @@ function convertMessage(msg: ChatMessage): ThreadMessageLike {
       type: "tool-call",
       toolCallId: tc.id,
       toolName: tc.name,
-      args: (tc.input ?? {}) as ReadonlyJSONObject,
+      args: {
+        ...(tc.input ?? {}),
+        __startedAt: tc.startedAt,
+        __completedAt: tc.completedAt,
+      } as ReadonlyJSONObject,
       result: tc.output,
     });
   }
 
   if (msg.content) {
     content.push({ type: "text", text: msg.content });
+  }
+
+  if (msg.error) {
+    content.push({ type: "text", text: `\n\n__ERROR__:${msg.error}` });
   }
 
   return {
