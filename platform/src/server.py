@@ -393,6 +393,7 @@ async def api_chat(body: ChatRequest):
             [
                 "claude", "-p", body.prompt,
                 "--continue",
+                "--verbose",
                 "--output-format", "stream-json",
                 "--allowedTools", "Bash(*)", "Read(*)", "Write(*)", "Edit(*)", "Glob(*)", "Grep(*)",
             ],
