@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import { streamChat, type ChatEvent } from "../api/chat";
 
 export interface ToolCall {
@@ -19,16 +20,21 @@ export interface ChatMessage {
 
 interface ChatState {
   messages: ChatMessage[];
+  sessionId: string | null;
   isStreaming: boolean;
   abortController: AbortController | null;
 
   sendMessage: (prompt: string) => void;
   cancelStream: () => void;
   clearMessages: () => void;
+  syncSession: () => Promise<void>;
 }
 
-export const useChatStore = create<ChatState>((set, get) => ({
+export const useChatStore = create<ChatState>()(
+  persist(
+    (set, get) => ({
   messages: [],
+  sessionId: null,
   isStreaming: false,
   abortController: null,
 
@@ -110,6 +116,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
             break;
           case "tool_input":
             break;
+          case "session":
+            set({ sessionId: event.session_id });
+            break;
           case "error":
             updateAssistant((m) => ({
               ...m,
@@ -146,6 +155,39 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   clearMessages: () => {
-    set({ messages: [], isStreaming: false, abortController: null });
+    set({ messages: [], sessionId: null, isStreaming: false, abortController: null });
+    fetch("/api/chat/reset", { method: "POST" });
   },
-}));
+
+  syncSession: async () => {
+    try {
+      const res = await fetch("/api/chat/session");
+      const data = await res.json();
+      const backendSessionId = data.session_id as string | null;
+      const { sessionId, messages } = get();
+
+      if (!backendSessionId) {
+        // Backend has no session — clear any stale persisted messages
+        if (messages.length > 0) {
+          set({ messages: [], sessionId: null });
+        }
+      } else if (backendSessionId !== sessionId) {
+        // Session mismatch — backend restarted with a different session
+        set({ messages: [], sessionId: null });
+        fetch("/api/chat/reset", { method: "POST" });
+      }
+      // If sessions match, persisted messages are still valid
+    } catch {
+      // Can't reach backend — keep persisted state
+    }
+  },
+    }),
+    {
+      name: "context-chat-store",
+      partialize: (state) => ({
+        messages: state.messages.map((m) => ({ ...m, streaming: false })),
+        sessionId: state.sessionId,
+      }),
+    },
+  ),
+);

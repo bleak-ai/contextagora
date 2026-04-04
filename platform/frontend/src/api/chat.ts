@@ -4,6 +4,7 @@ export type ChatEvent =
   | { type: "tool_use"; tool: string; tool_id: string; input: Record<string, unknown> }
   | { type: "tool_input"; partial_json: string }
   | { type: "tool_result"; tool_id: string; output: string }
+  | { type: "session"; session_id: string }
   | { type: "error"; message: string }
   | { type: "done" };
 

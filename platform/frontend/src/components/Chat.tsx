@@ -1,10 +1,18 @@
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { fetchWorkspace } from "../api/workspace";
+import { useChatStore } from "../hooks/useChatStore";
 import { useContextChatRuntime } from "../hooks/useContextChatRuntime";
 import { Thread } from "./chat/Thread";
 
 export function Chat() {
+  const syncSession = useChatStore((s) => s.syncSession);
+
+  useEffect(() => {
+    syncSession();
+  }, [syncSession]);
+
   const { data: workspace } = useQuery({
     queryKey: ["workspace"],
     queryFn: fetchWorkspace,
