@@ -44,3 +44,41 @@ export function deleteModule(name: string): Promise<{ status: string }> {
 export function refreshModules(): Promise<{ modules: string[] }> {
   return apiFetch("/modules/refresh", { method: "POST" });
 }
+
+// --- Module file operations ---
+
+export interface ModuleFile {
+  name: string;
+  path: string;
+}
+
+export function fetchModuleFiles(
+  name: string,
+): Promise<{ files: ModuleFile[] }> {
+  return apiFetch(`/modules/${name}/files`);
+}
+
+export function fetchModuleFile(
+  name: string,
+  path: string,
+): Promise<{ path: string; content: string }> {
+  return apiFetch(`/modules/${name}/files/${path}`);
+}
+
+export function saveModuleFile(
+  name: string,
+  path: string,
+  content: string,
+): Promise<{ path: string }> {
+  return apiFetch(`/modules/${name}/files/${path}`, {
+    method: "PUT",
+    body: JSON.stringify({ content }),
+  });
+}
+
+export function deleteModuleFile(
+  name: string,
+  path: string,
+): Promise<{ status: string }> {
+  return apiFetch(`/modules/${name}/files/${path}`, { method: "DELETE" });
+}

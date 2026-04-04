@@ -125,6 +125,10 @@ def _validate_module_name(name: str) -> str:
     return name
 
 
+class FileContentRequest(BaseModel):
+    content: str
+
+
 class CreateModuleRequest(BaseModel):
     name: str
     content: str
@@ -151,6 +155,68 @@ class ChatRequest(BaseModel):
 
 class WorkspaceLoadRequest(BaseModel):
     modules: list[str]
+
+
+_MANAGED_FILES = {"llms.txt", ".env.schema"}
+
+
+def _validate_module_file_path(file_path: str) -> str:
+    """Validate a file path within a module. Returns cleaned path or raises ValueError."""
+    file_path = file_path.strip().strip("/")
+    if not file_path:
+        raise ValueError("File path cannot be empty")
+    if ".." in file_path:
+        raise ValueError("File path cannot contain '..'")
+    if file_path in _MANAGED_FILES:
+        raise ValueError(f"'{file_path}' is managed automatically and cannot be edited directly")
+    if file_path == "info.md":
+        return file_path
+    if file_path.startswith("docs/") and file_path.endswith(".md"):
+        return file_path
+    raise ValueError("Only info.md and .md files under docs/ are allowed")
+
+
+def _list_module_files(name: str) -> list[dict]:
+    """List all content files in a module from GitHub (excludes managed files)."""
+    result = []
+    items = _gh_api(name)
+    for item in items:
+        if item["type"] == "file" and item["name"] not in _MANAGED_FILES:
+            result.append({"name": item["name"], "path": item["name"]})
+        elif item["type"] == "dir" and item["name"] == "docs":
+            try:
+                doc_items = _gh_api(f"{name}/docs")
+                for doc in doc_items:
+                    if doc["type"] == "file" and doc["name"].endswith(".md"):
+                        result.append({"name": doc["name"], "path": f"docs/{doc['name']}"})
+            except httpx.HTTPStatusError:
+                pass
+    return result
+
+
+def _list_all_module_files(name: str) -> list[str]:
+    """List all content file paths in a module (for llms.txt generation)."""
+    return [f["path"] for f in _list_module_files(name)]
+
+
+def _regenerate_module_llms_txt(name: str, summary: str | None = None) -> None:
+    """Regenerate a module's llms.txt from its current files and summary."""
+    if summary is None:
+        try:
+            llms_data = _gh_api(f"{name}/llms.txt")
+            llms_text = base64.b64decode(llms_data["content"]).decode()
+            summary = _extract_module_summary(llms_text)
+        except httpx.HTTPStatusError:
+            summary = ""
+
+    files = _list_all_module_files(name)
+    llms_txt = _generate_module_llms_txt(name, summary, files)
+
+    try:
+        llms_data = _gh_api(f"{name}/llms.txt")
+        _gh_update_file(f"{name}/llms.txt", llms_txt, llms_data["sha"], f"Update llms.txt for {name}")
+    except httpx.HTTPStatusError:
+        _gh_create_file(f"{name}/llms.txt", llms_txt, f"Add llms.txt for {name}")
 
 
 def _generate_module_llms_txt(name: str, summary: str, files: list[str]) -> str:
@@ -581,31 +647,16 @@ async def api_update_module(name: str, body: UpdateModuleRequest):
     except httpx.HTTPStatusError:
         pass
 
-    files = ["info.md"]
-
     if body.secrets:
         schema = _generate_env_schema(body.secrets)
         if schema_sha:
             _gh_update_file(f"{name}/.env.schema", schema, schema_sha, f"Update secrets schema for {name}")
         else:
             _gh_create_file(f"{name}/.env.schema", schema, f"Add secrets schema for {name}")
-        files.append(".env.schema")
     elif schema_sha:
         _gh_delete_file(f"{name}/.env.schema", schema_sha, f"Remove secrets schema for {name}")
 
-    # Regenerate llms.txt
-    llms_txt = _generate_module_llms_txt(name, body.summary, files)
-    llms_sha = ""
-    try:
-        llms_data = _gh_api(f"{name}/llms.txt")
-        llms_sha = llms_data["sha"]
-    except httpx.HTTPStatusError:
-        pass
-
-    if llms_sha:
-        _gh_update_file(f"{name}/llms.txt", llms_txt, llms_sha, f"Update llms.txt for {name}")
-    else:
-        _gh_create_file(f"{name}/llms.txt", llms_txt, f"Add llms.txt for {name}")
+    _regenerate_module_llms_txt(name, summary=body.summary)
 
     return {"name": name}
 
@@ -621,6 +672,85 @@ async def api_delete_module(name: str):
         raise
     global _modules_cache_ts
     _modules_cache_ts = 0
+    return {"status": "ok"}
+
+
+# --- Module file CRUD ---
+
+
+@app.get("/api/modules/{name}/files")
+async def api_list_module_files(name: str):
+    """List content files in a module."""
+    try:
+        files = _list_module_files(name)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
+        raise
+    return {"files": files}
+
+
+@app.get("/api/modules/{name}/files/{file_path:path}")
+async def api_get_module_file(name: str, file_path: str):
+    """Get a file's content from a module."""
+    try:
+        _validate_module_file_path(file_path)
+    except ValueError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+
+    try:
+        data = _gh_api(f"{name}/{file_path}")
+        content = base64.b64decode(data["content"]).decode()
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            return JSONResponse({"error": f"File '{file_path}' not found in module '{name}'"}, status_code=404)
+        raise
+    return {"path": file_path, "content": content}
+
+
+@app.put("/api/modules/{name}/files/{file_path:path}")
+async def api_save_module_file(name: str, file_path: str, body: FileContentRequest):
+    """Create or update a file in a module. Regenerates llms.txt."""
+    try:
+        file_path = _validate_module_file_path(file_path)
+    except ValueError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+
+    gh_path = f"{name}/{file_path}"
+    try:
+        existing = _gh_api(gh_path)
+        _gh_update_file(gh_path, body.content, existing["sha"], f"Update {gh_path}")
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            _gh_create_file(gh_path, body.content, f"Create {gh_path}")
+        else:
+            raise
+
+    _regenerate_module_llms_txt(name)
+    return {"path": file_path}
+
+
+@app.delete("/api/modules/{name}/files/{file_path:path}")
+async def api_delete_module_file(name: str, file_path: str):
+    """Delete a file from a module. info.md cannot be deleted. Regenerates llms.txt."""
+    try:
+        file_path = _validate_module_file_path(file_path)
+    except ValueError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+
+    if file_path == "info.md":
+        return JSONResponse({"error": "info.md cannot be deleted"}, status_code=400)
+
+    gh_path = f"{name}/{file_path}"
+    try:
+        data = _gh_api(gh_path)
+        _gh_delete_file(gh_path, data["sha"], f"Delete {gh_path}")
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            return JSONResponse({"error": f"File '{file_path}' not found"}, status_code=404)
+        raise
+
+    _regenerate_module_llms_txt(name)
     return {"status": "ok"}
 
 
