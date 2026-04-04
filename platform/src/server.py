@@ -5,6 +5,7 @@ import shlex
 import shutil
 import subprocess
 import time
+from importlib.metadata import version as pkg_version
 from pathlib import Path
 
 import httpx
@@ -218,6 +219,8 @@ def augment_schema(schema_text: str, module_name: str) -> str:
 app = FastAPI()
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
+APP_VERSION = pkg_version("context-loader-poc")
+
 
 def list_modules(directory: Path) -> list[str]:
     """Return sorted names of subdirectories (each subdir = one module)."""
@@ -283,6 +286,7 @@ async def index(request: Request):
             "modules": list_available_modules(),
             "loaded": list_modules(CONTEXT_DIR),
             "secrets": _secrets_cache,
+            "version": APP_VERSION,
         },
     )
 
@@ -342,6 +346,12 @@ async def load(request: Request, modules: list[str] = Form(default=[])):
 async def api_context():
     """Return the list of currently loaded modules as JSON."""
     return {"loaded_modules": list_modules(CONTEXT_DIR)}
+
+
+@app.get("/health")
+async def health():
+    """Health check endpoint for Docker and monitoring."""
+    return {"status": "ok", "version": APP_VERSION}
 
 
 @app.post("/refresh-modules")
