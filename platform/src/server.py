@@ -1,7 +1,6 @@
 import base64
 import logging
 import os
-import shlex
 import shutil
 import subprocess
 import time
@@ -9,11 +8,10 @@ from importlib.metadata import version as pkg_version
 from pathlib import Path
 
 import httpx
-from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
+from fastapi import FastAPI, Form
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 
 log = logging.getLogger(__name__)
 
@@ -143,6 +141,10 @@ class ModuleDetail(BaseModel):
     secrets: list[str]
 
 
+class WorkspaceLoadRequest(BaseModel):
+    modules: list[str]
+
+
 _MAX_DOWNLOAD_DEPTH = 10
 
 
@@ -232,7 +234,6 @@ def augment_schema(schema_text: str, module_name: str) -> str:
 
 # --- App setup ---
 app = FastAPI()
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 APP_VERSION = pkg_version("context-loader-poc")
 
@@ -291,25 +292,18 @@ def list_available_modules(*, bypass_cache: bool = False) -> list[str]:
         return _modules_cache if _modules_cache else []
 
 
-@app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    """Render the module picker UI."""
-    return templates.TemplateResponse(
-        request=request,
-        name="index.html",
-        context={
-            "modules": list_available_modules(),
-            "loaded": list_modules(CONTEXT_DIR),
-            "secrets": _secrets_cache,
-            "version": APP_VERSION,
-        },
-    )
+@app.get("/api/workspace")
+async def api_workspace():
+    """Return loaded modules and their secrets status."""
+    return {
+        "modules": list_modules(CONTEXT_DIR),
+        "secrets": _secrets_cache,
+    }
 
 
-@app.post("/load", response_class=HTMLResponse)
-async def load(request: Request, modules: list[str] = Form(default=[])):
-    """Clear context/, then copy selected modules from the registry into it."""
-    # Remove previously loaded modules
+@app.post("/api/workspace/load")
+async def api_workspace_load(body: WorkspaceLoadRequest):
+    """Clear workspace, download selected modules, validate secrets."""
     for p in CONTEXT_DIR.iterdir():
         if p.is_dir():
             shutil.rmtree(p)
@@ -317,23 +311,26 @@ async def load(request: Request, modules: list[str] = Form(default=[])):
             p.unlink()
 
     available = set(list_available_modules())
-    for name in modules:
+    loaded = []
+    errors = []
+    for name in body.modules:
         if name not in available:
+            errors.append(f"Module '{name}' not available")
             continue
         try:
             download_module(name, CONTEXT_DIR / name)
+            loaded.append(name)
         except (httpx.HTTPError, ValueError) as exc:
             log.error("Failed to download module '%s': %s", name, exc)
+            errors.append(f"Failed to download '{name}': {exc}")
             continue
 
-        # Augment .env.schema with Infisical config if it exists
         schema_file = CONTEXT_DIR / name / ".env.schema"
         if schema_file.exists():
             original = schema_file.read_text()
             schema_file.write_text(augment_schema(original, name))
 
-    # Validate secrets for each loaded module
-    for name in modules:
+    for name in loaded:
         module_dir = CONTEXT_DIR / name
         if not (module_dir / ".env.schema").exists():
             continue
@@ -344,22 +341,25 @@ async def load(request: Request, modules: list[str] = Form(default=[])):
         )
         if result.returncode != 0:
             log.warning("varlock: %s has missing secrets:\n%s\n%s", name, result.stderr, result.stdout)
-        else:
-            log.info("varlock: %s secrets validated", name)
 
     global _secrets_cache
     _secrets_cache = get_secrets_status(CONTEXT_DIR)
 
-    # Full page reload so the chat area updates with the new loaded state
-    return RedirectResponse(url="/", status_code=303)
+    response = {"modules": loaded, "secrets": _secrets_cache}
+    if errors:
+        response["errors"] = errors
+    return response
 
 
-@app.get("/api/context")
-async def api_context():
-    """Return the list of currently loaded modules as JSON."""
-    return {"loaded_modules": list_modules(CONTEXT_DIR)}
+@app.post("/api/workspace/secrets")
+async def api_workspace_secrets():
+    """Re-check secrets status from Infisical."""
+    global _secrets_cache
+    _secrets_cache = get_secrets_status(CONTEXT_DIR)
+    return {"secrets": _secrets_cache}
 
 
+@app.get("/api/health")
 @app.get("/health")
 async def health():
     """Health check endpoint for Docker and monitoring."""
@@ -370,22 +370,6 @@ async def health():
 async def api_refresh_modules():
     """Force-refresh the module list from GitHub (bypasses cache)."""
     return {"modules": list_available_modules(bypass_cache=True)}
-
-
-@app.post("/inject-secrets", response_class=HTMLResponse)
-async def inject_secrets(request: Request):
-    """Re-check secrets status from Infisical and return updated module picker."""
-    global _secrets_cache
-    _secrets_cache = get_secrets_status(CONTEXT_DIR)
-    return templates.TemplateResponse(
-        request=request,
-        name="partials/module_picker.html",
-        context={
-            "modules": list_available_modules(),
-            "loaded": list_modules(CONTEXT_DIR),
-            "secrets": _secrets_cache,
-        },
-    )
 
 
 @app.post("/chat")
@@ -418,27 +402,6 @@ async def chat(prompt: str = Form()):
                 yield f"\n[error: {stderr.strip()}]"
 
     return StreamingResponse(generate(), media_type="text/plain")
-
-
-@app.post("/run")
-async def run(module: str = Form(), cmd: str = Form()):
-    """Run a command with secrets injected via varlock."""
-    module_dir = CONTEXT_DIR / module
-    if not module_dir.is_dir() or module not in list_modules(CONTEXT_DIR):
-        return JSONResponse({"error": f"module '{module}' not loaded"}, status_code=404)
-
-    result = subprocess.run(
-        ["varlock", "run", "--path", str(module_dir), "--", *shlex.split(cmd)],
-        capture_output=True,
-        text=True,
-        cwd=str(module_dir),
-        timeout=30,
-    )
-    return JSONResponse({
-        "exit_code": result.returncode,
-        "stdout": result.stdout,
-        "stderr": result.stderr,
-    })
 
 
 # --- Modules JSON API (CRUD via GitHub API) ---
