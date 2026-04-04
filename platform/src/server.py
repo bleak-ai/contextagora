@@ -11,6 +11,7 @@ from pathlib import Path
 import httpx
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
+from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -123,6 +124,23 @@ def _validate_module_name(name: str) -> str:
     if not name or not _VALID_MODULE_NAME.match(name):
         raise ValueError(f"Invalid module name: '{name}'. Use only letters, numbers, hyphens, underscores.")
     return name
+
+
+class CreateModuleRequest(BaseModel):
+    name: str
+    content: str
+    secrets: list[str] = []
+
+
+class UpdateModuleRequest(BaseModel):
+    content: str
+    secrets: list[str] = []
+
+
+class ModuleDetail(BaseModel):
+    name: str
+    content: str
+    secrets: list[str]
 
 
 _MAX_DOWNLOAD_DEPTH = 10
@@ -348,10 +366,10 @@ async def health():
     return {"status": "ok", "version": APP_VERSION}
 
 
-@app.post("/refresh-modules")
-async def refresh_modules():
+@app.post("/api/modules/refresh")
+async def api_refresh_modules():
     """Force-refresh the module list from GitHub (bypasses cache)."""
-    return {"status": "ok", "modules": list_available_modules(bypass_cache=True)}
+    return {"modules": list_available_modules(bypass_cache=True)}
 
 
 @app.post("/inject-secrets", response_class=HTMLResponse)
@@ -423,94 +441,7 @@ async def run(module: str = Form(), cmd: str = Form()):
     })
 
 
-# --- Registry routes (module CRUD via GitHub API) ---
-
-
-@app.get("/registry", response_class=HTMLResponse)
-async def registry(request: Request):
-    """Render the module registry list (htmx fragment)."""
-    modules = list_available_modules()
-    return templates.TemplateResponse(
-        request=request, name="partials/module_registry.html", context={"modules": modules}
-    )
-
-
-@app.get("/registry/create", response_class=HTMLResponse)
-async def registry_create_form(request: Request):
-    """Render the create module form (htmx fragment)."""
-    return templates.TemplateResponse(
-        request=request, name="partials/module_form.html", context={"mode": "create"}
-    )
-
-
-@app.post("/registry/create", response_class=HTMLResponse)
-async def registry_create(
-    request: Request, name: str = Form(), content: str = Form(), secrets: str = Form(default=""),
-):
-    """Create a new module with an info.md file and optional .env.schema."""
-    name = _validate_module_name(name)
-    _gh_create_file(f"{name}/info.md", content, f"Create module {name}")
-    var_names = [v.strip() for v in secrets.strip().splitlines() if v.strip()]
-    if var_names:
-        schema = _generate_env_schema(var_names)
-        _gh_create_file(f"{name}/.env.schema", schema, f"Add secrets schema for {name}")
-    global _modules_cache_ts
-    _modules_cache_ts = 0
-    modules = list_available_modules(bypass_cache=True)
-    return templates.TemplateResponse(
-        request=request, name="partials/module_registry.html", context={"modules": modules}
-    )
-
-
-@app.get("/registry/{name}/edit", response_class=HTMLResponse)
-async def registry_edit_form(request: Request, name: str):
-    """Render the edit form for a module's info.md and secrets (htmx fragment)."""
-    file_data = _gh_api(f"{name}/info.md")
-    content = base64.b64decode(file_data["content"]).decode()
-    # Try to load existing .env.schema
-    secrets = ""
-    schema_sha = ""
-    try:
-        schema_data = _gh_api(f"{name}/.env.schema")
-        schema_text = base64.b64decode(schema_data["content"]).decode()
-        secrets = "\n".join(_parse_env_schema(schema_text))
-        schema_sha = schema_data["sha"]
-    except httpx.HTTPStatusError:
-        pass
-    return templates.TemplateResponse(
-        request=request,
-        name="partials/module_form.html",
-        context={
-            "mode": "edit", "name": name, "content": content, "sha": file_data["sha"],
-            "secrets": secrets, "schema_sha": schema_sha,
-        },
-    )
-
-
-@app.post("/registry/{name}/edit", response_class=HTMLResponse)
-async def registry_edit(
-    request: Request,
-    name: str,
-    content: str = Form(),
-    sha: str = Form(),
-    secrets: str = Form(default=""),
-    schema_sha: str = Form(default=""),
-):
-    """Update a module's info.md and .env.schema."""
-    _gh_update_file(f"{name}/info.md", content, sha, f"Update {name}/info.md")
-    var_names = [v.strip() for v in secrets.strip().splitlines() if v.strip()]
-    if var_names:
-        schema = _generate_env_schema(var_names)
-        if schema_sha:
-            _gh_update_file(f"{name}/.env.schema", schema, schema_sha, f"Update secrets schema for {name}")
-        else:
-            _gh_create_file(f"{name}/.env.schema", schema, f"Add secrets schema for {name}")
-    elif schema_sha:
-        _gh_delete_file(f"{name}/.env.schema", schema_sha, f"Remove secrets schema for {name}")
-    modules = list_available_modules()
-    return templates.TemplateResponse(
-        request=request, name="partials/module_registry.html", context={"modules": modules}
-    )
+# --- Modules JSON API (CRUD via GitHub API) ---
 
 
 def _gh_delete_dir(path: str) -> None:
@@ -523,16 +454,96 @@ def _gh_delete_dir(path: str) -> None:
             _gh_delete_dir(item["path"])
 
 
-@app.post("/registry/{name}/delete", response_class=HTMLResponse)
-async def registry_delete(request: Request, name: str):
-    """Delete a module (all files in its directory, recursively)."""
-    _gh_delete_dir(name)
+@app.get("/api/modules")
+async def api_list_modules():
+    """List available modules from GitHub."""
+    return {"modules": list_available_modules()}
+
+
+@app.get("/api/modules/{name}")
+async def api_get_module(name: str):
+    """Get module detail: info.md content and secrets schema."""
+    try:
+        file_data = _gh_api(f"{name}/info.md")
+        content = base64.b64decode(file_data["content"]).decode()
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
+        raise
+
+    secrets: list[str] = []
+    try:
+        schema_data = _gh_api(f"{name}/.env.schema")
+        schema_text = base64.b64decode(schema_data["content"]).decode()
+        secrets = _parse_env_schema(schema_text)
+    except httpx.HTTPStatusError:
+        pass
+
+    return {"name": name, "content": content, "secrets": secrets}
+
+
+@app.post("/api/modules", status_code=201)
+async def api_create_module(body: CreateModuleRequest):
+    """Create a new module with info.md and optional .env.schema."""
+    name = _validate_module_name(body.name)
+    try:
+        _gh_create_file(f"{name}/info.md", body.content, f"Create module {name}")
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 422:
+            return JSONResponse({"error": f"Module '{name}' already exists"}, status_code=409)
+        raise
+
+    if body.secrets:
+        schema = _generate_env_schema(body.secrets)
+        _gh_create_file(f"{name}/.env.schema", schema, f"Add secrets schema for {name}")
+
     global _modules_cache_ts
     _modules_cache_ts = 0
-    modules = list_available_modules(bypass_cache=True)
-    return templates.TemplateResponse(
-        request=request, name="partials/module_registry.html", context={"modules": modules}
-    )
+    return {"name": name}
+
+
+@app.put("/api/modules/{name}")
+async def api_update_module(name: str, body: UpdateModuleRequest):
+    """Update a module's info.md and .env.schema. Fetches SHAs internally."""
+    try:
+        file_data = _gh_api(f"{name}/info.md")
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
+        raise
+    _gh_update_file(f"{name}/info.md", body.content, file_data["sha"], f"Update {name}/info.md")
+
+    schema_sha = ""
+    try:
+        schema_data = _gh_api(f"{name}/.env.schema")
+        schema_sha = schema_data["sha"]
+    except httpx.HTTPStatusError:
+        pass
+
+    if body.secrets:
+        schema = _generate_env_schema(body.secrets)
+        if schema_sha:
+            _gh_update_file(f"{name}/.env.schema", schema, schema_sha, f"Update secrets schema for {name}")
+        else:
+            _gh_create_file(f"{name}/.env.schema", schema, f"Add secrets schema for {name}")
+    elif schema_sha:
+        _gh_delete_file(f"{name}/.env.schema", schema_sha, f"Remove secrets schema for {name}")
+
+    return {"name": name}
+
+
+@app.delete("/api/modules/{name}")
+async def api_delete_module(name: str):
+    """Delete a module and all its files from GitHub."""
+    try:
+        _gh_delete_dir(name)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
+        raise
+    global _modules_cache_ts
+    _modules_cache_ts = 0
+    return {"status": "ok"}
 
 
 # Serve context/ files so they can be browsed in the browser
