@@ -1,7 +1,19 @@
+# Context Loader
+# Usage:
+#   1. Copy .env.example to .env and fill in your credentials
+#   2. docker compose up -d
+#   3. Open http://localhost:8080
+# Update:
+#   docker compose pull && docker compose up -d
+# Dev (build from source):
+#   docker compose up -d --build
+
 services:
   context-loader:
-    build:
-      context: .
-      dockerfile: platform/deploy/Dockerfile
+    image: ghcr.io/bleak-ai/context-loader:latest
+    build: .
     ports:
       - "8080:8080"
+    env_file:
+      - .env
+    restart: unless-stopped

@@ -5,8 +5,11 @@
 ## Platform
 - [platform/src/server.py](platform/src/server.py) — FastAPI web app serving the module picker UI and load endpoint
 - [platform/src/templates/index.html](platform/src/templates/index.html) — Module picker HTML template
-- [platform/deploy/Dockerfile](platform/deploy/Dockerfile) — Container image definition
-- [platform/deploy/docker-compose.yml](platform/deploy/docker-compose.yml) — Docker Compose config
+- [Dockerfile](Dockerfile) — Container image definition
+## Self-Hosting
+- [docker-compose.yml](docker-compose.yml) — Docker Compose for deployment (pulls image) and dev (--build)
+- [.env.example](.env.example) — Environment variable template for self-hosted deployment
+- [.github/workflows/publish.yml](.github/workflows/publish.yml) — CI workflow to build and push image to GHCR
 
 ## Docs
 - [docs/plans/01-filebrowser-quantum.md](docs/plans/01-filebrowser-quantum.md) — Plan: FileBrowser Quantum

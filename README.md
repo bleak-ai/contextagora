@@ -1,6 +1,23 @@
 # Context Loader
 
-## Run locally
+## Self-host with Docker
+
+```bash
+cp .env.example .env   # fill in your credentials
+docker compose up -d
+```
+
+Open http://localhost:8080
+
+Update to latest version:
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+The container includes Python 3.12, Node.js 22, Claude Code, Varlock, and Git. Modules are loaded from GitHub at runtime via the `GH_OWNER`/`GH_REPO`/`GH_TOKEN` env vars.
+
+## Run locally (development)
 
 ```bash
 cd platform
@@ -8,21 +25,11 @@ uv sync
 uv run start
 ```
 
-Open http://localhost:8080
-
-## Run with Docker
-
-Set your Anthropic API key and run:
+To build from source with Docker:
 
 ```bash
-export ANTHROPIC_AUTH_TOKEN=your-key-here
-cd platform/deploy
-docker compose up --build
+docker compose up -d --build
 ```
-
-Open http://localhost:8080
-
-The container includes Python 3.12, Node.js 22, Claude Code, Varlock, and Git. Modules are loaded from GitHub at runtime via the `GH_OWNER`/`GH_REPO`/`GH_TOKEN` env vars.
 
 ## Test with Claude Code
 

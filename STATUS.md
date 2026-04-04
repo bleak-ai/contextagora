@@ -30,7 +30,7 @@ Modules are listed and downloaded on demand via the GitHub Contents API. No git 
 
 ### Configuration
 
-GitHub module loading is configured via env vars (`.envrc` for local dev, `platform/deploy/.env` for Docker):
+GitHub module loading is configured via env vars (`.envrc` for local dev, `.env` for Docker):
 
 ```
 GH_OWNER=bleak-ai
@@ -57,7 +57,7 @@ Module secrets (API keys, credentials) are managed via **Infisical** and resolve
 
 - `platform/src/.env.schema` — declares the Infisical bootstrap credentials (`INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET`, `INFISICAL_PROJECT_ID`, `INFISICAL_ENVIRONMENT`). Imported by augmented module schemas via `@import(../../.env.schema)`.
 - `platform/src/server.py` → `augment_schema()` — transforms module schemas at load time.
-- `platform/deploy/docker-compose.yml` — passes Infisical bootstrap credentials + `INFISICAL_SITE_URL` to the container.
+- `docker-compose.yml` — passes Infisical bootstrap credentials + `INFISICAL_SITE_URL` to the container.
 
 ### Convention
 
@@ -65,7 +65,7 @@ Secrets in Infisical are organized by module name: module `linear` → Infisical
 
 ### Configuration
 
-Infisical credentials are provided via env vars (`.envrc` for local dev, `platform/deploy/.env` for Docker):
+Infisical credentials are provided via env vars (`.envrc` for local dev, `.env` for Docker):
 
 ```
 INFISICAL_CLIENT_ID=...
@@ -80,6 +80,9 @@ See `docs/guides/infisical-setup.md` for full setup instructions.
 ## Project structure
 
 ```
+docker-compose.yml    ← single compose file (pulls image or builds with --build)
+.env.example          ← credential template for self-hosted deployment
+.github/workflows/    ← CI: auto-publish image to GHCR
 platform/             ← everything that makes the app work
   pyproject.toml      ← dependencies, entry points, ruff config
   uv.lock
@@ -89,9 +92,7 @@ platform/             ← everything that makes the app work
     .env.schema       ← Infisical bootstrap credentials (imported by modules)
     templates/index.html
     context/          ← runtime only, gitignored — agent works here
-  deploy/             ← deployment config
-    Dockerfile
-    docker-compose.yml
+Dockerfile            ← container image definition (at project root)
 docs/                 ← documentation
   guides/             ← setup guides (Infisical, GitHub module loading)
   plans/              ← enhancement plans
@@ -99,8 +100,10 @@ docs/                 ← documentation
 
 ## Run
 
-- Local: `cd platform && uv sync && uv run start` (requires GitHub + Infisical env vars in `.envrc`)
-- Docker: `cd platform/deploy && docker compose up --build` (requires `.env` with credentials)
+- Self-host: `cp .env.example .env && docker compose up -d` (fills creds, pulls published image)
+- Local dev: `cd platform && uv sync && uv run start` (requires env vars in `.envrc`)
+- Build from source: `docker compose up -d --build`
+- Update: `docker compose pull && docker compose up -d`
 - Start agent: `cd platform/src/context && claude`
 
 ## What's next (see docs/plans/)
