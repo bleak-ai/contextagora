@@ -17,6 +17,7 @@
 - [platform/frontend/src/api/](platform/frontend/src/api/) — API client layer (fetch wrapper, modules, workspace, chat)
 - [platform/frontend/src/components/](platform/frontend/src/components/) — React components (Sidebar, Chat, ModuleRegistry, etc.)
 - [platform/frontend/src/routes/](platform/frontend/src/routes/) — TanStack Router file-based routes
+- [platform/frontend/src/utils/humanizeToolCall.ts](platform/frontend/src/utils/humanizeToolCall.ts) — Utility to translate raw tool call names/args into human-readable labels with module resolution
 - [Dockerfile](Dockerfile) — Multi-stage container image (Node build + Python runtime)
 ## Self-Hosting
 - [docker-compose.yml](docker-compose.yml) — Docker Compose for deployment (pulls image) and dev (--build)
