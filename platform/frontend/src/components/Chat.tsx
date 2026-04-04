@@ -31,11 +31,13 @@ export function Chat() {
       <div className="px-5 py-3 border-b border-border flex items-center justify-between bg-bg">
         <div className="flex items-center gap-3">
           <h1 className="text-sm font-medium text-text">Chat</h1>
-          <span className="text-xs text-text-muted">
-            {hasContext
-              ? `${loaded.length} module${loaded.length !== 1 ? "s" : ""} loaded`
-              : "No context loaded"}
-          </span>
+          {hasContext ? (
+            <span className="bg-accent-dim text-accent text-xs px-2 py-0.5 rounded-full">
+              {loaded.length} module{loaded.length !== 1 ? "s" : ""} loaded
+            </span>
+          ) : (
+            <span className="text-xs text-text-muted">No context loaded</span>
+          )}
         </div>
         {hasMessages && (
           <button
