@@ -6,16 +6,18 @@ A self-hosted web application that lets users select "context modules" (curated 
 
 ## Current state: Minimal POC
 
-Single FastAPI app with a web UI. User checks modules from a list, clicks Load, modules get downloaded to `platform/src/context/`. A `CLAUDE.md` is auto-generated listing loaded modules so the agent knows what's available.
+FastAPI JSON API backend with React SPA frontend. User checks modules from a list in the React UI, clicks Load, modules get downloaded to `platform/src/context/`. A `CLAUDE.md` is auto-generated listing loaded modules so the agent knows what's available.
 
 ## How it works
 
 1. Modules are structured folders with a single `info.md` file containing all documentation. They live in a separate GitHub repo (e.g. `bleak-ai/context-loader-module-demo`).
-2. `platform/src/server.py` serves a picker UI at `:8080`. Endpoints:
-   - `GET /` — renders checkbox list of available modules (fetched from GitHub), shows which are loaded
-   - `POST /load` — clears context, downloads selected modules from GitHub, generates `CLAUDE.md`
-   - `GET /api/context` — returns loaded module names as JSON
-   - `POST /refresh-modules` — force-refreshes the module list from GitHub (bypasses cache)
+2. `platform/src/server.py` exposes a JSON API at `:8080` and serves the React SPA as static files. Endpoints:
+   - `GET /api/modules` — lists available modules (fetched from GitHub)
+   - `GET /api/workspace` — returns loaded module names
+   - `POST /api/workspace/load` — clears context, downloads selected modules from GitHub, generates `CLAUDE.md`
+   - `POST /api/modules/refresh` — force-refreshes the module list from GitHub (bypasses cache)
+   - `GET /api/chat` — SSE endpoint for streaming chat with the agent
+   - `GET /` — serves the React SPA (static files built by Vite)
 3. `platform/src/context/` is the runtime output directory (gitignored). This is what agents read from.
 4. A static `CLAUDE.md` lives in `context/` instructing the agent to only use files within that directory. The agent starts here.
 5. Module source is configured via `GH_OWNER` and `GH_REPO` env vars.
@@ -90,9 +92,13 @@ platform/             ← everything that makes the app work
   src/                ← application source code (what gets deployed)
     server.py
     .env.schema       ← Infisical bootstrap credentials (imported by modules)
-    templates/index.html
     context/          ← runtime only, gitignored — agent works here
-Dockerfile            ← container image definition (at project root)
+  frontend/           ← React SPA (Vite + TanStack Router + TanStack Query)
+    src/
+      api/            ← API client layer (fetch wrapper, typed API functions)
+      components/     ← React components (Sidebar, Chat, ModuleRegistry, etc.)
+      routes/         ← TanStack Router file-based routes
+Dockerfile            ← multi-stage container image (Node build + Python runtime)
 docs/                 ← documentation
   guides/             ← setup guides (Infisical, GitHub module loading)
   plans/              ← enhancement plans

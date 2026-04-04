@@ -3,11 +3,12 @@
 > System for selecting and loading context modules into a coding agent's workspace.
 
 ## Platform
-- [platform/src/server.py](platform/src/server.py) — FastAPI backend: JSON API routes, GitHub module integration, SPA static serving
-- [platform/frontend/](platform/frontend/) — React SPA frontend (Vite + TanStack Router + TanStack Query + Tailwind)
-- [platform/frontend/src/api/](platform/frontend/src/api/) — Frontend API client layer: fetch wrapper, modules/workspace/chat API functions
-- [platform/frontend/src/components/](platform/frontend/src/components/) — React UI components: Sidebar with module picker and workspace state
-- [Dockerfile](Dockerfile) — Multi-stage container image: builds React frontend, serves as static in Python backend
+- [platform/src/server.py](platform/src/server.py) — FastAPI JSON API backend (modules, workspace, chat SSE)
+- [platform/frontend/](platform/frontend/) — React SPA (Vite + TanStack Router + TanStack Query)
+- [platform/frontend/src/api/](platform/frontend/src/api/) — API client layer (fetch wrapper, modules, workspace, chat)
+- [platform/frontend/src/components/](platform/frontend/src/components/) — React components (Sidebar, Chat, ModuleRegistry, etc.)
+- [platform/frontend/src/routes/](platform/frontend/src/routes/) — TanStack Router file-based routes
+- [Dockerfile](Dockerfile) — Multi-stage container image (Node build + Python runtime)
 ## Self-Hosting
 - [docker-compose.yml](docker-compose.yml) — Docker Compose for deployment (pulls image) and dev (--build)
 - [.env.example](.env.example) — Environment variable template for self-hosted deployment
@@ -16,7 +17,6 @@
 ## Docs
 - [docs/plans/01-filebrowser-quantum.md](docs/plans/01-filebrowser-quantum.md) — Plan: FileBrowser Quantum
 - [docs/plans/04-cli-cmux.md](docs/plans/04-cli-cmux.md) — Plan: CLI with cmux
-- [docs/plans/08-module-management-html.md](docs/plans/08-module-management-html.md) — Plan: Module management UI with HTML + Jinja2 + htmx
 - [docs/plans/09-module-management-react.md](docs/plans/09-module-management-react.md) — Plan: Module management UI with React SPA
 - [docs/plans/10-module-llms-txt.md](docs/plans/10-module-llms-txt.md) — Plan: Multi-file module structure with llms.txt navigation
 
