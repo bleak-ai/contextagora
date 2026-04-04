@@ -1,4 +1,5 @@
 import base64
+import json
 import logging
 import os
 import shutil
@@ -8,7 +9,7 @@ from importlib.metadata import version as pkg_version
 from pathlib import Path
 
 import httpx
-from fastapi import FastAPI, Form
+from fastapi import FastAPI
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
@@ -139,6 +140,10 @@ class ModuleDetail(BaseModel):
     name: str
     content: str
     secrets: list[str]
+
+
+class ChatRequest(BaseModel):
+    prompt: str
 
 
 class WorkspaceLoadRequest(BaseModel):
@@ -372,9 +377,9 @@ async def api_refresh_modules():
     return {"modules": list_available_modules(bypass_cache=True)}
 
 
-@app.post("/chat")
-async def chat(prompt: str = Form()):
-    """Run claude -p with the given prompt, streaming the response."""
+@app.post("/api/chat")
+async def api_chat(body: ChatRequest):
+    """Run claude with stream-json output, converting NDJSON to SSE events."""
 
     def generate():
         env = {
@@ -385,8 +390,12 @@ async def chat(prompt: str = Form()):
             "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
         }
         proc = subprocess.Popen(
-            ["claude", "-p", prompt, "--continue",
-             "--allowedTools", "Bash(*)", "Read(*)", "Write(*)", "Edit(*)", "Glob(*)", "Grep(*)"],
+            [
+                "claude", "-p", body.prompt,
+                "--continue",
+                "--output-format", "stream-json",
+                "--allowedTools", "Bash(*)", "Read(*)", "Write(*)", "Edit(*)", "Glob(*)", "Grep(*)",
+            ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             cwd=str(CONTEXT_DIR),
@@ -394,14 +403,46 @@ async def chat(prompt: str = Form()):
             text=True,
         )
         for line in proc.stdout:
-            yield line
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+
+            event_type = event.get("type", "")
+
+            if event_type == "assistant" and "message" in event:
+                continue
+            elif event_type == "content_block_start":
+                block = event.get("content_block", {})
+                if block.get("type") == "thinking":
+                    yield f"event: thinking\ndata: {json.dumps({'text': block.get('thinking', '')})}\n\n"
+                elif block.get("type") == "tool_use":
+                    yield f"event: tool_use\ndata: {json.dumps({'tool': block.get('name', ''), 'input': block.get('input', {})})}\n\n"
+            elif event_type == "content_block_delta":
+                delta = event.get("delta", {})
+                if delta.get("type") == "thinking_delta":
+                    yield f"event: thinking\ndata: {json.dumps({'text': delta.get('thinking', '')})}\n\n"
+                elif delta.get("type") == "text_delta":
+                    yield f"event: text\ndata: {json.dumps({'text': delta.get('text', '')})}\n\n"
+                elif delta.get("type") == "input_json_delta":
+                    yield f"event: tool_input\ndata: {json.dumps({'partial_json': delta.get('partial_json', '')})}\n\n"
+            elif event_type == "result":
+                text = event.get("result", "")
+                if text:
+                    yield f"event: text\ndata: {json.dumps({'text': text})}\n\n"
+                yield f"event: done\ndata: {{}}\n\n"
+
         proc.wait()
         if proc.returncode != 0:
             stderr = proc.stderr.read()
             if stderr:
-                yield f"\n[error: {stderr.strip()}]"
+                yield f"event: error\ndata: {json.dumps({'message': stderr.strip()})}\n\n"
+            yield f"event: done\ndata: {{}}\n\n"
 
-    return StreamingResponse(generate(), media_type="text/plain")
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 
 # --- Modules JSON API (CRUD via GitHub API) ---
