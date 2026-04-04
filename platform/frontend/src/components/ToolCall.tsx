@@ -21,7 +21,7 @@ export function ToolCall({ tool, input, output, isStreaming }: ToolCallProps) {
           <path d="M4 2l5 4-5 4V2z" />
         </svg>
         <span className="font-mono text-accent">{tool}</span>
-        <span className="text-text-muted truncate max-w-[300px]">{inputSummary}</span>
+        <span className="text-text-muted">{inputSummary}</span>
         {isStreaming && <span className="text-text-muted animate-pulse">...</span>}
       </summary>
       <div className="mt-1 pl-4 space-y-1 border-l border-border-light">

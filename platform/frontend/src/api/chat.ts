@@ -1,9 +1,9 @@
 export type ChatEvent =
   | { type: "thinking"; text: string }
   | { type: "text"; text: string }
-  | { type: "tool_use"; tool: string; input: Record<string, unknown> }
+  | { type: "tool_use"; tool: string; tool_id: string; input: Record<string, unknown> }
   | { type: "tool_input"; partial_json: string }
-  | { type: "tool_result"; tool: string; output: string }
+  | { type: "tool_result"; tool_id: string; output: string }
   | { type: "error"; message: string }
   | { type: "done" };
 
