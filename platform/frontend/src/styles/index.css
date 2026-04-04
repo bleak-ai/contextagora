@@ -32,3 +32,11 @@ body,
   scrollbar-width: thin;
   scrollbar-color: var(--color-border-light) transparent;
 }
+
+button,
+[role="button"],
+a,
+select,
+summary {
+  cursor: pointer;
+}
