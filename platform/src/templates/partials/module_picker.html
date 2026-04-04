@@ -1,0 +1,101 @@
+<div id="module-picker">
+    <form hx-post="/load" hx-target="#module-picker" hx-swap="outerHTML">
+        <p class="text-sm text-gray-600 mb-4">
+            Select modules to load into <code class="bg-gray-100 px-1 rounded">/context/</code>:
+        </p>
+        {% for mod in modules %}
+        <div class="py-1.5">
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" name="modules" value="{{ mod }}"
+                    {{ 'checked' if mod in loaded else '' }}
+                    class="rounded">
+                <span>{{ mod }}</span>
+            </label>
+        </div>
+        {% endfor %}
+        <button type="submit"
+                class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+            Load Selected
+        </button>
+    </form>
+
+    {% if loaded %}
+    <div class="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+        <h2 class="font-semibold text-sm mb-2">Currently loaded:</h2>
+        <ul class="text-sm space-y-1">
+            {% for mod in loaded %}
+            <li>
+                <a href="/files/{{ mod }}/" class="text-blue-600 hover:underline">{{ mod }}/</a>
+                {% if mod in secrets %}
+                <span class="ml-2">
+                    {% for var, preview in secrets[mod].items() %}
+                    <span class="{{ 'text-green-600' if preview else 'text-red-500' }} text-xs font-mono">
+                        {{ '&#10003;' if preview else '&#10007;' }} {{ var }}{% if preview %} <code>{{ preview }}</code>{% endif %}
+                    </span>
+                    {% endfor %}
+                </span>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        <div class="mt-3 p-2 bg-gray-900 text-gray-300 rounded text-xs font-mono">
+            cd platform/src/context && claude
+        </div>
+    </div>
+    {% endif %}
+
+    {% if loaded %}
+    <div class="mt-6 border rounded-lg overflow-hidden">
+        <div id="chat-messages" class="h-72 overflow-y-auto p-3 bg-white space-y-3"></div>
+        <form id="chat-form" class="flex border-t">
+            <input type="text" name="prompt" placeholder="Ask Claude about your modules..."
+                   autocomplete="off" required
+                   class="flex-1 px-3 py-2 text-sm outline-none">
+            <button type="submit"
+                    class="px-4 py-2 bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:bg-gray-400">
+                Send
+            </button>
+        </form>
+    </div>
+    <script>
+    (function() {
+        const form = document.getElementById('chat-form');
+        const messages = document.getElementById('chat-messages');
+        const input = form.querySelector('input[name="prompt"]');
+        const btn = form.querySelector('button');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const prompt = input.value.trim();
+            if (!prompt) return;
+            const userMsg = document.createElement('div');
+            userMsg.className = 'ml-auto max-w-[85%] bg-blue-50 rounded-lg px-3 py-2 text-sm';
+            userMsg.textContent = prompt;
+            messages.appendChild(userMsg);
+            input.value = '';
+            btn.disabled = true;
+            const assistantMsg = document.createElement('div');
+            assistantMsg.className = 'max-w-[85%] bg-white border rounded-lg px-3 py-2 text-sm whitespace-pre-wrap';
+            messages.appendChild(assistantMsg);
+            messages.scrollTop = messages.scrollHeight;
+            try {
+                const body = new FormData();
+                body.append('prompt', prompt);
+                const resp = await fetch('/chat', { method: 'POST', body });
+                const reader = resp.body.getReader();
+                const decoder = new TextDecoder();
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    assistantMsg.textContent += decoder.decode(value);
+                    messages.scrollTop = messages.scrollHeight;
+                }
+            } catch (err) {
+                assistantMsg.textContent = '[error: ' + err.message + ']';
+            }
+            btn.disabled = false;
+            input.focus();
+        });
+    })();
+    </script>
+    {% endif %}
+</div>

@@ -1,0 +1,67 @@
+{% if mode == 'create' %}
+<form hx-post="/registry/create" hx-target="#module-registry" hx-swap="outerHTML"
+      class="mb-4 border rounded-lg p-4 bg-gray-50">
+    <div class="mb-3">
+        <label class="block text-sm font-medium mb-1">Module name</label>
+        <input type="text" name="name" required
+               placeholder="e.g. stripe, linear, supabase"
+               class="w-full border rounded px-3 py-1.5 text-sm">
+    </div>
+    <div class="mb-3">
+        <label class="block text-sm font-medium mb-1">info.md</label>
+        <textarea name="content" rows="10"
+                  class="w-full border rounded px-3 py-1.5 text-sm font-mono">## Module Name
+
+Description of what this module provides.
+</textarea>
+    </div>
+    <div class="mb-3">
+        <label class="block text-sm font-medium mb-1">Secrets (one variable per line, leave empty if none)</label>
+        <textarea name="secrets" rows="4" placeholder="API_KEY_NAME"
+                  class="w-full border rounded px-3 py-1.5 text-sm font-mono"></textarea>
+        <p class="mt-1 text-xs text-gray-500">
+            These become the <code>.env.schema</code>. After creating, add the actual values in
+            Infisical at path <code>/{module_name}</code>.
+        </p>
+    </div>
+    <div class="flex gap-2">
+        <button type="submit"
+                class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+            Create
+        </button>
+        <button type="button" onclick="this.closest('form').remove()"
+                class="px-3 py-1.5 bg-gray-200 rounded text-sm hover:bg-gray-300">
+            Cancel
+        </button>
+    </div>
+</form>
+{% else %}
+<form hx-post="/registry/{{ name }}/edit" hx-target="#module-registry" hx-swap="outerHTML"
+      class="mb-4 border rounded-lg p-4 bg-gray-50">
+    <input type="hidden" name="sha" value="{{ sha }}">
+    <input type="hidden" name="schema_sha" value="{{ schema_sha }}">
+    <div class="mb-3">
+        <label class="block text-sm font-medium mb-1">Editing: {{ name }}/info.md</label>
+        <textarea name="content" rows="14"
+                  class="w-full border rounded px-3 py-1.5 text-sm font-mono">{{ content }}</textarea>
+    </div>
+    <div class="mb-3">
+        <label class="block text-sm font-medium mb-1">Secrets (one variable per line)</label>
+        <textarea name="secrets" rows="4"
+                  class="w-full border rounded px-3 py-1.5 text-sm font-mono">{{ secrets }}</textarea>
+        <p class="mt-1 text-xs text-gray-500">
+            Add values in Infisical at path <code>/{{ name }}</code>.
+        </p>
+    </div>
+    <div class="flex gap-2">
+        <button type="submit"
+                class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+            Save
+        </button>
+        <button type="button" onclick="this.closest('form').remove()"
+                class="px-3 py-1.5 bg-gray-200 rounded text-sm hover:bg-gray-300">
+            Cancel
+        </button>
+    </div>
+</form>
+{% endif %}

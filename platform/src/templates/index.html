@@ -2,127 +2,48 @@
 <html>
 <head>
     <title>Context Loader</title>
-    <style>
-        body { font-family: system-ui; max-width: 600px; margin: 40px auto; padding: 0 20px; }
-        h1 { font-size: 1.4em; }
-        .module { padding: 8px 0; }
-        .module label { cursor: pointer; font-size: 1.1em; }
-        .secrets { margin-left: 28px; font-size: 0.85em; color: #666; }
-        .secrets span { display: inline-block; margin-right: 10px; font-family: monospace; }
-        .var-ok { color: #2d8a3e; }
-        .var-missing { color: #c44; }
-        button { margin-top: 16px; padding: 8px 24px; font-size: 1em; cursor: pointer; }
-        .loaded { margin-top: 24px; padding: 16px; background: #f0f7f0; border-radius: 8px; }
-        .loaded h2 { margin-top: 0; font-size: 1.1em; }
-        .loaded ul { margin: 0; padding-left: 20px; }
-        .agent-cmd { margin-top: 16px; padding: 12px; background: #1e1e1e; color: #d4d4d4; border-radius: 6px; font-family: monospace; font-size: 0.9em; }
-        a { color: #0066cc; }
-        #chat { margin-top: 24px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
-        #chat-messages { height: 300px; overflow-y: auto; padding: 12px; background: #fafafa; }
-        .msg { margin-bottom: 12px; padding: 8px 12px; border-radius: 6px; max-width: 85%; white-space: pre-wrap; font-size: 0.95em; }
-        .msg-user { background: #e3f2fd; margin-left: auto; text-align: right; }
-        .msg-assistant { background: #fff; border: 1px solid #eee; }
-        #chat-form { display: flex; border-top: 1px solid #ddd; }
-        #chat-form input[type="text"] { flex: 1; padding: 10px 12px; border: none; font-size: 1em; outline: none; }
-        #chat-form button { padding: 10px 20px; border: none; background: #0066cc; color: white; cursor: pointer; font-size: 1em; }
-        #chat-form button:disabled { background: #999; cursor: not-allowed; }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 </head>
-<body>
-    <h1>Context Loader</h1>
-    <form method="post" action="/load">
-        <p>Select modules to load into <code>/context/</code>:</p>
-        {% for mod in modules %}
-        <div class="module">
-            <label>
-                <input type="checkbox" name="modules" value="{{ mod }}"
-                    {{ 'checked' if mod in loaded else '' }}>
-                {{ mod }}
-            </label>
-        </div>
-        {% endfor %}
-        <button type="submit">Load Selected</button>
-    </form>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-3xl mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold mb-6">Context Loader</h1>
 
-    {% if loaded %}
-    <div class="loaded">
-        <h2>Currently loaded:</h2>
-        <ul>
-            {% for mod in loaded %}
-            <li>
-                <a href="/files/{{ mod }}/">{{ mod }}/</a>
-                {% if mod in secrets %}
-                <div class="secrets">
-                    {% for var, preview in secrets[mod].items() %}
-                    <span class="{{ 'var-ok' if preview else 'var-missing' }}">
-                        {{ '✅' if preview else '❌' }} {{ var }} {% if preview %}<code>{{ preview }}</code>{% endif %}
-                    </span>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </li>
-            {% endfor %}
-        </ul>
-        <div class="agent-cmd">
-            <strong>Start agent:</strong><br>
-            cd platform/src/context && claude
+        <!-- Tabs -->
+        <div class="flex gap-1 mb-6 border-b">
+            <button onclick="showTab('picker')" id="tab-picker"
+                    class="px-4 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600">
+                Load Modules
+            </button>
+            <button onclick="showTab('registry')" id="tab-registry"
+                    class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                Manage Modules
+            </button>
+        </div>
+
+        <!-- Picker Tab -->
+        <div id="picker-content">
+            {% include 'partials/module_picker.html' %}
+        </div>
+
+        <!-- Registry Tab -->
+        <div id="registry-content" class="hidden"
+             hx-get="/registry" hx-trigger="load" hx-swap="innerHTML">
+            <p class="text-sm text-gray-500">Loading modules...</p>
         </div>
     </div>
-    {% endif %}
 
-    {% if loaded %}
-    <div id="chat">
-        <div id="chat-messages"></div>
-        <form id="chat-form">
-            <input type="text" name="prompt" placeholder="Ask Claude about your modules..." autocomplete="off" required>
-            <button type="submit">Send</button>
-        </form>
-    </div>
     <script>
-    const form = document.getElementById('chat-form');
-    const messages = document.getElementById('chat-messages');
-    const input = form.querySelector('input[name="prompt"]');
-    const btn = form.querySelector('button');
-
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const prompt = input.value.trim();
-        if (!prompt) return;
-
-        // Show user message
-        const userMsg = document.createElement('div');
-        userMsg.className = 'msg msg-user';
-        userMsg.textContent = prompt;
-        messages.appendChild(userMsg);
-        input.value = '';
-        btn.disabled = true;
-
-        // Create assistant message container
-        const assistantMsg = document.createElement('div');
-        assistantMsg.className = 'msg msg-assistant';
-        messages.appendChild(assistantMsg);
-        messages.scrollTop = messages.scrollHeight;
-
-        try {
-            const body = new FormData();
-            body.append('prompt', prompt);
-            const resp = await fetch('/chat', { method: 'POST', body });
-            const reader = resp.body.getReader();
-            const decoder = new TextDecoder();
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                assistantMsg.textContent += decoder.decode(value);
-                messages.scrollTop = messages.scrollHeight;
-            }
-        } catch (err) {
-            assistantMsg.textContent = '[error: ' + err.message + ']';
-        }
-        btn.disabled = false;
-        input.focus();
-    });
+    function showTab(tab) {
+        document.getElementById('picker-content').classList.toggle('hidden', tab !== 'picker');
+        document.getElementById('registry-content').classList.toggle('hidden', tab !== 'registry');
+        document.getElementById('tab-picker').className = tab === 'picker'
+            ? 'px-4 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600'
+            : 'px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700';
+        document.getElementById('tab-registry').className = tab === 'registry'
+            ? 'px-4 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600'
+            : 'px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700';
+    }
     </script>
-    {% endif %}
 </body>
 </html>
