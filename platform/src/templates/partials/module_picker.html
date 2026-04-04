@@ -21,7 +21,13 @@
 
     {% if loaded %}
     <div class="mt-6 p-4 bg-bg-raised border border-border rounded-lg">
-        <h2 class="font-semibold text-sm mb-2 text-accent">Currently loaded:</h2>
+        <div class="flex items-center justify-between mb-2">
+            <h2 class="font-semibold text-sm text-accent">Currently loaded:</h2>
+            <button hx-post="/inject-secrets" hx-target="#module-picker" hx-swap="outerHTML"
+                    class="text-xs px-2 py-1 border border-border rounded text-text-sec hover:text-text hover:border-accent">
+                Inject secrets
+            </button>
+        </div>
         <ul class="text-sm space-y-1">
             {% for mod in loaded %}
             <li>

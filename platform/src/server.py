@@ -30,6 +30,9 @@ _modules_cache: list[str] = []
 _modules_cache_ts: float = 0
 _CACHE_TTL = 60  # seconds
 
+# Cache for secrets status (only refreshed on /load or explicit refresh)
+_secrets_cache: dict[str, dict[str, str | None]] = {}
+
 
 def _gh_headers() -> dict[str, str]:
     headers = {"Accept": "application/vnd.github.v3+json"}
@@ -279,7 +282,7 @@ async def index(request: Request):
         context={
             "modules": list_available_modules(),
             "loaded": list_modules(CONTEXT_DIR),
-            "secrets": get_secrets_status(CONTEXT_DIR),
+            "secrets": _secrets_cache,
         },
     )
 
@@ -328,13 +331,16 @@ async def load(request: Request, modules: list[str] = Form(default=[])):
         else:
             log.info("varlock: %s secrets validated", name)
 
+    global _secrets_cache
+    _secrets_cache = get_secrets_status(CONTEXT_DIR)
+
     return templates.TemplateResponse(
         request=request,
         name="partials/module_picker.html",
         context={
             "modules": list_available_modules(),
             "loaded": list_modules(CONTEXT_DIR),
-            "secrets": get_secrets_status(CONTEXT_DIR),
+            "secrets": _secrets_cache,
         },
     )
 
@@ -349,6 +355,22 @@ async def api_context():
 async def refresh_modules():
     """Force-refresh the module list from GitHub (bypasses cache)."""
     return {"status": "ok", "modules": list_available_modules(bypass_cache=True)}
+
+
+@app.post("/inject-secrets", response_class=HTMLResponse)
+async def inject_secrets(request: Request):
+    """Re-check secrets status from Infisical and return updated module picker."""
+    global _secrets_cache
+    _secrets_cache = get_secrets_status(CONTEXT_DIR)
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/module_picker.html",
+        context={
+            "modules": list_available_modules(),
+            "loaded": list_modules(CONTEXT_DIR),
+            "secrets": _secrets_cache,
+        },
+    )
 
 
 @app.post("/chat")
