@@ -1,9 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Chat } from "../components/Chat";
 
 export const Route = createFileRoute("/")({
-  component: () => (
-    <div className="flex items-center justify-center h-full text-text-muted">
-      Chat will go here
-    </div>
-  ),
+  component: Chat,
 });
