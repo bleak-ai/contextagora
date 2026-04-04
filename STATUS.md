@@ -2,7 +2,7 @@
 
 ## What it is
 
-A system that lets users select "context modules" (curated docs, configs, API references) and load them into a workspace where a coding agent (Claude Code, etc.) can read and act on them.
+A self-hosted web application that lets users select "context modules" (curated docs, configs, API references) through a browser UI and load them into a workspace where a coding agent (Claude Code, etc.) can read and act on them. Designed to run as a Docker service — users interact with the module picker via the web UI, not the terminal.
 
 ## Current state: Minimal POC
 
@@ -18,7 +18,7 @@ Single FastAPI app with a web UI. User checks modules from a list, clicks Load, 
    - `POST /refresh-modules` — force-refreshes the module list from GitHub (bypasses cache)
 3. `platform/src/context/` is the runtime output directory (gitignored). This is what agents read from.
 4. A static `CLAUDE.md` lives in `context/` instructing the agent to only use files within that directory. The agent starts here.
-5. Module source is configured via `GH_OWNER` and `GH_REPO` env vars. When not set, falls back to a local `MODULES_DIR` directory.
+5. Module source is configured via `GH_OWNER` and `GH_REPO` env vars.
 
 ## Module loading (GitHub API)
 
@@ -100,10 +100,12 @@ docs/                 ← documentation
 
 ## Run
 
+Primary deployment is Docker-based. The web UI at `:8080` is the main user interface.
+
 - Self-host: `cp .env.example .env && docker compose up -d` (fills creds, pulls published image)
-- Local dev: `cd platform && uv sync && uv run start` (requires env vars in `.envrc`)
 - Build from source: `docker compose up -d --build`
 - Update: `docker compose pull && docker compose up -d`
+- Local dev (non-Docker): `cd platform && uv sync && uv run start` (requires env vars in `.envrc`)
 - Start agent: `cd platform/src/context && claude`
 
 ## What's next (see docs/plans/)

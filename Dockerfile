@@ -18,8 +18,6 @@ RUN uv sync --no-dev --frozen --no-install-project
 COPY platform/src/ src/
 RUN uv sync --no-dev --frozen
 
-ENV MODULES_DIR=/app/modules
-
 RUN mkdir -p src/context
 
 EXPOSE 8080

@@ -18,9 +18,6 @@ log = logging.getLogger(__name__)
 
 # --- Paths ---
 BASE_DIR = Path(__file__).resolve().parent
-# Local modules directory (fallback when GH_OWNER/GH_REPO are not set)
-MODULES_DIR = Path(os.environ.get("MODULES_DIR", BASE_DIR.parent.parent / "modules"))
-
 # --- GitHub-based module loading ---
 GH_OWNER = os.environ.get("GH_OWNER")  # e.g. "bleak-ai"
 GH_REPO = os.environ.get("GH_REPO")  # e.g. "context-loader-module-demo"
@@ -266,14 +263,14 @@ def get_secrets_status(directory: Path) -> dict[str, dict[str, str | None]]:
 
 
 def list_available_modules(*, bypass_cache: bool = False) -> list[str]:
-    """List available modules from GitHub (if configured) or local directory."""
-    if GH_OWNER:
-        try:
-            return list_remote_modules(bypass_cache=bypass_cache)
-        except httpx.HTTPError as exc:
-            log.error("Failed to list modules from GitHub: %s", exc)
-            return _modules_cache if _modules_cache else []
-    return list_modules(MODULES_DIR)
+    """List available modules from GitHub."""
+    if not GH_OWNER:
+        return []
+    try:
+        return list_remote_modules(bypass_cache=bypass_cache)
+    except httpx.HTTPError as exc:
+        log.error("Failed to list modules from GitHub: %s", exc)
+        return _modules_cache if _modules_cache else []
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -306,10 +303,7 @@ async def load(request: Request, modules: list[str] = Form(default=[])):
         if name not in available:
             continue
         try:
-            if GH_OWNER:
-                download_module(name, CONTEXT_DIR / name)
-            else:
-                shutil.copytree(MODULES_DIR / name, CONTEXT_DIR / name)
+            download_module(name, CONTEXT_DIR / name)
         except (httpx.HTTPError, ValueError) as exc:
             log.error("Failed to download module '%s': %s", name, exc)
             continue
