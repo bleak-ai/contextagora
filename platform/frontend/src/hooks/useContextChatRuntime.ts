@@ -51,7 +51,9 @@ function convertMessage(msg: ChatMessage): ThreadMessageLike {
       ? {
           status: msg.streaming
             ? { type: "running" as const }
-            : { type: "complete" as const, reason: "stop" as const },
+            : msg.error
+              ? { type: "incomplete" as const, reason: "error" as const }
+              : { type: "complete" as const, reason: "stop" as const },
         }
       : {}),
   };

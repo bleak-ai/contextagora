@@ -73,8 +73,7 @@ const AssistantText: FC<TextMessagePartProps> = (props) => {
 
 /**
  * LeftRail renders the 2px colored vertical line.
- * Uses MessagePrimitive.If to determine streaming vs complete state.
- * Gold while running, gold→green when complete.
+ * Gold while running, gold→green when complete, gold→red on error.
  */
 const LeftRail: FC = () => (
   <div className="flex-shrink-0 mr-4 w-0.5 rounded-sm">
@@ -83,6 +82,9 @@ const LeftRail: FC = () => (
     </MessagePrimitive.If>
     <MessagePrimitive.If complete>
       <div className="w-full h-full bg-gradient-to-b from-accent to-success rounded-sm" />
+    </MessagePrimitive.If>
+    <MessagePrimitive.If incomplete>
+      <div className="w-full h-full bg-gradient-to-b from-accent to-danger rounded-sm" />
     </MessagePrimitive.If>
   </div>
 );
