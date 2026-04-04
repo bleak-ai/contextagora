@@ -550,8 +550,21 @@ async def api_delete_module(name: str):
     return {"status": "ok"}
 
 
-# Serve context/ files so they can be browsed in the browser
-app.mount("/files", StaticFiles(directory=str(CONTEXT_DIR)), name="files")
+# --- SPA static file serving ---
+STATIC_DIR = BASE_DIR / "static"
+
+if STATIC_DIR.exists():
+    from fastapi.responses import FileResponse
+
+    app.mount("/assets", StaticFiles(directory=str(STATIC_DIR / "assets")), name="static-assets")
+
+    @app.get("/{path:path}")
+    async def spa_fallback(path: str):
+        """Serve index.html for all non-API routes (SPA client-side routing)."""
+        file_path = STATIC_DIR / path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        return FileResponse(STATIC_DIR / "index.html")
 
 
 # --- Entry point ---
