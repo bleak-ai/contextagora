@@ -21,6 +21,7 @@
 - [platform/frontend/src/api/](platform/frontend/src/api/) — API client layer (fetch wrapper, modules, workspace, chat, sessions, commands)
 - [platform/frontend/src/api/commands.ts](platform/frontend/src/api/commands.ts) — Slash commands API client (fetchCommands, Command type)
 - [platform/frontend/src/components/chat/SlashCommandSelector.tsx](platform/frontend/src/components/chat/SlashCommandSelector.tsx) — Slash command dropdown selector component and useSlashCommands hook
+- [platform/frontend/src/components/chat/DecisionTreePanel.tsx](platform/frontend/src/components/chat/DecisionTreePanel.tsx) — Tree navigation visualization with breadcrumbs and module access counts
 - [platform/frontend/src/api/sessions.ts](platform/frontend/src/api/sessions.ts) — Session CRUD API client (create, rename, delete, list)
 - [platform/frontend/src/hooks/useSessionStore.ts](platform/frontend/src/hooks/useSessionStore.ts) — Zustand store for session list and active session (localStorage-persisted)
 - [platform/frontend/src/components/SessionList.tsx](platform/frontend/src/components/SessionList.tsx) — Session list UI with create, rename (double-click), and delete
@@ -41,6 +42,7 @@
 - [docs/plans/11-registry-ux.md](docs/plans/11-registry-ux.md) — Plan: Module registry UX improvements (detail panel, multi-file, secrets)
 
 ## Guides
+- [docs/guides/deployment.md](docs/guides/deployment.md) — End-user deployment guide (Docker, env vars, HTTPS, troubleshooting)
 - [docs/guides/infisical-setup.md](docs/guides/infisical-setup.md) — Step-by-step Infisical setup for module secrets
 - [docs/guides/git-module-loading-test.md](docs/guides/git-module-loading-test.md) — Testing GitHub API module loading with a private repo and token
 
