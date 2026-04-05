@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
-import { fetchWorkspace } from "../api/workspace";
+import { fetchWorkspace, loadModules } from "../api/workspace";
 import { fetchModules } from "../api/modules";
 import { createSession } from "../api/sessions";
 import { useSessionStore } from "../hooks/useSessionStore";
@@ -61,15 +61,23 @@ export function Chat() {
     sessionId: activeSessionId,
   });
 
+  const loadMutation = useMutation({
+    mutationFn: loadModules,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workspace"] });
+    },
+  });
+
   const handleQuickLoad = useCallback(
     (moduleName: string) => {
-      // Send a message to quickly reference a module
-      if (activeSessionId) {
-        const sendMessage = useChatStore.getState().sendMessage;
-        sendMessage(activeSessionId, `Load and tell me about the ${moduleName} module`);
-      }
+      // Toggle module load/unload without sending a chat message
+      const current = workspace?.modules || [];
+      const next = current.includes(moduleName)
+        ? current.filter((m) => m !== moduleName)
+        : [...current, moduleName];
+      loadMutation.mutate(next);
     },
-    [activeSessionId],
+    [workspace?.modules, loadMutation],
   );
 
   return (
