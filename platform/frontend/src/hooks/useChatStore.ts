@@ -30,11 +30,11 @@ interface ChatState {
   streamingSessionId: string | null;
   abortController: AbortController | null;
   moduleToolCompletedCount: number;
-  treeState: {
+  treeStateBySession: Record<string, {
     active_path: string[];
     accessed_files: string[];
     module_counts: Record<string, number>;
-  } | null;
+  }>;
 
   sendMessage: (sessionId: string, prompt: string) => void;
   cancelStream: () => void;
@@ -49,7 +49,7 @@ export const useChatStore = create<ChatState>()(
       streamingSessionId: null,
       abortController: null,
       moduleToolCompletedCount: 0,
-      treeState: null,
+      treeStateBySession: {},
 
       sendMessage: (sessionId: string, prompt: string) => {
         const userMsg: ChatMessage = {
@@ -180,10 +180,13 @@ export const useChatStore = create<ChatState>()(
               case "tree_navigation":
                 set((state) => ({
                   ...state,
-                  treeState: {
-                    active_path: event.active_path,
-                    accessed_files: event.accessed_files,
-                    module_counts: event.module_counts
+                  treeStateBySession: {
+                    ...state.treeStateBySession,
+                    [sessionId]: {
+                      active_path: event.active_path,
+                      accessed_files: event.accessed_files,
+                      module_counts: event.module_counts
+                    }
                   }
                 }));
                 break;
@@ -234,7 +237,8 @@ export const useChatStore = create<ChatState>()(
       deleteSessionMessages: (sessionId: string) => {
         set((state) => {
           const { [sessionId]: _, ...rest } = state.messagesBySession;
-          return { messagesBySession: rest };
+          const { [sessionId]: __, ...restTree } = state.treeStateBySession;
+          return { messagesBySession: rest, treeStateBySession: restTree };
         });
       },
     }),

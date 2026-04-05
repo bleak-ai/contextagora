@@ -260,7 +260,7 @@ async def api_chat(body: ChatRequest):
 
                             # Track Read operations
                             if tool_name == "Read":
-                                file_path = tool_input.get("path", "")
+                                file_path = tool_input.get("file_path", "") or tool_input.get("path", "")
                                 tree_state = update_tree_state(body.session_id, file_path)
                                 if tree_state:
                                     yield f"event: tree_navigation\ndata: {json.dumps(tree_state)}\n\n"
