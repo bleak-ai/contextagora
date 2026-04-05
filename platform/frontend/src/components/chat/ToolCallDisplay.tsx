@@ -48,7 +48,7 @@ export const ToolCallDisplay: FC<ToolCallMessagePartProps> = ({
         onClick={() => setOpen(!open)}
         className={`w-full flex items-center gap-2 py-1.5 px-2.5 rounded-md transition-colors ${
           isRunning
-            ? "bg-[rgba(168,176,224,0.04)] border-l-2 border-l-accent"
+            ? "bg-accent-dim border-l-2 border-l-accent"
             : "bg-[rgba(255,255,255,0.02)] border-l-2 border-l-[#333] hover:bg-[rgba(255,255,255,0.04)]"
         }`}
       >
@@ -59,13 +59,13 @@ export const ToolCallDisplay: FC<ToolCallMessagePartProps> = ({
             height="13"
             viewBox="0 0 13 13"
             fill="none"
-            className="flex-shrink-0 animate-[spin_1.5s_linear_infinite]"
+            className="flex-shrink-0 text-accent animate-[spin_1.5s_linear_infinite]"
           >
             <circle
               cx="6.5"
               cy="6.5"
               r="5"
-              stroke="#a8b0e0"
+              stroke="currentColor"
               strokeWidth="1.2"
               strokeDasharray="4 3"
             />

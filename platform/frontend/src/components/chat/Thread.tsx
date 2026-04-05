@@ -21,7 +21,7 @@ interface ThreadProps {
 export const Thread: FC<ThreadProps> = ({ emptyState }) => {
   return (
     <ThreadPrimitive.Root className="flex flex-col flex-1 min-h-0">
-      <ThreadPrimitive.Viewport className="flex-1 flex flex-col overflow-y-auto">
+      <ThreadPrimitive.Viewport className="flex-1 flex flex-col overflow-y-auto bg-bg-chat">
         {emptyState && (
           <AuiIf condition={(s) => s.thread.isEmpty}>
             {emptyState}
@@ -47,7 +47,7 @@ export const Thread: FC<ThreadProps> = ({ emptyState }) => {
 
 const UserMessage: FC = () => (
   <MessagePrimitive.Root className="flex justify-end">
-    <div className="ml-auto max-w-[70%] bg-[rgba(168,176,224,0.08)] border border-[rgba(168,176,224,0.15)] rounded-[16px_16px_4px_16px] px-4 py-2.5 text-sm text-text">
+    <div className="ml-auto max-w-[70%] bg-[var(--color-user-bubble)] border border-[var(--color-user-bubble-border)] rounded-[16px_16px_4px_16px] px-4 py-2.5 text-sm text-text">
       <MessagePrimitive.Content
         components={{
           Text: ({ text }) => (

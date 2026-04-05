@@ -14,13 +14,13 @@ export const ThinkingDisplay: FC<ReasoningMessagePartProps> = ({
         height="14"
         viewBox="0 0 14 14"
         fill="none"
-        className={`flex-shrink-0 ${isRunning ? "animate-[spin_2s_linear_infinite]" : "opacity-50"}`}
+        className={`flex-shrink-0 ${isRunning ? "text-accent animate-[spin_2s_linear_infinite]" : "text-text-muted opacity-50"}`}
       >
         <circle
           cx="7"
           cy="7"
           r="5.5"
-          stroke={isRunning ? "#a8b0e0" : "#555"}
+          stroke="currentColor"
           strokeWidth="1.2"
           strokeDasharray="3 2.5"
         />
