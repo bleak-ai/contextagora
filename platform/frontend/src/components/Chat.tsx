@@ -1,7 +1,7 @@
-import { useEffect, useRef, useCallback } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
-import { fetchWorkspace, loadModules } from "../api/workspace";
+import { fetchWorkspace } from "../api/workspace";
 import { fetchModules } from "../api/modules";
 import { createSession } from "../api/sessions";
 import { useSessionStore } from "../hooks/useSessionStore";
@@ -61,25 +61,6 @@ export function Chat() {
     sessionId: activeSessionId,
   });
 
-  const loadMutation = useMutation({
-    mutationFn: loadModules,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workspace"] });
-    },
-  });
-
-  const handleQuickLoad = useCallback(
-    (moduleName: string) => {
-      // Toggle module load/unload without sending a chat message
-      const current = workspace?.modules || [];
-      const next = current.includes(moduleName)
-        ? current.filter((m) => m !== moduleName)
-        : [...current, moduleName];
-      loadMutation.mutate(next);
-    },
-    [workspace?.modules, loadMutation],
-  );
-
   return (
     <AssistantRuntimeProvider runtime={runtime}>
       <div className="flex h-full">
@@ -102,7 +83,6 @@ export function Chat() {
               <WelcomeScreen
                 modules={allModules}
                 loadedModules={loaded}
-                onModuleClick={handleQuickLoad}
               />
             }
           />
@@ -116,11 +96,9 @@ export function Chat() {
 function WelcomeScreen({
   modules,
   loadedModules,
-  onModuleClick,
 }: {
   modules: string[];
   loadedModules: string[];
-  onModuleClick: (name: string) => void;
 }) {
   return (
     <div className="flex flex-col items-center px-6">
@@ -159,20 +137,19 @@ function WelcomeScreen({
             {modules.map((name) => {
               const isLoaded = loadedModules.includes(name);
               return (
-                <button
+                <span
                   key={name}
-                  onClick={() => onModuleClick(name)}
-                  className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all border ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border ${
                     isLoaded
-                      ? "bg-accent/10 border-accent/25 text-accent hover:bg-accent/15"
-                      : "bg-bg-raised border-border text-text-secondary hover:border-accent/30 hover:text-accent hover:bg-accent/5"
+                      ? "bg-accent/10 border-accent/25 text-accent"
+                      : "bg-bg-raised border-border text-text-secondary"
                   }`}
                 >
                   {isLoaded && (
                     <span className="text-success text-[10px]">&#10003;</span>
                   )}
                   {name}
-                </button>
+                </span>
               );
             })}
           </div>
