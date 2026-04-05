@@ -1,6 +1,7 @@
 export interface HumanizedToolCall {
   verb: string;
   moduleName: string | null;
+  fileName: string | null;
   fallbackLabel: string | null;
 }
 
@@ -66,25 +67,28 @@ export function humanizeToolCall(
   const verb = VERB_MAP[toolName] ?? toolName;
 
   if (toolName === "Bash") {
-    return { verb, moduleName: null, fallbackLabel: null };
+    return { verb, moduleName: null, fileName: null, fallbackLabel: null };
   }
 
   if (toolName === "Glob") {
     const pattern = (args.pattern as string) ?? "";
-    return { verb, moduleName: extractModuleFromGlob(pattern, modules), fallbackLabel: null };
+    return { verb, moduleName: extractModuleFromGlob(pattern, modules), fileName: null, fallbackLabel: null };
   }
 
   const pathKey = PATH_ARG_MAP[toolName];
   if (pathKey) {
     const rawPath = (args[pathKey] as string) ?? "";
     const moduleName = extractModuleName(rawPath, modules);
+    const basename = rawPath.split("/").pop() ?? null;
+    // fileName: always extract for distinguishing multiple calls to same module
+    const fileName = basename || null;
     // Fallback: show basename if module can't be resolved
     const fallbackLabel = !moduleName && rawPath
-      ? rawPath.split("/").pop() ?? null
+      ? basename
       : null;
-    return { verb, moduleName, fallbackLabel };
+    return { verb, moduleName, fileName, fallbackLabel };
   }
 
   // Fallback for unknown tools
-  return { verb, moduleName: null, fallbackLabel: null };
+  return { verb, moduleName: null, fileName: null, fallbackLabel: null };
 }
