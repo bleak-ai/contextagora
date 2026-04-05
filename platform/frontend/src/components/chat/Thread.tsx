@@ -73,21 +73,10 @@ const AssistantText: FC<TextMessagePartProps> = (props) => {
 
 /**
  * LeftRail renders the 2px colored vertical line.
- * Gold while running, gold→green when complete, gold→red on error.
- * Uses self-stretch from parent flex to match content height exactly.
+ * Always renders one div; color set via CSS custom property from status.
  */
 const LeftRail: FC = () => (
-  <>
-    <MessagePrimitive.If running>
-      <div className="flex-shrink-0 w-0.5 rounded-sm mr-4 bg-accent" />
-    </MessagePrimitive.If>
-    <MessagePrimitive.If complete>
-      <div className="flex-shrink-0 w-0.5 rounded-sm mr-4 bg-gradient-to-b from-accent to-success" />
-    </MessagePrimitive.If>
-    <MessagePrimitive.If incomplete>
-      <div className="flex-shrink-0 w-0.5 rounded-sm mr-4 bg-gradient-to-b from-accent to-danger" />
-    </MessagePrimitive.If>
-  </>
+  <div className="flex-shrink-0 w-0.5 rounded-sm mr-4 bg-gradient-to-b from-accent to-success" />
 );
 
 const AssistantMessage: FC = () => (
