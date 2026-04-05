@@ -11,12 +11,15 @@ export interface ToolCall {
   completedAt?: number;
 }
 
+export type ContentPart =
+  | { type: "text"; text: string }
+  | { type: "tool_call"; toolCall: ToolCall };
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
-  content: string;
   thinking: string;
-  toolCalls: ToolCall[];
+  parts: ContentPart[];
   streaming: boolean;
   error?: string;
 }
@@ -45,9 +48,8 @@ export const useChatStore = create<ChatState>()(
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
       role: "user",
-      content: prompt,
       thinking: "",
-      toolCalls: [],
+      parts: [{ type: "text", text: prompt }],
       streaming: false,
     };
 
@@ -55,9 +57,8 @@ export const useChatStore = create<ChatState>()(
     const assistantMsg: ChatMessage = {
       id: assistantId,
       role: "assistant",
-      content: "",
       thinking: "",
-      toolCalls: [],
+      parts: [],
       streaming: true,
     };
 
@@ -89,21 +90,31 @@ export const useChatStore = create<ChatState>()(
             }));
             break;
           case "text":
-            updateAssistant((m) => ({
-              ...m,
-              content: m.content + event.text,
-            }));
+            updateAssistant((m) => {
+              const parts = [...m.parts];
+              const last = parts[parts.length - 1];
+              // Append to the last text part if it exists, otherwise create a new one
+              if (last && last.type === "text") {
+                parts[parts.length - 1] = { type: "text", text: last.text + event.text };
+              } else {
+                parts.push({ type: "text", text: event.text });
+              }
+              return { ...m, parts };
+            });
             break;
           case "tool_use":
             updateAssistant((m) => ({
               ...m,
-              toolCalls: [
-                ...m.toolCalls,
+              parts: [
+                ...m.parts,
                 {
-                  id: event.tool_id,
-                  name: event.tool,
-                  input: event.input,
-                  startedAt: Date.now(),
+                  type: "tool_call",
+                  toolCall: {
+                    id: event.tool_id,
+                    name: event.tool,
+                    input: event.input,
+                    startedAt: Date.now(),
+                  },
                 },
               ],
             }));
@@ -111,10 +122,13 @@ export const useChatStore = create<ChatState>()(
           case "tool_result":
             updateAssistant((m) => ({
               ...m,
-              toolCalls: m.toolCalls.map((tc) =>
-                tc.id === event.tool_id
-                  ? { ...tc, output: event.output, completedAt: Date.now() }
-                  : tc,
+              parts: m.parts.map((p) =>
+                p.type === "tool_call" && p.toolCall.id === event.tool_id
+                  ? {
+                      ...p,
+                      toolCall: { ...p.toolCall, output: event.output, completedAt: Date.now() },
+                    }
+                  : p,
               ),
             }));
             break;
@@ -171,16 +185,13 @@ export const useChatStore = create<ChatState>()(
       const { sessionId, messages } = get();
 
       if (!backendSessionId) {
-        // Backend has no session — clear any stale persisted messages
         if (messages.length > 0) {
           set({ messages: [], sessionId: null });
         }
       } else if (backendSessionId !== sessionId) {
-        // Session mismatch — backend restarted with a different session
         set({ messages: [], sessionId: null });
         fetch("/api/chat/reset", { method: "POST" });
       }
-      // If sessions match, persisted messages are still valid
     } catch {
       // Can't reach backend — keep persisted state
     }

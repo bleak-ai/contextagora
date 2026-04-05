@@ -20,23 +20,25 @@ function convertMessage(msg: ChatMessage): ThreadMessageLike {
     content.push({ type: "reasoning", text: msg.thinking });
   }
 
-  // Tool calls come before the final text (they happen first)
-  for (const tc of msg.toolCalls) {
-    content.push({
-      type: "tool-call",
-      toolCallId: tc.id,
-      toolName: tc.name,
-      args: {
-        ...(tc.input ?? {}),
-        __startedAt: tc.startedAt,
-        __completedAt: tc.completedAt,
-      } as ReadonlyJSONObject,
-      result: tc.output,
-    });
-  }
-
-  if (msg.content) {
-    content.push({ type: "text", text: msg.content });
+  // Map parts in order — preserves interleaving of text and tool calls
+  const parts = msg.parts ?? [];
+  for (const part of parts) {
+    if (part.type === "text") {
+      content.push({ type: "text", text: part.text });
+    } else if (part.type === "tool_call") {
+      const tc = part.toolCall;
+      content.push({
+        type: "tool-call",
+        toolCallId: tc.id,
+        toolName: tc.name,
+        args: {
+          ...(tc.input ?? {}),
+          __startedAt: tc.startedAt,
+          __completedAt: tc.completedAt,
+        } as ReadonlyJSONObject,
+        result: tc.output,
+      });
+    }
   }
 
   if (msg.error) {
