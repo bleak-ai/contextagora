@@ -14,6 +14,44 @@ from src.services.sessions import store
 
 log = logging.getLogger(__name__)
 
+# ── Tree state tracking ───────────────────────────────────────
+tree_states: dict[str, dict] = {}  # session_id -> tree state
+
+
+def update_tree_state(session_id: str, file_path: str) -> dict | None:
+    """Update tree state when Claude reads a file."""
+    if session_id not in tree_states:
+        tree_states[session_id] = {
+            "active_path": [],
+            "accessed_files": set(),
+            "module_counts": {}
+        }
+
+    state = tree_states[session_id]
+
+    try:
+        # Normalize path to relative from CONTEXT_DIR
+        relative_path = Path(file_path).relative_to(CONTEXT_DIR)
+        path_parts = str(relative_path).split("/")
+
+        # Update active path
+        state["active_path"] = path_parts
+        state["accessed_files"].add(str(relative_path))
+
+        # Count module access
+        if path_parts:
+            module = path_parts[0]
+            state["module_counts"][module] = state["module_counts"].get(module, 0) + 1
+
+        return {
+            "active_path": state["active_path"],
+            "accessed_files": list(state["accessed_files"]),
+            "module_counts": state["module_counts"]
+        }
+    except ValueError:
+        return None  # Path outside CONTEXT_DIR, ignore
+
+
 # ── /manage-modules command ─────────────────────────────────
 
 _PLATFORM_DIR = Path(__file__).resolve().parent.parent.parent
@@ -213,9 +251,19 @@ async def api_chat(body: ChatRequest):
                 for block in content:
                     if block.get("type") == "tool_use":
                         tool_id = block.get("id", "")
+                        tool_name = block.get("name", "")
+                        tool_input = block.get("input", {})
+
                         if tool_id not in seen_tool_ids:
                             seen_tool_ids.add(tool_id)
-                            yield f"event: tool_use\ndata: {json.dumps({'tool': block.get('name', ''), 'tool_id': tool_id, 'input': block.get('input', {})})}\n\n"
+                            yield f"event: tool_use\ndata: {json.dumps({'tool': tool_name, 'tool_id': tool_id, 'input': tool_input})}\n\n"
+
+                            # Track Read operations
+                            if tool_name == "Read":
+                                file_path = tool_input.get("path", "")
+                                tree_state = update_tree_state(body.session_id, file_path)
+                                if tree_state:
+                                    yield f"event: tree_navigation\ndata: {json.dumps(tree_state)}\n\n"
 
             elif event_type == "user":
                 message = event.get("message", {})
