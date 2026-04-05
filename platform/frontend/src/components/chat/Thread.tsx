@@ -25,7 +25,7 @@ export const Thread: FC<ThreadProps> = ({ emptyState }) => {
           </AuiIf>
         )}
 
-        <div className="max-w-3xl mx-auto w-full px-5 py-4 space-y-6">
+        <div className="mx-auto w-full px-5 py-4 space-y-6">
           <ThreadPrimitive.Messages
             components={{
               UserMessage,
@@ -82,7 +82,7 @@ const LeftRail: FC = () => (
 const AssistantMessage: FC = () => (
   <MessagePrimitive.Root className="flex items-stretch gap-0 w-full">
     <LeftRail />
-    <div className="flex-1 min-w-0 flex flex-col gap-1">
+    <div className="flex-1 min-w-0 max-w-[80%] flex flex-col gap-1">
       <div className="space-y-1.5">
         <MessagePrimitive.Content
           components={{

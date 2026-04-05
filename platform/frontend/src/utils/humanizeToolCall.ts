@@ -59,6 +59,35 @@ function extractModuleFromGlob(
   return null;
 }
 
+function summarizeBashCommand(command: string): string | null {
+  if (!command) return null;
+
+  // Try to extract the meaningful command from wrappers like varlock, sh -c, etc.
+  let cmd = command;
+  // Strip varlock wrapper: varlock run --path ./X -- <actual command>
+  const varlockMatch = cmd.match(/varlock\s+run\s+.*?--\s+(.+)/s);
+  if (varlockMatch) cmd = varlockMatch[1];
+  // Strip sh -c wrapper
+  const shMatch = cmd.match(/sh\s+-c\s+['"](.+)['"]/s);
+  if (shMatch) cmd = shMatch[1];
+
+  // For curl, extract the URL host as extra context
+  const urlMatch = cmd.match(/curl\s.*?(https?:\/\/[^\s'"]+)/);
+  if (urlMatch) {
+    try {
+      const host = new URL(urlMatch[1]).hostname.replace(/^(www|api)\./, "");
+      return `API request to ${host}`;
+    } catch {
+      // fall through
+    }
+  }
+
+  // Show the raw command, truncated to be readable
+  const trimmed = cmd.trim();
+  if (trimmed.length <= 60) return trimmed;
+  return trimmed.slice(0, 57) + "...";
+}
+
 export function humanizeToolCall(
   toolName: string,
   args: Record<string, unknown>,
@@ -67,7 +96,9 @@ export function humanizeToolCall(
   const verb = VERB_MAP[toolName] ?? toolName;
 
   if (toolName === "Bash") {
-    return { verb, moduleName: null, fileName: null, fallbackLabel: null };
+    const command = (args.command as string) ?? "";
+    const bashLabel = summarizeBashCommand(command);
+    return { verb: bashLabel ? "Ran" : verb, moduleName: null, fileName: null, fallbackLabel: bashLabel };
   }
 
   if (toolName === "Glob") {
