@@ -3,6 +3,7 @@ import logging
 import os
 import subprocess
 import uuid
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
@@ -12,6 +13,43 @@ from src.server import CONTEXT_DIR
 from src.services.sessions import store
 
 log = logging.getLogger(__name__)
+
+# ── /manage-modules command ─────────────────────────────────
+
+_PLATFORM_DIR = Path(__file__).resolve().parent.parent.parent
+_MCP_CONFIG = json.dumps({
+    "mcpServers": {
+        "modules": {
+            "command": "uv",
+            "args": [
+                "run", "--directory", str(_PLATFORM_DIR),
+                "python", "-m", "src.tools.module_server",
+            ],
+        },
+    },
+})
+
+_MANAGE_MODULES_PROMPT = """You are in module management mode. You have access to create_module and update_module tools.
+
+**The goal is to capture how the user's COMPANY uses a tool — not generic API documentation.** A good module describes their specific setup, account structure, business context, operations they actually perform, and auth details.
+
+Ask a few short questions first to understand their specific setup. Ask ONE question at a time. Good questions:
+
+- "What does your company use [tool] for?" (business context)
+- "How is your [tool] set up? (e.g. multiple accounts, specific workspace structure, etc.)"
+- "What are the main operations you perform with it?"
+- "Any API keys or secrets needed?"
+
+Keep it to 2-4 questions max. Don't ask about generic things like error handling, rate limits, or pagination — focus on what's specific to their company. Once you have enough context, generate the module and create it.
+
+**Module content structure** (use this as a guide):
+- Start with a business context summary: what it is, why it's used, how it fits in the company
+- Account/setup structure if relevant
+- Authentication details (which keys, what permissions)
+- Operations table (what you can do, organized by read/write or by category)
+- Short examples for the most common operations"""
+
+_MANAGE_MODULES_COMMAND = "/manage-modules"
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
@@ -92,13 +130,33 @@ async def api_chat(body: ChatRequest):
             "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
         }
 
-        cmd = [
-            "claude", "-p", body.prompt,
-            "--verbose",
-            "--output-format", "stream-json",
-            "--include-partial-messages",
-            "--allowedTools", "Bash(*)", "Read(*)", "Write(*)", "Edit(*)", "Glob(*)", "Grep(*)",
-        ]
+        # Detect /manage-modules command
+        prompt = body.prompt
+        is_manage_modules = prompt.strip().lower().startswith(_MANAGE_MODULES_COMMAND)
+        if is_manage_modules:
+            # Strip the command prefix, keep the rest as context
+            prompt = prompt.strip()[len(_MANAGE_MODULES_COMMAND):].strip()
+            if not prompt:
+                prompt = "The user wants to create or update a context module. Start by asking what tool or service they want to create a module for."
+
+        if is_manage_modules:
+            cmd = [
+                "claude", "-p", prompt,
+                "--verbose",
+                "--output-format", "stream-json",
+                "--include-partial-messages",
+                "--allowedTools", "mcp__modules__create_module", "mcp__modules__update_module",
+                "--mcp-config", _MCP_CONFIG,
+                "--append-system-prompt", _MANAGE_MODULES_PROMPT,
+            ]
+        else:
+            cmd = [
+                "claude", "-p", prompt,
+                "--verbose",
+                "--output-format", "stream-json",
+                "--include-partial-messages",
+                "--allowedTools", "Bash(*)", "Read(*)", "Write(*)", "Edit(*)", "Glob(*)", "Grep(*)",
+            ]
 
         # Resume existing Claude session or start fresh
         if session.claude_session_id:

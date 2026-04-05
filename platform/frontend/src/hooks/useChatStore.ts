@@ -29,6 +29,7 @@ interface ChatState {
   messagesBySession: Record<string, ChatMessage[]>;
   streamingSessionId: string | null;
   abortController: AbortController | null;
+  moduleToolCompletedCount: number;
 
   sendMessage: (sessionId: string, prompt: string) => void;
   cancelStream: () => void;
@@ -42,6 +43,7 @@ export const useChatStore = create<ChatState>()(
       messagesBySession: {},
       streamingSessionId: null,
       abortController: null,
+      moduleToolCompletedCount: 0,
 
       sendMessage: (sessionId: string, prompt: string) => {
         const userMsg: ChatMessage = {
@@ -134,21 +136,31 @@ export const useChatStore = create<ChatState>()(
                 }));
                 break;
               case "tool_result":
-                updateAssistant((m) => ({
-                  ...m,
-                  parts: m.parts.map((p) =>
-                    p.type === "tool_call" && p.toolCall.id === event.tool_id
-                      ? {
-                          ...p,
-                          toolCall: {
-                            ...p.toolCall,
-                            output: event.output,
-                            completedAt: Date.now(),
-                          },
-                        }
-                      : p,
-                  ),
-                }));
+                updateAssistant((m) => {
+                  let isModuleTool = false;
+                  const parts = m.parts.map((p) => {
+                    if (p.type === "tool_call" && p.toolCall.id === event.tool_id) {
+                      if (p.toolCall.name.startsWith("mcp__modules__")) {
+                        isModuleTool = true;
+                      }
+                      return {
+                        ...p,
+                        toolCall: {
+                          ...p.toolCall,
+                          output: event.output,
+                          completedAt: Date.now(),
+                        },
+                      };
+                    }
+                    return p;
+                  });
+                  if (isModuleTool) {
+                    setTimeout(() => {
+                      set((s) => ({ moduleToolCompletedCount: s.moduleToolCompletedCount + 1 }));
+                    }, 0);
+                  }
+                  return { ...m, parts };
+                });
                 break;
               case "tool_input":
                 break;

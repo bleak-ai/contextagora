@@ -14,6 +14,9 @@ CONTEXT_DIR.mkdir(exist_ok=True)
 # Files in context/ that should survive when modules are reloaded
 PRESERVED_FILES = {"CLAUDE.md"}
 
+# Directories in context/ that should survive when modules are reloaded
+PRESERVED_DIRS = {".claude"}
+
 # Files managed automatically per module (not user-editable)
 MANAGED_FILES = {"llms.txt", ".env.schema"}
 
