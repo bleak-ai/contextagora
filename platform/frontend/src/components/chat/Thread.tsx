@@ -92,8 +92,10 @@ const AssistantMessage: FC = () => (
             Text: AssistantText,
             Reasoning: ThinkingDisplay,
             tools: {
-              mcp__modules__create_module: ModulePreviewCard,
-              mcp__modules__update_module: ModulePreviewCard,
+              by_name: {
+                mcp__modules__create_module: ModulePreviewCard,
+                mcp__modules__update_module: ModulePreviewCard,
+              },
               Fallback: ToolCallDisplay,
             },
           }}
