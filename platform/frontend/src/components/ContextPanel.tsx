@@ -9,6 +9,7 @@ import {
 } from "../api/sessions";
 import { useSessionStore } from "../hooks/useSessionStore";
 import { useChatStore } from "../hooks/useChatStore";
+import { DecisionTreePanel } from "./chat/DecisionTreePanel";
 
 export function ContextPanel() {
   const queryClient = useQueryClient();
@@ -323,6 +324,14 @@ export function ContextPanel() {
               </div>
             ))
           )}
+        </div>
+
+        {/* Decision Tree */}
+        <div className="pt-3 border-t border-border">
+          <div className="text-[10px] text-text-muted tracking-wider mb-2 px-1">
+            DECISION TREE
+          </div>
+          <DecisionTreePanel />
         </div>
       </div>
     </aside>
