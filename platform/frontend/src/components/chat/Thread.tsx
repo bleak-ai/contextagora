@@ -47,7 +47,7 @@ export const Thread: FC<ThreadProps> = ({ emptyState }) => {
 
 const UserMessage: FC = () => (
   <MessagePrimitive.Root className="flex justify-end">
-    <div className="ml-auto max-w-[70%] bg-[rgba(196,163,90,0.08)] border border-[rgba(196,163,90,0.15)] rounded-[16px_16px_4px_16px] px-4 py-2.5 text-sm text-text">
+    <div className="ml-auto max-w-[70%] bg-[rgba(168,176,224,0.08)] border border-[rgba(168,176,224,0.15)] rounded-[16px_16px_4px_16px] px-4 py-2.5 text-sm text-text">
       <MessagePrimitive.Content
         components={{
           Text: ({ text }) => (

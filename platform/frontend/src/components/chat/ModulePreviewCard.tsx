@@ -26,7 +26,7 @@ export const ModulePreviewCard: FC<ToolCallMessagePartProps> = ({
   const verb = isUpdate ? "Updated" : "Created";
 
   return (
-    <div className="rounded-lg border border-accent/20 bg-[rgba(196,163,90,0.04)] overflow-hidden">
+    <div className="rounded-lg border border-accent/20 bg-[rgba(168,176,224,0.04)] overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-accent/10">
         {isRunning ? (
@@ -41,7 +41,7 @@ export const ModulePreviewCard: FC<ToolCallMessagePartProps> = ({
               cx="7"
               cy="7"
               r="5.5"
-              stroke="#c4a35a"
+              stroke="#a8b0e0"
               strokeWidth="1.2"
               strokeDasharray="4 3"
             />

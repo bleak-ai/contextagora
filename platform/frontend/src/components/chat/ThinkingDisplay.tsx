@@ -20,7 +20,7 @@ export const ThinkingDisplay: FC<ReasoningMessagePartProps> = ({
           cx="7"
           cy="7"
           r="5.5"
-          stroke={isRunning ? "#c4a35a" : "#555"}
+          stroke={isRunning ? "#a8b0e0" : "#555"}
           strokeWidth="1.2"
           strokeDasharray="3 2.5"
         />
