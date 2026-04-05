@@ -2,25 +2,74 @@
 
 ## What it is
 
-A self-hosted web application that lets users select "context modules" (curated docs, configs, API references) through a browser UI and load them into a workspace where a coding agent (Claude Code, etc.) can read and act on them. Designed to run as a Docker service — users interact with the module picker via the web UI, not the terminal.
+A self-hosted web application that lets users select "context modules" (curated docs, configs, API references) through a browser UI, load them into a workspace, and chat with a coding agent (Claude Code) that can read and act on the loaded context. Designed to run as a Docker service — users interact entirely via the web UI at `:8080`.
 
-## Current state: Minimal POC
+## Current state: Working product
 
-FastAPI JSON API backend with React SPA frontend. User checks modules from a list in the React UI, clicks Load, modules get downloaded to `platform/src/context/`. A `CLAUDE.md` is auto-generated listing loaded modules so the agent knows what's available.
+FastAPI backend + React SPA frontend with a full chat interface and module management system. Users can browse/create/edit modules, load them into the workspace, and have streaming conversations with Claude through the built-in chat UI. Modules are fetched from GitHub, secrets are injected via Infisical/Varlock.
 
 ## How it works
 
-1. Modules are structured folders with a single `info.md` file containing all documentation. They live in a separate GitHub repo (e.g. `bleak-ai/context-loader-module-demo`).
-2. `platform/src/server.py` exposes a JSON API at `:8080` and serves the React SPA as static files. Endpoints:
-   - `GET /api/modules` — lists available modules (fetched from GitHub)
-   - `GET /api/workspace` — returns loaded module names
-   - `POST /api/workspace/load` — clears context, downloads selected modules from GitHub, generates `CLAUDE.md`
-   - `POST /api/modules/refresh` — force-refreshes the module list from GitHub (bypasses cache)
-   - `GET /api/chat` — SSE endpoint for streaming chat with the agent
-   - `GET /` — serves the React SPA (static files built by Vite)
-3. `platform/src/context/` is the runtime output directory (gitignored). This is what agents read from.
+1. Modules are structured folders with an `info.md` file and optional additional docs. They live in a separate GitHub repo (e.g. `bleak-ai/context-loader-module-demo`).
+2. `platform/src/server.py` exposes a JSON API at `:8080` and serves the React SPA as static files.
+3. `platform/src/context/` is the runtime output directory (gitignored). This is what the agent reads from.
 4. A static `CLAUDE.md` lives in `context/` instructing the agent to only use files within that directory. The agent starts here.
 5. Module source is configured via `GH_OWNER` and `GH_REPO` env vars.
+
+### API endpoints
+
+**Chat** (`routes/chat.py`):
+- `POST /api/chat` — streams Claude responses as SSE (thinking, text, tool calls, tool results)
+- `GET /api/chat/session` — returns current session ID
+- `POST /api/chat/reset` — resets the conversation session
+
+**Workspace** (`routes/workspace.py`):
+- `GET /api/workspace` — returns loaded modules and their secrets status
+- `POST /api/workspace/load` — clears context, downloads selected modules, generates `CLAUDE.md`, injects secrets
+- `POST /api/workspace/secrets` — re-checks secrets status from Infisical
+
+**Modules** (`routes/modules.py`):
+- `GET /api/modules` — lists available modules (cached, fetched from GitHub)
+- `GET /api/modules/{name}` — module detail (info.md content, summary, secrets schema)
+- `POST /api/modules` — create new module
+- `PUT /api/modules/{name}` — update module content/summary/secrets
+- `DELETE /api/modules/{name}` — delete module from GitHub
+- `POST /api/modules/refresh` — force-refresh module list (bypass cache)
+- `GET /api/modules/{name}/files` — list files in module
+- `GET/PUT/DELETE /api/modules/{name}/files/{path}` — file CRUD (auto-regenerates `llms.txt`)
+
+**Health** (`routes/health.py`):
+- `GET /api/health` — Docker health check
+
+## Chat UI
+
+The web app includes a built-in chat interface for talking to the Claude agent. The agent runs as a `claude` subprocess on the backend, streaming responses via SSE.
+
+**Features:**
+- Real-time streaming with thinking/reasoning display (animated, collapsible)
+- Tool call visualization — humanized labels ("Read", "Searched", "Ran command"), file names, duration timing, expandable input/output
+- Session management — conversations persist in localStorage and can be resumed via session ID on the backend
+- Markdown rendering (GitHub-flavored) for assistant responses
+- Cancel in-flight requests
+
+**Architecture:**
+- `useChatStore` (Zustand) — manages messages, streaming state, session ID, abort controller. Persisted to localStorage.
+- `useContextChatRuntime` — adapter that bridges the Zustand store to `@assistant-ui/react` primitives via `useExternalStoreRuntime`
+- Messages use a parts-based structure: each message contains `parts[]` with text or tool call entries (including timing metadata)
+- UI built with `@assistant-ui/react` composable primitives (`ThreadPrimitive`, `MessagePrimitive`, `ComposerPrimitive`)
+
+## Module management
+
+Beyond loading modules, the UI supports full CRUD for module content:
+
+- **Create** modules with name, summary, info.md content, and optional secrets schema
+- **Browse & edit** files within a module (inline markdown editor, auto-saves)
+- **Create/delete** additional doc files (in `docs/` subdirectory)
+- **Inline summary editing** (extracted from/written to `llms.txt`)
+- **Secrets management** — define `.env.schema` entries, see which secrets are set in Infisical vs missing
+- **Delete** modules entirely from the GitHub repo
+
+Managed files (`llms.txt`, `.env.schema`) are auto-generated and not user-editable. `CLAUDE.md` is preserved across module reloads.
 
 ## Module loading (GitHub API)
 
@@ -90,14 +139,18 @@ platform/             ← everything that makes the app work
   uv.lock
   .venv/
   src/                ← application source code (what gets deployed)
-    server.py
+    server.py         ← FastAPI app, SPA static file serving
+    routes/           ← API route modules (chat, modules, workspace, health)
     .env.schema       ← Infisical bootstrap credentials (imported by modules)
     context/          ← runtime only, gitignored — agent works here
   frontend/           ← React SPA (Vite + TanStack Router + TanStack Query)
     src/
       api/            ← API client layer (fetch wrapper, typed API functions)
       components/     ← React components (Sidebar, Chat, ModuleRegistry, etc.)
-      routes/         ← TanStack Router file-based routes
+        chat/         ← Chat UI (Thread, ToolCallDisplay, ThinkingDisplay, MarkdownText)
+      hooks/          ← State management (useChatStore, useContextChatRuntime)
+      utils/          ← Utilities (humanizeToolCall)
+      routes/         ← TanStack Router file-based routes (/, /modules)
 Dockerfile            ← multi-stage container image (Node build + Python runtime)
 docs/                 ← documentation
   guides/             ← setup guides (Infisical, GitHub module loading)
