@@ -1,4 +1,4 @@
-import type { FC, ReactNode } from "react";
+import { type FC, type ReactNode, useState, useCallback, useEffect } from "react";
 import type { TextMessagePartProps } from "@assistant-ui/react";
 import {
   ThreadPrimitive,
@@ -6,10 +6,13 @@ import {
   ComposerPrimitive,
   ActionBarPrimitive,
   AuiIf,
+  useComposerRuntime,
 } from "@assistant-ui/react";
+import { SlashCommandSelector, useSlashCommands } from "./SlashCommandSelector";
 import { MarkdownText } from "./MarkdownText";
 import { ToolCallDisplay } from "./ToolCallDisplay";
 import { ThinkingDisplay } from "./ThinkingDisplay";
+import { ModulePreviewCard } from "./ModulePreviewCard";
 
 interface ThreadProps {
   emptyState?: ReactNode;
@@ -89,6 +92,8 @@ const AssistantMessage: FC = () => (
             Text: AssistantText,
             Reasoning: ThinkingDisplay,
             tools: {
+              mcp__modules__create_module: ModulePreviewCard,
+              mcp__modules__update_module: ModulePreviewCard,
               Fallback: ToolCallDisplay,
             },
           }}
@@ -113,30 +118,78 @@ const AssistantActions: FC = () => (
   </ActionBarPrimitive.Root>
 );
 
-const Composer: FC = () => (
-  <div className="border-t border-border bg-bg px-5 py-3">
-    <ComposerPrimitive.Root className="flex items-end gap-3">
-      <ComposerPrimitive.Input
-        autoFocus
-        placeholder="Message..."
-        rows={1}
-        maxRows={5}
-        className="flex-1 resize-none bg-bg-input border border-border rounded-xl px-4 py-3 text-sm text-text placeholder-text-muted outline-none focus:border-accent/40 transition-colors disabled:opacity-50"
-      />
-      <AuiIf condition={(s) => !s.thread.isRunning}>
-        <ComposerPrimitive.Send asChild>
-          <button className="px-5 py-2.5 bg-accent text-accent-text text-sm font-semibold rounded-[10px] hover:bg-accent-hover disabled:opacity-30 disabled:cursor-not-allowed transition-opacity flex-shrink-0">
-            Send
-          </button>
-        </ComposerPrimitive.Send>
-      </AuiIf>
-      <AuiIf condition={(s) => s.thread.isRunning}>
-        <ComposerPrimitive.Cancel asChild>
-          <button className="px-5 py-2.5 bg-danger/20 text-danger text-sm font-semibold rounded-[10px] hover:bg-danger/30 transition-opacity flex-shrink-0">
-            Stop
-          </button>
-        </ComposerPrimitive.Cancel>
-      </AuiIf>
-    </ComposerPrimitive.Root>
-  </div>
-);
+const Composer: FC = () => {
+  const [inputText, setInputText] = useState("");
+  const [dismissed, setDismissed] = useState(false);
+  const composerRuntime = useComposerRuntime();
+
+  // Subscribe to composer runtime text — stays in sync after submit clears, etc.
+  useEffect(() => {
+    return composerRuntime.subscribe(() => {
+      const text = composerRuntime.getState().text;
+      setInputText((prev) => {
+        if (prev !== text) setDismissed(false);
+        return text;
+      });
+    });
+  }, [composerRuntime]);
+
+  const showSelector = inputText.startsWith("/") && !inputText.includes(" ") && !dismissed;
+  const filter = showSelector ? inputText.slice(1) : "";
+
+  const handleSelect = useCallback(
+    (command: string) => {
+      composerRuntime.setText(`/${command} `);
+    },
+    [composerRuntime],
+  );
+
+  const handleDismiss = useCallback(() => {
+    setDismissed(true);
+  }, []);
+
+  const { filtered, activeIndex, setActiveIndex, handleKeyDown } = useSlashCommands({
+    filter,
+    onSelect: handleSelect,
+    onDismiss: handleDismiss,
+  });
+
+  return (
+    <div className="border-t border-border bg-bg px-5 py-3">
+      <div className="relative">
+        {showSelector && filtered.length > 0 && (
+          <SlashCommandSelector
+            filtered={filtered}
+            activeIndex={activeIndex}
+            setActiveIndex={setActiveIndex}
+            onSelect={handleSelect}
+          />
+        )}
+        <ComposerPrimitive.Root className="flex items-end gap-3">
+          <ComposerPrimitive.Input
+            autoFocus
+            placeholder="Message..."
+            rows={1}
+            maxRows={5}
+            onKeyDown={showSelector ? handleKeyDown : undefined}
+            className="flex-1 resize-none bg-bg-input border border-border rounded-xl px-4 py-3 text-sm text-text placeholder-text-muted outline-none focus:border-accent/40 transition-colors disabled:opacity-50"
+          />
+          <AuiIf condition={(s) => !s.thread.isRunning}>
+            <ComposerPrimitive.Send asChild>
+              <button className="px-5 py-2.5 bg-accent text-accent-text text-sm font-semibold rounded-[10px] hover:bg-accent-hover disabled:opacity-30 disabled:cursor-not-allowed transition-opacity flex-shrink-0">
+                Send
+              </button>
+            </ComposerPrimitive.Send>
+          </AuiIf>
+          <AuiIf condition={(s) => s.thread.isRunning}>
+            <ComposerPrimitive.Cancel asChild>
+              <button className="px-5 py-2.5 bg-danger/20 text-danger text-sm font-semibold rounded-[10px] hover:bg-danger/30 transition-opacity flex-shrink-0">
+                Stop
+              </button>
+            </ComposerPrimitive.Cancel>
+          </AuiIf>
+        </ComposerPrimitive.Root>
+      </div>
+    </div>
+  );
+};

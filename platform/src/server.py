@@ -33,11 +33,15 @@ from src.routes.health import router as health_router  # noqa: E402
 from src.routes.modules import router as modules_router  # noqa: E402
 from src.routes.workspace import router as workspace_router  # noqa: E402
 from src.routes.chat import router as chat_router  # noqa: E402
+from src.routes.files import router as files_router  # noqa: E402
+from src.routes.commands import router as commands_router  # noqa: E402
 
 app.include_router(health_router)
 app.include_router(modules_router)
 app.include_router(workspace_router)
 app.include_router(chat_router)
+app.include_router(files_router)
+app.include_router(commands_router)
 
 # --- SPA static file serving ---
 STATIC_DIR = BASE_DIR / "static"

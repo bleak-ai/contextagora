@@ -8,14 +8,23 @@
 - [platform/src/llms.py](platform/src/llms.py) — llms.txt generation and parsing helpers
 - [platform/src/routes/modules.py](platform/src/routes/modules.py) — Module CRUD and file CRUD endpoints
 - [platform/src/routes/workspace.py](platform/src/routes/workspace.py) — Workspace load, secrets endpoints
-- [platform/src/routes/chat.py](platform/src/routes/chat.py) — Chat SSE streaming endpoint
+- [platform/src/routes/chat.py](platform/src/routes/chat.py) — Session CRUD endpoints and chat SSE streaming (scoped to session)
 - [platform/src/routes/health.py](platform/src/routes/health.py) — Health check endpoint
+- [platform/src/routes/files.py](platform/src/routes/files.py) — File download endpoint (GET /api/files/download) with path validation against CONTEXT_DIR and /tmp
+- [platform/src/routes/commands.py](platform/src/routes/commands.py) — Slash commands listing endpoint (GET /api/commands) reading .claude/commands/*.md
+- [platform/src/context/.claude/commands/download.md](platform/src/context/.claude/commands/download.md) — /download command definition for Claude CLI
+- [platform/src/services/sessions.py](platform/src/services/sessions.py) — In-memory session store (SessionStore, Session dataclass, singleton `store`)
 - [platform/src/services/github.py](platform/src/services/github.py) — GitHub API client, module download, cache
 - [platform/src/services/schemas.py](platform/src/services/schemas.py) — Env schema generation, parsing, Infisical augmentation
 - [platform/src/services/secrets.py](platform/src/services/secrets.py) — Varlock secret status and loading
 - [platform/frontend/](platform/frontend/) — React SPA (Vite + TanStack Router + TanStack Query)
-- [platform/frontend/src/api/](platform/frontend/src/api/) — API client layer (fetch wrapper, modules, workspace, chat)
-- [platform/frontend/src/components/](platform/frontend/src/components/) — React components (Sidebar, Chat, ModuleRegistry, etc.)
+- [platform/frontend/src/api/](platform/frontend/src/api/) — API client layer (fetch wrapper, modules, workspace, chat, sessions, commands)
+- [platform/frontend/src/api/commands.ts](platform/frontend/src/api/commands.ts) — Slash commands API client (fetchCommands, Command type)
+- [platform/frontend/src/components/chat/SlashCommandSelector.tsx](platform/frontend/src/components/chat/SlashCommandSelector.tsx) — Slash command dropdown selector component and useSlashCommands hook
+- [platform/frontend/src/api/sessions.ts](platform/frontend/src/api/sessions.ts) — Session CRUD API client (create, rename, delete, list)
+- [platform/frontend/src/hooks/useSessionStore.ts](platform/frontend/src/hooks/useSessionStore.ts) — Zustand store for session list and active session (localStorage-persisted)
+- [platform/frontend/src/components/SessionList.tsx](platform/frontend/src/components/SessionList.tsx) — Session list UI with create, rename (double-click), and delete
+- [platform/frontend/src/components/](platform/frontend/src/components/) — React components (Chat, ModuleRegistry, IconRail, ContextPanel, etc.)
 - [platform/frontend/src/routes/](platform/frontend/src/routes/) — TanStack Router file-based routes
 - [platform/frontend/src/utils/humanizeToolCall.ts](platform/frontend/src/utils/humanizeToolCall.ts) — Utility to translate raw tool call names/args into human-readable labels with module resolution
 - [Dockerfile](Dockerfile) — Multi-stage container image (Node build + Python runtime)
