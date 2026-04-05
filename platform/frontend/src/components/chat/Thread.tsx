@@ -21,13 +21,20 @@ interface ThreadProps {
 export const Thread: FC<ThreadProps> = ({ emptyState }) => {
   return (
     <ThreadPrimitive.Root className="flex flex-col flex-1 min-h-0">
-      <ThreadPrimitive.Viewport className="flex-1 flex flex-col overflow-y-auto bg-bg-chat">
+      <ThreadPrimitive.Viewport className="flex-1 flex flex-col overflow-y-auto bg-bg">
+        {/* Empty state: welcome + centered composer */}
         {emptyState && (
           <AuiIf condition={(s) => s.thread.isEmpty}>
-            {emptyState}
+            <div className="flex-1 flex flex-col items-center justify-center">
+              {emptyState}
+              <div className="w-full max-w-[700px] px-5 mt-6">
+                <Composer />
+              </div>
+            </div>
           </AuiIf>
         )}
 
+        {/* Messages */}
         <div className="mx-auto w-full px-5 py-4 space-y-6">
           <ThreadPrimitive.Messages
             components={{
@@ -37,9 +44,12 @@ export const Thread: FC<ThreadProps> = ({ emptyState }) => {
           />
         </div>
 
-        <ThreadPrimitive.ViewportFooter className="sticky bottom-0 mt-auto bg-bg">
-          <Composer />
-        </ThreadPrimitive.ViewportFooter>
+        {/* Bottom composer (only when messages exist) */}
+        <AuiIf condition={(s) => !s.thread.isEmpty}>
+          <ThreadPrimitive.ViewportFooter className="sticky bottom-0 mt-auto bg-bg">
+            <Composer />
+          </ThreadPrimitive.ViewportFooter>
+        </AuiIf>
       </ThreadPrimitive.Viewport>
     </ThreadPrimitive.Root>
   );
@@ -158,7 +168,7 @@ const Composer: FC = () => {
 
   return (
     <div className="border-t border-border bg-bg px-5 py-3">
-      <div className="relative">
+      <div className="relative max-w-[700px] mx-auto">
         {showSelector && filtered.length > 0 && (
           <SlashCommandSelector
             filtered={filtered}
@@ -167,29 +177,31 @@ const Composer: FC = () => {
             onSelect={handleSelect}
           />
         )}
-        <ComposerPrimitive.Root className="flex items-end gap-3">
+        <ComposerPrimitive.Root className="relative bg-bg-input border border-border rounded-xl focus-within:border-accent/40 transition-colors">
           <ComposerPrimitive.Input
             autoFocus
-            placeholder="Message..."
-            rows={1}
-            maxRows={5}
+            placeholder="Ask anything..."
+            rows={3}
+            maxRows={10}
             onKeyDown={showSelector ? handleKeyDown : undefined}
-            className="flex-1 resize-none bg-bg-input border border-border rounded-xl px-4 py-3 text-sm text-text placeholder-text-muted outline-none focus:border-accent/40 transition-colors disabled:opacity-50"
+            className="w-full resize-none bg-transparent px-4 py-3 pb-12 text-sm text-text placeholder-text-muted outline-none disabled:opacity-50"
           />
-          <AuiIf condition={(s) => !s.thread.isRunning}>
-            <ComposerPrimitive.Send asChild>
-              <button className="px-5 py-2.5 bg-accent text-accent-text text-sm font-semibold rounded-[10px] hover:bg-accent-hover disabled:opacity-30 disabled:cursor-not-allowed transition-opacity flex-shrink-0">
-                Send
-              </button>
-            </ComposerPrimitive.Send>
-          </AuiIf>
-          <AuiIf condition={(s) => s.thread.isRunning}>
-            <ComposerPrimitive.Cancel asChild>
-              <button className="px-5 py-2.5 bg-danger/20 text-danger text-sm font-semibold rounded-[10px] hover:bg-danger/30 transition-opacity flex-shrink-0">
-                Stop
-              </button>
-            </ComposerPrimitive.Cancel>
-          </AuiIf>
+          <div className="absolute right-3 bottom-2.5 flex gap-2">
+            <AuiIf condition={(s) => !s.thread.isRunning}>
+              <ComposerPrimitive.Send asChild>
+                <button className="px-4 py-1.5 bg-accent text-accent-text text-xs font-semibold rounded-lg hover:bg-accent-hover disabled:opacity-30 disabled:cursor-not-allowed transition-opacity">
+                  Send
+                </button>
+              </ComposerPrimitive.Send>
+            </AuiIf>
+            <AuiIf condition={(s) => s.thread.isRunning}>
+              <ComposerPrimitive.Cancel asChild>
+                <button className="px-4 py-1.5 bg-danger/20 text-danger text-xs font-semibold rounded-lg hover:bg-danger/30 transition-opacity">
+                  Stop
+                </button>
+              </ComposerPrimitive.Cancel>
+            </AuiIf>
+          </div>
         </ComposerPrimitive.Root>
       </div>
     </div>

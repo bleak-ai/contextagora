@@ -75,6 +75,12 @@ export function ContextPanel() {
     loadMutation.mutate([...selected]);
   };
 
+  // Determine load button state
+  const selectionMatchesLoaded =
+    selected.size === loaded.length &&
+    [...selected].every((m) => loaded.includes(m));
+  const isLoading = loadMutation.isPending;
+
   // Session handlers
   const handleCreateSession = async () => {
     setCreating(true);
@@ -200,37 +206,58 @@ export function ContextPanel() {
             </span>
           </div>
           <div className="space-y-0.5">
-            {modules.map((name) => (
-              <label
-                key={name}
-                className={`flex items-center gap-2 px-1.5 py-1.5 rounded cursor-pointer transition-colors ${
-                  selected.has(name) ? "bg-accent/10" : ""
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={selected.has(name)}
-                  onChange={() => toggleModule(name)}
-                  className="accent-accent w-3.5 h-3.5"
-                />
-                <span
-                  className={`text-xs ${
-                    selected.has(name)
-                      ? "text-accent font-medium"
-                      : "text-text-secondary"
+            {modules.map((name) => {
+              const isSelected = selected.has(name);
+              const isLoaded = loaded.includes(name);
+              return (
+                <label
+                  key={name}
+                  className={`flex items-center gap-2 px-1.5 py-1.5 rounded cursor-pointer transition-colors ${
+                    isSelected ? "bg-accent/10" : ""
                   }`}
                 >
-                  {name}
-                </span>
-              </label>
-            ))}
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => toggleModule(name)}
+                    className="accent-accent w-3.5 h-3.5"
+                  />
+                  <span
+                    className={`flex-1 text-xs ${
+                      isSelected
+                        ? "text-accent font-medium"
+                        : "text-text-secondary"
+                    }`}
+                  >
+                    {name}
+                  </span>
+                  {isLoaded && (
+                    <span className="text-success text-[10px]" title="Loaded">
+                      &#10003;
+                    </span>
+                  )}
+                </label>
+              );
+            })}
           </div>
+
+          {/* Load button */}
           <button
             onClick={handleLoad}
-            disabled={loadMutation.isPending || selected.size === 0}
-            className="mt-2 w-full py-1.5 bg-accent text-accent-text text-xs font-medium rounded-md hover:bg-accent-hover disabled:opacity-30 transition-opacity"
+            disabled={isLoading || selected.size === 0}
+            className={`mt-2 w-full py-1.5 text-xs font-medium rounded-md transition-all ${
+              isLoading
+                ? "bg-accent/20 text-accent animate-pulse"
+                : selectionMatchesLoaded && loaded.length > 0
+                  ? "bg-success/15 text-success border border-success/25"
+                  : "bg-accent text-accent-text hover:bg-accent-hover"
+            } disabled:opacity-30 disabled:cursor-not-allowed`}
           >
-            {loadMutation.isPending ? "Loading..." : "Load Selected"}
+            {isLoading
+              ? "Loading..."
+              : selectionMatchesLoaded && loaded.length > 0
+                ? `${loaded.length} Module${loaded.length !== 1 ? "s" : ""} Loaded`
+                : "Load Selected"}
           </button>
         </div>
 
