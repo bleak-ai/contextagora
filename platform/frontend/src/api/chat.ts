@@ -5,18 +5,20 @@ export type ChatEvent =
   | { type: "tool_input"; partial_json: string }
   | { type: "tool_result"; tool_id: string; output: string }
   | { type: "session"; session_id: string }
+  | { type: "session_name"; name: string }
   | { type: "error"; message: string }
   | { type: "done" };
 
 export async function streamChat(
   prompt: string,
+  sessionId: string,
   onEvent: (event: ChatEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
   const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt, session_id: sessionId }),
     signal,
   });
 

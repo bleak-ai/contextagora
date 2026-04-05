@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { streamChat, type ChatEvent } from "../api/chat";
+import { useSessionStore } from "./useSessionStore";
 
 export interface ToolCall {
   id: string;
@@ -25,183 +26,199 @@ export interface ChatMessage {
 }
 
 interface ChatState {
-  messages: ChatMessage[];
-  sessionId: string | null;
-  isStreaming: boolean;
+  messagesBySession: Record<string, ChatMessage[]>;
+  streamingSessionId: string | null;
   abortController: AbortController | null;
 
-  sendMessage: (prompt: string) => void;
+  sendMessage: (sessionId: string, prompt: string) => void;
   cancelStream: () => void;
-  clearMessages: () => void;
-  syncSession: () => Promise<void>;
+  clearMessages: (sessionId: string) => void;
+  deleteSessionMessages: (sessionId: string) => void;
 }
 
 export const useChatStore = create<ChatState>()(
   persist(
     (set, get) => ({
-  messages: [],
-  sessionId: null,
-  isStreaming: false,
-  abortController: null,
+      messagesBySession: {},
+      streamingSessionId: null,
+      abortController: null,
 
-  sendMessage: (prompt: string) => {
-    const userMsg: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: "user",
-      thinking: "",
-      parts: [{ type: "text", text: prompt }],
-      streaming: false,
-    };
-
-    const assistantId = crypto.randomUUID();
-    const assistantMsg: ChatMessage = {
-      id: assistantId,
-      role: "assistant",
-      thinking: "",
-      parts: [],
-      streaming: true,
-    };
-
-    const controller = new AbortController();
-
-    set({
-      messages: [...get().messages, userMsg, assistantMsg],
-      isStreaming: true,
-      abortController: controller,
-    });
-
-    const updateAssistant = (updater: (msg: ChatMessage) => ChatMessage) => {
-      const state = get();
-      set({
-        messages: state.messages.map((m) =>
-          m.id === assistantId ? updater(m) : m,
-        ),
-      });
-    };
-
-    streamChat(
-      prompt,
-      (event: ChatEvent) => {
-        switch (event.type) {
-          case "thinking":
-            updateAssistant((m) => ({
-              ...m,
-              thinking: m.thinking + event.text,
-            }));
-            break;
-          case "text":
-            updateAssistant((m) => {
-              const parts = [...m.parts];
-              const last = parts[parts.length - 1];
-              // Append to the last text part if it exists, otherwise create a new one
-              if (last && last.type === "text") {
-                parts[parts.length - 1] = { type: "text", text: last.text + event.text };
-              } else {
-                parts.push({ type: "text", text: event.text });
-              }
-              return { ...m, parts };
-            });
-            break;
-          case "tool_use":
-            updateAssistant((m) => ({
-              ...m,
-              parts: [
-                ...m.parts,
-                {
-                  type: "tool_call",
-                  toolCall: {
-                    id: event.tool_id,
-                    name: event.tool,
-                    input: event.input,
-                    startedAt: Date.now(),
-                  },
-                },
-              ],
-            }));
-            break;
-          case "tool_result":
-            updateAssistant((m) => ({
-              ...m,
-              parts: m.parts.map((p) =>
-                p.type === "tool_call" && p.toolCall.id === event.tool_id
-                  ? {
-                      ...p,
-                      toolCall: { ...p.toolCall, output: event.output, completedAt: Date.now() },
-                    }
-                  : p,
-              ),
-            }));
-            break;
-          case "tool_input":
-            break;
-          case "session":
-            set({ sessionId: event.session_id });
-            break;
-          case "error":
-            updateAssistant((m) => ({
-              ...m,
-              error: event.message,
-            }));
-            break;
-          case "done":
-            updateAssistant((m) => ({ ...m, streaming: false }));
-            set({ isStreaming: false, abortController: null });
-            break;
-        }
-      },
-      controller.signal,
-    ).catch((err) => {
-      if (err instanceof Error && err.name === "AbortError") {
-        updateAssistant((m) => ({ ...m, streaming: false }));
-      } else {
-        const errorText =
-          err instanceof Error ? err.message : "Unknown error";
-        updateAssistant((m) => ({
-          ...m,
-          error: errorText,
+      sendMessage: (sessionId: string, prompt: string) => {
+        const userMsg: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: "user",
+          thinking: "",
+          parts: [{ type: "text", text: prompt }],
           streaming: false,
+        };
+
+        const assistantId = crypto.randomUUID();
+        const assistantMsg: ChatMessage = {
+          id: assistantId,
+          role: "assistant",
+          thinking: "",
+          parts: [],
+          streaming: true,
+        };
+
+        const controller = new AbortController();
+
+        set((state) => ({
+          messagesBySession: {
+            ...state.messagesBySession,
+            [sessionId]: [
+              ...(state.messagesBySession[sessionId] || []),
+              userMsg,
+              assistantMsg,
+            ],
+          },
+          streamingSessionId: sessionId,
+          abortController: controller,
         }));
-      }
-      set({ isStreaming: false, abortController: null });
-    });
-  },
 
-  cancelStream: () => {
-    const { abortController } = get();
-    abortController?.abort();
-    set({ isStreaming: false, abortController: null });
-  },
+        const updateAssistant = (updater: (msg: ChatMessage) => ChatMessage) => {
+          set((state) => {
+            const msgs = state.messagesBySession[sessionId] || [];
+            return {
+              messagesBySession: {
+                ...state.messagesBySession,
+                [sessionId]: msgs.map((m) =>
+                  m.id === assistantId ? updater(m) : m,
+                ),
+              },
+            };
+          });
+        };
 
-  clearMessages: () => {
-    set({ messages: [], sessionId: null, isStreaming: false, abortController: null });
-    fetch("/api/chat/reset", { method: "POST" });
-  },
+        streamChat(
+          prompt,
+          sessionId,
+          (event: ChatEvent) => {
+            switch (event.type) {
+              case "thinking":
+                updateAssistant((m) => ({
+                  ...m,
+                  thinking: m.thinking + event.text,
+                }));
+                break;
+              case "text":
+                updateAssistant((m) => {
+                  const parts = [...m.parts];
+                  const last = parts[parts.length - 1];
+                  if (last && last.type === "text") {
+                    parts[parts.length - 1] = {
+                      type: "text",
+                      text: last.text + event.text,
+                    };
+                  } else {
+                    parts.push({ type: "text", text: event.text });
+                  }
+                  return { ...m, parts };
+                });
+                break;
+              case "tool_use":
+                updateAssistant((m) => ({
+                  ...m,
+                  parts: [
+                    ...m.parts,
+                    {
+                      type: "tool_call",
+                      toolCall: {
+                        id: event.tool_id,
+                        name: event.tool,
+                        input: event.input,
+                        startedAt: Date.now(),
+                      },
+                    },
+                  ],
+                }));
+                break;
+              case "tool_result":
+                updateAssistant((m) => ({
+                  ...m,
+                  parts: m.parts.map((p) =>
+                    p.type === "tool_call" && p.toolCall.id === event.tool_id
+                      ? {
+                          ...p,
+                          toolCall: {
+                            ...p.toolCall,
+                            output: event.output,
+                            completedAt: Date.now(),
+                          },
+                        }
+                      : p,
+                  ),
+                }));
+                break;
+              case "tool_input":
+                break;
+              case "session":
+                // Claude session_id is now tracked server-side per session
+                break;
+              case "session_name":
+                // Auto-rename session from first prompt
+                useSessionStore.getState().renameSession(sessionId, event.name);
+                break;
+              case "error":
+                updateAssistant((m) => ({
+                  ...m,
+                  error: event.message,
+                }));
+                break;
+              case "done":
+                updateAssistant((m) => ({ ...m, streaming: false }));
+                set({ streamingSessionId: null, abortController: null });
+                break;
+            }
+          },
+          controller.signal,
+        ).catch((err) => {
+          if (err instanceof Error && err.name === "AbortError") {
+            updateAssistant((m) => ({ ...m, streaming: false }));
+          } else {
+            const errorText =
+              err instanceof Error ? err.message : "Unknown error";
+            updateAssistant((m) => ({
+              ...m,
+              error: errorText,
+              streaming: false,
+            }));
+          }
+          set({ streamingSessionId: null, abortController: null });
+        });
+      },
 
-  syncSession: async () => {
-    try {
-      const res = await fetch("/api/chat/session");
-      const data = await res.json();
-      const backendSessionId = data.session_id as string | null;
-      const { sessionId, messages } = get();
+      cancelStream: () => {
+        const { abortController } = get();
+        abortController?.abort();
+        set({ streamingSessionId: null, abortController: null });
+      },
 
-      if (!backendSessionId) {
-        if (messages.length > 0) {
-          set({ messages: [], sessionId: null });
-        }
-      } else if (backendSessionId !== sessionId) {
-        set({ messages: [], sessionId: null });
-        fetch("/api/chat/reset", { method: "POST" });
-      }
-    } catch {
-      // Can't reach backend — keep persisted state
-    }
-  },
+      clearMessages: (sessionId: string) => {
+        set((state) => ({
+          messagesBySession: {
+            ...state.messagesBySession,
+            [sessionId]: [],
+          },
+        }));
+      },
+
+      deleteSessionMessages: (sessionId: string) => {
+        set((state) => {
+          const { [sessionId]: _, ...rest } = state.messagesBySession;
+          return { messagesBySession: rest };
+        });
+      },
     }),
     {
       name: "context-chat-store",
       partialize: (state) => ({
-        messages: state.messages.map((m) => ({ ...m, streaming: false })),
-        sessionId: state.sessionId,
+        messagesBySession: Object.fromEntries(
+          Object.entries(state.messagesBySession).map(([sid, msgs]) => [
+            sid,
+            msgs.map((m) => ({ ...m, streaming: false })),
+          ]),
+        ),
       }),
     },
   ),

@@ -1,17 +1,12 @@
-import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { fetchWorkspace } from "../api/workspace";
-import { useChatStore } from "../hooks/useChatStore";
+import { useSessionStore } from "../hooks/useSessionStore";
 import { useContextChatRuntime } from "../hooks/useContextChatRuntime";
 import { Thread } from "./chat/Thread";
 
 export function Chat() {
-  const syncSession = useChatStore((s) => s.syncSession);
-
-  useEffect(() => {
-    syncSession();
-  }, [syncSession]);
+  const activeSessionId = useSessionStore((s) => s.activeSessionId);
 
   const { data: workspace } = useQuery({
     queryKey: ["workspace"],
@@ -23,7 +18,24 @@ export function Chat() {
 
   const { runtime, clearMessages, hasMessages } = useContextChatRuntime({
     isDisabled: !hasContext,
+    sessionId: activeSessionId,
   });
+
+  // No active session — prompt user to create one
+  if (!activeSessionId) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-text-muted text-sm mb-2">
+            No active session
+          </div>
+          <div className="text-text-muted text-xs">
+            Create a new session from the sidebar to start chatting
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>

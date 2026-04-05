@@ -2,42 +2,87 @@ import json
 import logging
 import os
 import subprocess
+import uuid
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
-from src.models import ChatRequest
+from src.models import ChatRequest, CreateSessionRequest, RenameSessionRequest
 from src.server import CONTEXT_DIR
+from src.services.sessions import store
 
 log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
-# Track the current Claude session ID so --continue resumes the right one
-_session_id: str | None = None
+
+# ── Session CRUD ─────────────────────────────────────────────
 
 
-@router.get("/chat/session")
-async def api_chat_session():
-    """Return the current session status."""
-    return {"session_id": _session_id}
+@router.get("/sessions")
+async def list_sessions():
+    """Return all sessions, newest first."""
+    return {
+        "sessions": [
+            {"id": s.id, "name": s.name, "created_at": s.created_at}
+            for s in store.list_all()
+        ]
+    }
 
 
-@router.post("/chat/reset")
-async def api_chat_reset():
-    """Reset the Claude conversation session."""
-    global _session_id
-    _session_id = None
+@router.post("/sessions")
+async def create_session(body: CreateSessionRequest):
+    """Create a new chat session."""
+    session_id = uuid.uuid4().hex[:12]
+    session = store.create(session_id, body.name)
+    return {"id": session.id, "name": session.name, "created_at": session.created_at}
+
+
+@router.patch("/sessions/{session_id}")
+async def rename_session(session_id: str, body: RenameSessionRequest):
+    """Rename a session."""
+    session = store.rename(session_id, body.name)
+    if not session:
+        raise HTTPException(404, "session not found")
+    return {"id": session.id, "name": session.name}
+
+
+@router.delete("/sessions/{session_id}")
+async def delete_session(session_id: str):
+    """Delete a session."""
+    if not store.delete(session_id):
+        raise HTTPException(404, "session not found")
     return {"ok": True}
+
+
+# ── Chat (scoped to session) ────────────────────────────────
 
 
 @router.post("/chat")
 async def api_chat(body: ChatRequest):
-    """Run claude with stream-json output, converting NDJSON to SSE events."""
-    global _session_id
+    """Run claude with stream-json output, scoped to a session.
+
+    Lazy-creates the backend session if it doesn't exist (handles
+    server restarts where frontend still has the session in localStorage).
+    """
+    session = store.get(body.session_id)
+    if not session:
+        session = store.create(body.session_id, "Restored session")
+
+    # Auto-name session from the first prompt if still default
+    is_default_name = session.name in ("New chat", "Restored session")
+    auto_name = None
+    if is_default_name:
+        trimmed = body.prompt.strip().split("\n")[0][:60]
+        if len(body.prompt.strip()) > 60:
+            trimmed += "..."
+        session.name = trimmed
+        auto_name = trimmed
 
     def generate():
-        global _session_id
+        # Emit auto-generated name before streaming starts
+        if auto_name:
+            yield f"event: session_name\ndata: {json.dumps({'name': auto_name})}\n\n"
 
         env = {
             **os.environ,
@@ -55,9 +100,9 @@ async def api_chat(body: ChatRequest):
             "--allowedTools", "Bash(*)", "Read(*)", "Write(*)", "Edit(*)", "Glob(*)", "Grep(*)",
         ]
 
-        # Resume existing session or start fresh
-        if _session_id:
-            cmd.extend(["--resume", _session_id])
+        # Resume existing Claude session or start fresh
+        if session.claude_session_id:
+            cmd.extend(["--resume", session.claude_session_id])
 
         proc = subprocess.Popen(
             cmd,
@@ -81,10 +126,9 @@ async def api_chat(body: ChatRequest):
             event_type = event.get("type", "")
 
             if event_type == "system":
-                # Capture session ID from init event
                 sid = event.get("session_id")
                 if sid:
-                    _session_id = sid
+                    session.claude_session_id = sid
                     yield f"event: session\ndata: {json.dumps({'session_id': sid})}\n\n"
 
             elif event_type == "stream_event":
@@ -102,12 +146,10 @@ async def api_chat(body: ChatRequest):
                         yield f"event: tool_input\ndata: {json.dumps({'partial_json': delta.get('partial_json', '')})}\n\n"
 
             elif event_type == "assistant":
-                # Capture session ID from assistant events too
                 sid = event.get("session_id")
                 if sid:
-                    _session_id = sid
+                    session.claude_session_id = sid
 
-                # Use assistant snapshots for tool_use (has complete input)
                 message = event.get("message", {})
                 content = message.get("content", [])
                 for block in content:
@@ -118,7 +160,6 @@ async def api_chat(body: ChatRequest):
                             yield f"event: tool_use\ndata: {json.dumps({'tool': block.get('name', ''), 'tool_id': tool_id, 'input': block.get('input', {})})}\n\n"
 
             elif event_type == "user":
-                # Tool results come as user messages
                 message = event.get("message", {})
                 content = message.get("content", [])
                 for block in content:

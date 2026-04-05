@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
 import { fetchModules } from "../api/modules";
 import { fetchWorkspace, loadModules, refreshSecrets } from "../api/workspace";
+import { SessionList } from "./SessionList";
 
 export function Sidebar() {
   const queryClient = useQueryClient();
@@ -86,6 +87,9 @@ export function Sidebar() {
           </svg>
         </button>
       </div>
+
+      {/* Session list */}
+      <SessionList />
 
       {/* Module list */}
       <div className="flex-1 overflow-y-auto px-3 py-3">

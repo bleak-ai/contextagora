@@ -20,7 +20,6 @@ function convertMessage(msg: ChatMessage): ThreadMessageLike {
     content.push({ type: "reasoning", text: msg.thinking });
   }
 
-  // Map parts in order — preserves interleaving of text and tool calls
   const parts = msg.parts ?? [];
   for (const part of parts) {
     if (part.type === "text") {
@@ -61,25 +60,37 @@ function convertMessage(msg: ChatMessage): ThreadMessageLike {
   };
 }
 
-export function useContextChatRuntime(opts: { isDisabled: boolean }) {
-  const messages = useChatStore((s) => s.messages);
-  const isStreaming = useChatStore((s) => s.isStreaming);
+const EMPTY_MESSAGES: ChatMessage[] = [];
+
+export function useContextChatRuntime(opts: {
+  isDisabled: boolean;
+  sessionId: string | null;
+}) {
+  // IMPORTANT: Use direct selector on messagesBySession, NOT a getMessages() method.
+  // A function call inside a selector won't trigger re-renders.
+  // Use a stable empty array reference to avoid infinite re-render loops.
+  const messages = useChatStore(
+    (s) => (opts.sessionId ? s.messagesBySession[opts.sessionId] : null) ?? EMPTY_MESSAGES,
+  );
+  const streamingSessionId = useChatStore((s) => s.streamingSessionId);
   const sendMessage = useChatStore((s) => s.sendMessage);
   const cancelStream = useChatStore((s) => s.cancelStream);
   const clearMessages = useChatStore((s) => s.clearMessages);
 
+  const isRunning = streamingSessionId === opts.sessionId && opts.sessionId !== null;
+
   const runtime = useExternalStoreRuntime({
     messages,
-    isRunning: isStreaming,
-    isDisabled: opts.isDisabled,
+    isRunning,
+    isDisabled: opts.isDisabled || !opts.sessionId,
     convertMessage,
     onNew: async (message) => {
       const textParts = message.content.filter(
         (p): p is { type: "text"; text: string } => p.type === "text",
       );
       const text = textParts.map((p) => p.text).join("");
-      if (text.trim()) {
-        sendMessage(text);
+      if (text.trim() && opts.sessionId) {
+        sendMessage(opts.sessionId, text);
       }
     },
     onCancel: async () => {
@@ -87,5 +98,11 @@ export function useContextChatRuntime(opts: { isDisabled: boolean }) {
     },
   });
 
-  return { runtime, clearMessages, hasMessages: messages.length > 0 };
+  return {
+    runtime,
+    clearMessages: opts.sessionId
+      ? () => clearMessages(opts.sessionId!)
+      : () => {},
+    hasMessages: messages.length > 0,
+  };
 }
