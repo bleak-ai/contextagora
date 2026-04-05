@@ -1,6 +1,6 @@
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import type { QueryClient } from "@tanstack/react-query";
-import { Sidebar } from "../components/Sidebar";
+import { IconRail } from "../components/IconRail";
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -9,7 +9,7 @@ interface RouterContext {
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: () => (
     <div className="flex h-full">
-      <Sidebar />
+      <IconRail />
       <main className="flex-1 flex flex-col h-full min-w-0">
         <Outlet />
       </main>

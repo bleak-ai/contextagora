@@ -55,7 +55,7 @@ export function ModuleRegistry() {
               onClick={() => setViewState({ view: "detail", name })}
               className={`w-full text-left px-4 py-2.5 border-b border-border/50 hover:bg-bg-hover transition-colors ${
                 viewState.view === "detail" && viewState.name === name
-                  ? "bg-bg-hover"
+                  ? "bg-bg-hover border-l-2 border-l-accent"
                   : ""
               }`}
             >
