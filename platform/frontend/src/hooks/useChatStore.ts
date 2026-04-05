@@ -177,6 +177,16 @@ export const useChatStore = create<ChatState>()(
                 // Auto-rename session from first prompt
                 useSessionStore.getState().renameSession(sessionId, event.name);
                 break;
+              case "tree_navigation":
+                set((state) => ({
+                  ...state,
+                  treeState: {
+                    active_path: event.active_path,
+                    accessed_files: event.accessed_files,
+                    module_counts: event.module_counts
+                  }
+                }));
+                break;
               case "error":
                 updateAssistant((m) => ({
                   ...m,
