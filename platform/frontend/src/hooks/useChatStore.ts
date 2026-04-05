@@ -30,6 +30,11 @@ interface ChatState {
   streamingSessionId: string | null;
   abortController: AbortController | null;
   moduleToolCompletedCount: number;
+  treeState: {
+    active_path: string[];
+    accessed_files: string[];
+    module_counts: Record<string, number>;
+  } | null;
 
   sendMessage: (sessionId: string, prompt: string) => void;
   cancelStream: () => void;
@@ -44,6 +49,7 @@ export const useChatStore = create<ChatState>()(
       streamingSessionId: null,
       abortController: null,
       moduleToolCompletedCount: 0,
+      treeState: null,
 
       sendMessage: (sessionId: string, prompt: string) => {
         const userMsg: ChatMessage = {
