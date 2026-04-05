@@ -117,7 +117,7 @@ export function ContextPanel() {
   };
 
   return (
-    <aside className="w-[220px] flex-shrink-0 border-l border-border bg-bg-raised flex flex-col h-full">
+    <aside className="w-[320px] flex-shrink-0 border-l border-border bg-bg-raised flex flex-col h-full">
       {/* Header */}
       <div className="px-3.5 py-3 border-b border-border flex items-center justify-between">
         <span className="text-accent text-[11px] font-semibold tracking-wider">
