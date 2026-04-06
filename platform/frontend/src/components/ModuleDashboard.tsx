@@ -141,7 +141,7 @@ function CreateModuleForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    mutation.mutate({ name, content, summary, secrets: [] });
+    mutation.mutate({ name, content, summary, secrets: [], requirements: [] });
   };
 
   return (
