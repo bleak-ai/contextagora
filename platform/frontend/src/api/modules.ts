@@ -82,3 +82,22 @@ export function deleteModuleFile(
 ): Promise<{ status: string }> {
   return apiFetch(`/modules/${name}/files/${path}`, { method: "DELETE" });
 }
+
+// --- AI generation ---
+
+export interface GenerateResult {
+  content: string;
+  summary: string;
+  secrets: string[];
+  docs: { path: string; content: string }[];
+}
+
+export function generateModule(
+  name: string,
+  content: string,
+): Promise<GenerateResult> {
+  return apiFetch(`/modules/${name}/generate`, {
+    method: "POST",
+    body: JSON.stringify({ content }),
+  });
+}
