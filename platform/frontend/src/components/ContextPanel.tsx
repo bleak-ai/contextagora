@@ -245,7 +245,7 @@ export function ContextPanel() {
           {/* Load button */}
           <button
             onClick={handleLoad}
-            disabled={isLoading || selected.size === 0}
+            disabled={isLoading || selected.size === 0 || (selectionMatchesLoaded && loaded.length > 0)}
             className={`mt-2 w-full py-1.5 text-xs font-medium rounded-md transition-all ${
               isLoading
                 ? "bg-accent/20 text-accent animate-pulse"
