@@ -250,7 +250,7 @@ export function ContextPanel() {
               isLoading
                 ? "bg-accent/20 text-accent animate-pulse"
                 : selectionMatchesLoaded && loaded.length > 0
-                  ? "bg-success/15 text-success border border-success/25"
+                  ? "bg-accent/10 text-accent/70 border border-accent/20 cursor-default"
                   : "bg-accent text-accent-text hover:bg-accent-hover"
             } disabled:opacity-30 disabled:cursor-not-allowed`}
           >

@@ -93,9 +93,9 @@ const LeftRail: FC = () => (
 );
 
 const AssistantMessage: FC = () => (
-  <MessagePrimitive.Root className="flex items-stretch gap-0 w-full">
+  <MessagePrimitive.Root className="relative flex items-stretch gap-0 w-full group">
     <LeftRail />
-    <div className="flex-1 min-w-0 max-w-[80%] flex flex-col gap-1">
+    <div className="flex-1 min-w-0 max-w-[80%]">
       <div className="space-y-1.5">
         <MessagePrimitive.Content
           components={{
@@ -117,17 +117,15 @@ const AssistantMessage: FC = () => (
 );
 
 const AssistantActions: FC = () => (
-  <ActionBarPrimitive.Root
-    hideWhenRunning
-    autohide="not-last"
-    className="flex gap-1"
-  >
-    <ActionBarPrimitive.Copy asChild>
-      <button className="text-text-muted hover:text-text-secondary text-xs px-1.5 py-0.5 rounded hover:bg-bg-hover transition-colors">
-        Copy
-      </button>
-    </ActionBarPrimitive.Copy>
-  </ActionBarPrimitive.Root>
+  <div className="h-0 overflow-visible">
+    <div className="pt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+      <ActionBarPrimitive.Copy asChild>
+        <button className="text-text-muted hover:text-text-secondary text-xs px-1.5 py-0.5 rounded hover:bg-bg-hover transition-colors">
+          Copy
+        </button>
+      </ActionBarPrimitive.Copy>
+    </div>
+  </div>
 );
 
 const Composer: FC = () => {
