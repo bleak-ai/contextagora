@@ -46,13 +46,5 @@ class GenerateModuleRequest(BaseModel):
     content: str  # raw info.md content
 
 
-class GenerateDocFile(BaseModel):
-    path: str     # e.g. "docs/payments.md"
-    content: str
-
-
 class GenerateModuleResponse(BaseModel):
-    content: str              # restructured info.md
-    summary: str              # extracted one-line summary
-    secrets: list[str]        # detected env var names
-    docs: list[GenerateDocFile]  # optional additional doc files
+    summary: str  # 2-3 sentence module summary
