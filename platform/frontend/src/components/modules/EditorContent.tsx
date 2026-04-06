@@ -72,7 +72,7 @@ export function EditorContent({
           {activeFile === "info.md" && (
             <div className="px-4 py-2 text-xs text-text-muted border-b border-border/50 bg-bg-raised/30">
               Write or paste everything you know about this tool — setup details, API docs, account info, credentials.
-              Then use <span className="text-accent font-medium">Generate with AI</span> to structure it.
+              Then use <span className="text-accent font-medium">Generate Summary</span> to create a description.
             </div>
           )}
           <textarea
