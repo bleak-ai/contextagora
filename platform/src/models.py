@@ -10,12 +10,14 @@ class CreateModuleRequest(BaseModel):
     content: str
     summary: str = ""
     secrets: list[str] = []
+    requirements: list[str] = []
 
 
 class UpdateModuleRequest(BaseModel):
     content: str
     summary: str = ""
     secrets: list[str] = []
+    requirements: list[str] = []
 
 
 class ModuleDetail(BaseModel):
@@ -23,6 +25,7 @@ class ModuleDetail(BaseModel):
     content: str
     summary: str
     secrets: list[str]
+    requirements: list[str]
 
 
 class ChatRequest(BaseModel):

@@ -8,6 +8,7 @@ A self-hosted web application that lets users select "context modules" (curated 
 
 FastAPI backend + React SPA frontend with a full chat interface and module management system. Users can browse/create/edit modules, load them into the workspace, and have streaming conversations with Claude through the built-in chat UI. Modules are fetched from GitHub, secrets are injected via Infisical/Varlock.
 
+
 ## How it works
 
 1. Modules are structured folders with an `info.md` file and optional additional docs. They live in a separate GitHub repo (e.g. `bleak-ai/context-loader-module-demo`).

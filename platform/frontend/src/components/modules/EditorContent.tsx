@@ -6,27 +6,46 @@ interface OpenFile {
 }
 
 interface EditorContentProps {
-  mode: "files" | "secrets";
+  mode: "files" | "secrets" | "requirements";
+  moduleName: string;
+  infoContent: string;
   openFiles: Map<string, OpenFile>;
   activeFile: string | null;
   secrets: string[];
+  requirements: string[];
   onFileChange: (path: string, content: string) => void;
   onSelectFile: (path: string) => void;
   onSecretsChange: (secrets: string[]) => void;
+  onRequirementsChange: (requirements: string[]) => void;
 }
 
 export function EditorContent({
   mode,
+  moduleName,
+  infoContent,
   openFiles,
   activeFile,
   secrets,
+  requirements,
   onFileChange,
   onSelectFile,
   onSecretsChange,
+  onRequirementsChange,
 }: EditorContentProps) {
   if (mode === "secrets") {
     return (
       <SecretsPanel secrets={secrets} onChange={onSecretsChange} />
+    );
+  }
+
+  if (mode === "requirements") {
+    return (
+      <RequirementsPanel
+        requirements={requirements}
+        moduleName={moduleName}
+        infoContent={infoContent}
+        onChange={onRequirementsChange}
+      />
     );
   }
 
@@ -157,6 +176,120 @@ function SecretsPanel({
         <button
           onClick={handleAdd}
           disabled={!newSecret.trim()}
+          className="px-4 py-2 text-xs bg-accent text-accent-text rounded hover:bg-accent-hover disabled:opacity-50"
+        >
+          + Add
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RequirementsPanel({
+  requirements,
+  moduleName,
+  infoContent,
+  onChange,
+}: {
+  requirements: string[];
+  moduleName: string;
+  infoContent: string;
+  onChange: (requirements: string[]) => void;
+}) {
+  const [newPkg, setNewPkg] = useState("");
+  const [isDetecting, setIsDetecting] = useState(false);
+
+  const handleAdd = () => {
+    const name = newPkg.trim().toLowerCase();
+    if (name && !requirements.includes(name)) {
+      onChange([...requirements, name]);
+      setNewPkg("");
+    }
+  };
+
+  const handleRemove = (name: string) => {
+    onChange(requirements.filter((r) => r !== name));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAdd();
+    }
+  };
+
+  const handleDetect = async () => {
+    if (!infoContent.trim() || isDetecting) return;
+    setIsDetecting(true);
+    try {
+      const { detectPackages } = await import("../../api/modules");
+      const result = await detectPackages(moduleName, infoContent);
+      // Merge detected packages with existing (no duplicates)
+      const merged = [...requirements];
+      for (const pkg of result.packages) {
+        if (!merged.includes(pkg)) {
+          merged.push(pkg);
+        }
+      }
+      onChange(merged);
+    } catch (err) {
+      console.error("Detect packages failed:", err);
+    } finally {
+      setIsDetecting(false);
+    }
+  };
+
+  return (
+    <div className="flex-1 p-6 overflow-y-auto">
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-sm font-semibold text-accent">
+          Python Packages
+        </h3>
+        <button
+          onClick={handleDetect}
+          disabled={!infoContent.trim() || isDetecting}
+          className="px-3 py-1 text-[10px] font-medium rounded border border-accent/30 text-accent hover:bg-accent/10 disabled:opacity-50 disabled:cursor-default"
+        >
+          {isDetecting ? "Detecting..." : "Detect from info.md"}
+        </button>
+      </div>
+      <p className="text-xs text-text-muted mb-4">
+        Python packages this module needs for PTC scripts. Installed automatically when the module is loaded.
+      </p>
+
+      <div className="space-y-1 mb-4">
+        {requirements.map((name) => (
+          <div
+            key={name}
+            className="flex items-center justify-between bg-bg-raised px-3 py-2 rounded"
+          >
+            <span className="text-sm text-text font-mono">{name}</span>
+            <button
+              onClick={() => handleRemove(name)}
+              className="text-xs text-danger/60 hover:text-danger"
+            >
+              &times; Remove
+            </button>
+          </div>
+        ))}
+        {requirements.length === 0 && (
+          <p className="text-xs text-text-muted py-2">
+            No packages defined yet.
+          </p>
+        )}
+      </div>
+
+      <div className="flex gap-2">
+        <input
+          value={newPkg}
+          onChange={(e) => setNewPkg(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="package-name"
+          className="flex-1 bg-bg-input border border-border rounded px-3 py-2 text-sm text-text font-mono outline-none focus:border-accent/40"
+        />
+        <button
+          onClick={handleAdd}
+          disabled={!newPkg.trim()}
           className="px-4 py-2 text-xs bg-accent text-accent-text rounded hover:bg-accent-hover disabled:opacity-50"
         >
           + Add

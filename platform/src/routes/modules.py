@@ -66,7 +66,15 @@ async def api_get_module(name: str):
     except httpx.HTTPStatusError:
         pass
 
-    return {"name": name, "content": content, "summary": summary, "secrets": secrets}
+    requirements: list[str] = []
+    try:
+        req_data = gh_api(f"{name}/requirements.txt")
+        req_text = base64.b64decode(req_data["content"]).decode()
+        requirements = [line.strip() for line in req_text.splitlines() if line.strip()]
+    except httpx.HTTPStatusError:
+        pass
+
+    return {"name": name, "content": content, "summary": summary, "secrets": secrets, "requirements": requirements}
 
 
 @router.post("", status_code=201)
@@ -86,6 +94,11 @@ async def api_create_module(body: CreateModuleRequest):
         schema = generate_env_schema(body.secrets)
         gh_create_file(f"{name}/.env.schema", schema, f"Add secrets schema for {name}")
         files.append(".env.schema")
+
+    if body.requirements:
+        req_content = "\n".join(body.requirements) + "\n"
+        gh_create_file(f"{name}/requirements.txt", req_content, f"Add requirements for {name}")
+        files.append("requirements.txt")
 
     llms_txt = generate_module_llms_txt(name, body.summary, files)
     gh_create_file(f"{name}/llms.txt", llms_txt, f"Add llms.txt for {name}")
@@ -120,6 +133,22 @@ async def api_update_module(name: str, body: UpdateModuleRequest):
             gh_create_file(f"{name}/.env.schema", schema, f"Add secrets schema for {name}")
     elif schema_sha:
         gh_delete_file(f"{name}/.env.schema", schema_sha, f"Remove secrets schema for {name}")
+
+    req_sha = ""
+    try:
+        req_data = gh_api(f"{name}/requirements.txt")
+        req_sha = req_data["sha"]
+    except httpx.HTTPStatusError:
+        pass
+
+    if body.requirements:
+        req_content = "\n".join(body.requirements) + "\n"
+        if req_sha:
+            gh_update_file(f"{name}/requirements.txt", req_content, req_sha, f"Update requirements for {name}")
+        else:
+            gh_create_file(f"{name}/requirements.txt", req_content, f"Add requirements for {name}")
+    elif req_sha:
+        gh_delete_file(f"{name}/requirements.txt", req_sha, f"Remove requirements for {name}")
 
     regenerate_module_llms_txt(name, MANAGED_FILES, summary=body.summary)
 
@@ -199,6 +228,55 @@ def api_generate_module(name: str, body: GenerateModuleRequest):
     summary = proc.stdout.strip()
 
     return GenerateModuleResponse(summary=summary)
+
+
+_DETECT_PACKAGES_PROMPT = """Read the info.md content below for a context module. Identify all Python packages (PyPI names) that are needed to run the scripts described in the module.
+
+Only include packages that need to be installed via pip — not standard library modules.
+
+Return ONLY a comma-separated list of package names, nothing else. Example: stripe,python-dotenv,httpx
+
+If no packages are needed, return the word NONE.
+
+---
+
+{raw_content}"""
+
+
+@router.post("/{name}/detect-packages")
+def api_detect_packages(name: str, body: GenerateModuleRequest):
+    """Use Claude to detect Python packages from info.md content."""
+    if not body.content.strip():
+        return JSONResponse({"error": "Content is empty"}, status_code=400)
+
+    prompt = _DETECT_PACKAGES_PROMPT.format(raw_content=body.content)
+
+    env = {
+        **os.environ,
+        "DISABLE_AUTOUPDATER": "1",
+        "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
+        "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    }
+
+    proc = subprocess.run(
+        ["claude", "-p", prompt, "--output-format", "text", "--max-turns", "1"],
+        capture_output=True,
+        text=True,
+        env=env,
+        timeout=120,
+    )
+
+    if proc.returncode != 0:
+        return JSONResponse(
+            {"error": f"Claude failed: {proc.stderr.strip()}"}, status_code=502
+        )
+
+    raw = proc.stdout.strip()
+    if raw.upper() == "NONE":
+        return {"packages": []}
+
+    packages = [p.strip().strip("`").lower() for p in raw.split(",") if p.strip().strip("`")]
+    return {"packages": packages}
 
 
 # --- Module file CRUD ---

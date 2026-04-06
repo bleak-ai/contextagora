@@ -1,3 +1,4 @@
+@import "@fontsource-variable/space-grotesk";
 @import "tailwindcss";
 
 @theme {
@@ -29,6 +30,7 @@ body,
   overflow: hidden;
   background: var(--color-bg);
   color: var(--color-text);
+  font-family: 'Space Grotesk Variable', sans-serif;
 }
 
 * {

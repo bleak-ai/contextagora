@@ -5,6 +5,7 @@ export interface ModuleDetail {
   content: string;
   summary: string;
   secrets: string[];
+  requirements: string[];
 }
 
 export function fetchModules(): Promise<{ modules: string[] }> {
@@ -20,6 +21,7 @@ export function createModule(data: {
   content: string;
   summary: string;
   secrets: string[];
+  requirements: string[];
 }): Promise<{ name: string }> {
   return apiFetch("/modules", {
     method: "POST",
@@ -29,7 +31,7 @@ export function createModule(data: {
 
 export function updateModule(
   name: string,
-  data: { content: string; summary: string; secrets: string[] },
+  data: { content: string; summary: string; secrets: string[]; requirements: string[] },
 ): Promise<{ name: string }> {
   return apiFetch(`/modules/${name}`, {
     method: "PUT",
@@ -94,6 +96,16 @@ export function generateModule(
   content: string,
 ): Promise<GenerateResult> {
   return apiFetch(`/modules/${name}/generate`, {
+    method: "POST",
+    body: JSON.stringify({ content }),
+  });
+}
+
+export function detectPackages(
+  name: string,
+  content: string,
+): Promise<{ packages: string[] }> {
+  return apiFetch(`/modules/${name}/detect-packages`, {
     method: "POST",
     body: JSON.stringify({ content }),
   });

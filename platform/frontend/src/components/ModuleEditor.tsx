@@ -41,23 +41,27 @@ export function ModuleEditor() {
   // Local editor state
   const [summary, setSummary] = useState("");
   const [secrets, setSecrets] = useState<string[]>([]);
+  const [requirements, setRequirements] = useState<string[]>([]);
   const [openFiles, setOpenFiles] = useState<Map<string, OpenFile>>(new Map());
   const [activeFile, setActiveFile] = useState<string | null>(null);
-  const [mode, setMode] = useState<"files" | "secrets">("files");
+  const [mode, setMode] = useState<"files" | "secrets" | "requirements">("files");
   const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Track server values for dirty detection
   const serverSummary = useRef("");
   const serverSecrets = useRef<string[]>([]);
+  const serverRequirements = useRef<string[]>([]);
 
   // Initialize state when detail loads
   useEffect(() => {
     if (detail) {
       setSummary(detail.summary);
       setSecrets(detail.secrets);
+      setRequirements(detail.requirements);
       serverSummary.current = detail.summary;
       serverSecrets.current = detail.secrets;
+      serverRequirements.current = detail.requirements;
     }
   }, [detail]);
 
@@ -65,8 +69,10 @@ export function ModuleEditor() {
   const summaryDirty = summary !== serverSummary.current;
   const secretsDirty =
     JSON.stringify(secrets) !== JSON.stringify(serverSecrets.current);
+  const requirementsDirty =
+    JSON.stringify(requirements) !== JSON.stringify(serverRequirements.current);
   const filesDirty = Array.from(openFiles.values()).some((f) => f.dirty);
-  const isDirty = summaryDirty || secretsDirty || filesDirty;
+  const isDirty = summaryDirty || secretsDirty || requirementsDirty || filesDirty;
 
   // Open a file in the editor
   const handleSelectFile = useCallback(
@@ -153,16 +159,18 @@ export function ModuleEditor() {
     try {
       const promises: Promise<unknown>[] = [];
 
-      // Save module-level changes (summary, secrets)
-      if (summaryDirty || secretsDirty) {
+      // Save module-level changes (summary, secrets, requirements)
+      if (summaryDirty || secretsDirty || requirementsDirty) {
         promises.push(
           updateModule(name, {
             content: currentInfoContent,
             summary,
             secrets,
+            requirements,
           }).then(() => {
             serverSummary.current = summary;
             serverSecrets.current = secrets;
+            serverRequirements.current = requirements;
           }),
         );
       }
@@ -202,8 +210,10 @@ export function ModuleEditor() {
     name,
     summary,
     secrets,
+    requirements,
     summaryDirty,
     secretsDirty,
+    requirementsDirty,
     openFiles,
     queryClient,
   ]);
@@ -271,6 +281,7 @@ export function ModuleEditor() {
         <EditorSidebar
           files={files}
           secrets={secrets}
+          requirements={requirements}
           activeFile={activeFile}
           mode={mode}
           onSelectFile={handleSelectFile}
@@ -280,12 +291,16 @@ export function ModuleEditor() {
         />
         <EditorContent
           mode={mode}
+          moduleName={name}
+          infoContent={openFiles.get("info.md")?.content ?? detail?.content ?? ""}
           openFiles={contentOpenFiles}
           activeFile={activeFile}
           secrets={secrets}
+          requirements={requirements}
           onFileChange={handleFileChange}
           onSelectFile={handleSelectFile}
           onSecretsChange={setSecrets}
+          onRequirementsChange={setRequirements}
         />
       </div>
     </div>

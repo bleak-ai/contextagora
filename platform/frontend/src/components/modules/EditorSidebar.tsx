@@ -4,17 +4,19 @@ import type { ModuleFile } from "../../api/modules";
 interface EditorSidebarProps {
   files: ModuleFile[];
   secrets: string[];
+  requirements: string[];
   activeFile: string | null;
-  mode: "files" | "secrets";
+  mode: "files" | "secrets" | "requirements";
   onSelectFile: (path: string) => void;
   onDeleteFile: (path: string) => void;
   onAddFile: (path: string) => void;
-  onSetMode: (mode: "files" | "secrets") => void;
+  onSetMode: (mode: "files" | "secrets" | "requirements") => void;
 }
 
 export function EditorSidebar({
   files,
   secrets,
+  requirements,
   activeFile,
   mode,
   onSelectFile,
@@ -165,6 +167,42 @@ export function EditorSidebar({
         ))}
         {secrets.length === 0 && (
           <p className="text-[10px] text-text-muted px-2">No secrets defined</p>
+        )}
+      </div>
+
+      {/* Divider */}
+      <div className="border-t border-border my-3" />
+
+      {/* Requirements section */}
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] text-text-muted uppercase tracking-wide">
+          Packages
+        </span>
+        {mode === "requirements" ? (
+          <button
+            onClick={() => onSetMode("files")}
+            className="text-[10px] text-accent hover:text-accent-hover"
+          >
+            &larr; Back
+          </button>
+        ) : (
+          <button
+            onClick={() => onSetMode("requirements")}
+            className="text-[10px] text-accent hover:text-accent-hover"
+          >
+            Manage
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-0.5">
+        {requirements.map((req) => (
+          <div key={req} className="px-2 py-1">
+            <span className="text-xs text-text font-mono">{req}</span>
+          </div>
+        ))}
+        {requirements.length === 0 && (
+          <p className="text-[10px] text-text-muted px-2">No packages defined</p>
         )}
       </div>
     </div>
