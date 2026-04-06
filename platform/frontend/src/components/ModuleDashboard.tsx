@@ -53,7 +53,7 @@ export function ModuleDashboard() {
         {/* Create form */}
         {creating && (
           <CreateModuleForm
-            onCreated={(name) => {
+            onCreated={(_name) => {
               queryClient.invalidateQueries({ queryKey: ["modules"] });
               setCreating(false);
             }}
