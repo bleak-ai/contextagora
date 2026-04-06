@@ -32,6 +32,23 @@ COPY --from=frontend /app/frontend/dist src/static/
 
 RUN mkdir -p src/context
 
+# ── Required runtime variables ───────────────────────────────
+ENV GH_OWNER=""
+ENV GH_REPO=""
+ENV GH_TOKEN=""
+ENV ANTHROPIC_AUTH_TOKEN=""
+ENV ANTHROPIC_BASE_URL=""
+# ── Optional: model overrides ────────────────────────────────
+ENV ANTHROPIC_DEFAULT_OPUS_MODEL=""
+ENV ANTHROPIC_DEFAULT_SONNET_MODEL=""
+ENV ANTHROPIC_DEFAULT_HAIKU_MODEL=""
+# ── Optional: Infisical (only if modules use secrets) ────────
+ENV INFISICAL_CLIENT_ID=""
+ENV INFISICAL_CLIENT_SECRET=""
+ENV INFISICAL_PROJECT_ID=""
+ENV INFISICAL_ENVIRONMENT=""
+ENV INFISICAL_SITE_URL=""
+
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \

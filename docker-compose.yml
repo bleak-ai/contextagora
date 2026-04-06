@@ -16,4 +16,21 @@ services:
       - "8080:8080"
     env_file:
       - .env
+    environment:
+      # ── Required ──
+      - GH_OWNER=${GH_OWNER}
+      - GH_REPO=${GH_REPO}
+      - GH_TOKEN=${GH_TOKEN}
+      - ANTHROPIC_AUTH_TOKEN=${ANTHROPIC_AUTH_TOKEN}
+      - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL}
+      # ── Optional: model overrides ──
+      - ANTHROPIC_DEFAULT_OPUS_MODEL=${ANTHROPIC_DEFAULT_OPUS_MODEL:-}
+      - ANTHROPIC_DEFAULT_SONNET_MODEL=${ANTHROPIC_DEFAULT_SONNET_MODEL:-}
+      - ANTHROPIC_DEFAULT_HAIKU_MODEL=${ANTHROPIC_DEFAULT_HAIKU_MODEL:-}
+      # ── Optional: Infisical (only if modules use secrets) ──
+      - INFISICAL_CLIENT_ID=${INFISICAL_CLIENT_ID:-}
+      - INFISICAL_CLIENT_SECRET=${INFISICAL_CLIENT_SECRET:-}
+      - INFISICAL_PROJECT_ID=${INFISICAL_PROJECT_ID:-}
+      - INFISICAL_ENVIRONMENT=${INFISICAL_ENVIRONMENT:-}
+      - INFISICAL_SITE_URL=${INFISICAL_SITE_URL:-}
     restart: unless-stopped
