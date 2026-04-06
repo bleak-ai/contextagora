@@ -23,7 +23,10 @@ MANAGED_FILES = {"llms.txt", ".env.schema", "requirements.txt"}
 
 def list_modules(directory: Path) -> list[str]:
     """Return sorted names of subdirectories (each subdir = one module)."""
-    return sorted(p.name for p in directory.iterdir() if p.is_dir())
+    return sorted(
+        p.name for p in directory.iterdir()
+        if p.is_dir() and not p.name.startswith(".")
+    )
 
 
 # --- App setup ---

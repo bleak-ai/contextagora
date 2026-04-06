@@ -1,5 +1,5 @@
-@import "@fontsource-variable/space-grotesk";
 @import "tailwindcss";
+@import "@fontsource-variable/space-grotesk";
 
 @theme {
   --color-bg: #0e0d0c;
@@ -30,7 +30,7 @@ body,
   overflow: hidden;
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: 'Space Grotesk Variable', sans-serif;
+  font-family: 'Space Grotesk Variable', sans-serif !important;
 }
 
 * {
@@ -42,8 +42,11 @@ button,
 [role="button"],
 a,
 select,
+input,
+textarea,
 summary {
   cursor: pointer;
+  font-family: inherit;
 }
 
 /* Markdown prose styles for assistant messages */
