@@ -1,5 +1,4 @@
 import base64
-import json
 import os
 import subprocess
 
@@ -148,23 +147,13 @@ async def api_refresh_modules():
 
 # ── AI generation ────────────────────────────────────────────
 
-_GENERATE_PROMPT_TEMPLATE = """You are restructuring raw documentation into a well-organized context module.
+_GENERATE_PROMPT_TEMPLATE = """You are writing a summary for a context module — a package of documentation that a coding agent loads to understand a tool or service.
 
-The user has pasted raw information about a tool or service their company uses. Your job:
+Read the info.md content below for the module named "{module_name}" and write a summary of 2-3 sentences. The summary should describe:
+- What this tool/service is and what the team uses it for
+- Key details like account structure, environments, or integration points
 
-1. **Restructure `info.md`** — organize into clear sections (business context, authentication, operations, code examples). Keep it focused on how THEIR company uses this tool, not generic docs. Preserve all specific details (account names, project IDs, workspace structure, etc).
-
-2. **Extract a summary** — one line describing what this module provides (e.g. "Firestore access to MAAT's gyms database — read/write operations").
-
-3. **Detect secrets** — identify any API keys, tokens, or credentials mentioned. Return their environment variable names in UPPER_SNAKE_CASE (e.g. ["STRIPE_API_KEY", "STRIPE_WEBHOOK_SECRET"]).
-
-4. **Split into doc files** — ONLY if the content is large (>200 lines after restructuring) and covers clearly distinct topics. Most modules should NOT have doc files. If you do split, the main info.md keeps the overview and each doc file covers one deep topic.
-
-Return ONLY a JSON object, no markdown fencing, no explanation:
-
-{{"content": "restructured info.md markdown", "summary": "one-line summary", "secrets": ["VAR_NAME"], "docs": [{{"path": "docs/topic.md", "content": "markdown"}}]}}
-
-Here is the raw content from info.md for the module named "{module_name}":
+Write ONLY the summary text. No markdown formatting, no headings, no bullet points — just plain sentences.
 
 ---
 
@@ -173,7 +162,7 @@ Here is the raw content from info.md for the module named "{module_name}":
 
 @router.post("/{name}/generate")
 def api_generate_module(name: str, body: GenerateModuleRequest):
-    """Use Claude to restructure raw info.md content into a proper module.
+    """Use Claude to generate a summary from raw info.md content.
 
     NOTE: This is a sync `def` (not `async def`) so FastAPI runs it in a
     threadpool automatically — subprocess.run blocks for up to 120s and
@@ -207,28 +196,9 @@ def api_generate_module(name: str, body: GenerateModuleRequest):
             {"error": f"Claude failed: {proc.stderr.strip()}"}, status_code=502
         )
 
-    # Parse JSON from Claude's output
-    output = proc.stdout.strip()
-    # Strip markdown code fences if Claude wraps the response
-    if output.startswith("```"):
-        output = output.split("\n", 1)[1]  # remove first ```json line
-        output = output.rsplit("```", 1)[0]  # remove trailing ```
-        output = output.strip()
+    summary = proc.stdout.strip()
 
-    try:
-        result = json.loads(output)
-    except json.JSONDecodeError:
-        return JSONResponse(
-            {"error": "Failed to parse AI response as JSON", "raw": output},
-            status_code=502,
-        )
-
-    return GenerateModuleResponse(
-        content=result.get("content", body.content),
-        summary=result.get("summary", ""),
-        secrets=result.get("secrets", []),
-        docs=[{"path": d["path"], "content": d["content"]} for d in result.get("docs", [])],
-    )
+    return GenerateModuleResponse(summary=summary)
 
 
 # --- Module file CRUD ---
