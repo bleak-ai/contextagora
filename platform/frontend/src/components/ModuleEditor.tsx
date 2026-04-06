@@ -8,6 +8,7 @@ import {
   saveModuleFile,
   deleteModuleFile,
   updateModule,
+  generateModule,
 } from "../api/modules";
 import { EditorHeader } from "./modules/EditorHeader";
 import { EditorSidebar } from "./modules/EditorSidebar";
@@ -44,6 +45,7 @@ export function ModuleEditor() {
   const [activeFile, setActiveFile] = useState<string | null>(null);
   const [mode, setMode] = useState<"files" | "secrets">("files");
   const [isSaving, setIsSaving] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Track server values for dirty detection
   const serverSummary = useRef("");
@@ -145,6 +147,7 @@ export function ModuleEditor() {
 
   const handleSave = useCallback(async () => {
     if (!detail || isSaving) return;
+    const currentInfoContent = openFiles.get("info.md")?.content ?? detail.content;
     setIsSaving(true);
 
     try {
@@ -154,7 +157,7 @@ export function ModuleEditor() {
       if (summaryDirty || secretsDirty) {
         promises.push(
           updateModule(name, {
-            content: detail.content,
+            content: currentInfoContent,
             summary,
             secrets,
           }).then(() => {
@@ -205,6 +208,42 @@ export function ModuleEditor() {
     queryClient,
   ]);
 
+  const handleGenerate = useCallback(async () => {
+    // Get info.md content — from open files if edited, otherwise from server
+    const infoFile = openFiles.get("info.md");
+    const content = infoFile ? infoFile.content : detail?.content || "";
+    if (!content.trim()) return;
+
+    setIsGenerating(true);
+    try {
+      const result = await generateModule(name, content);
+
+      // Apply all file changes in a single state update
+      setOpenFiles((prev) => {
+        const next = new Map(prev);
+        next.set("info.md", {
+          content: result.content,
+          dirty: true,
+          original: prev.get("info.md")?.original ?? "",
+        });
+        for (const doc of result.docs) {
+          next.set(doc.path, { content: doc.content, dirty: true, original: "" });
+        }
+        return next;
+      });
+      setActiveFile("info.md");
+      setMode("files");
+
+      // Apply summary and secrets
+      setSummary(result.summary);
+      setSecrets(result.secrets);
+    } catch (err) {
+      console.error("Generate failed:", err);
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [name, openFiles, detail]);
+
   if (detailLoading || !detail) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -212,6 +251,8 @@ export function ModuleEditor() {
       </div>
     );
   }
+
+  const canGenerate = (openFiles.get("info.md")?.content ?? detail?.content ?? "").trim().length > 0 && !isGenerating && !isSaving;
 
   // Build openFiles map for EditorContent (without `original` field)
   const contentOpenFiles = new Map<string, { content: string; dirty: boolean }>();
@@ -225,7 +266,10 @@ export function ModuleEditor() {
         name={name}
         isDirty={isDirty}
         isSaving={isSaving}
+        isGenerating={isGenerating}
+        canGenerate={canGenerate}
         onSave={handleSave}
+        onGenerate={handleGenerate}
       />
 
       {/* Summary bar */}
