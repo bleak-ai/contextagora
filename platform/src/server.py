@@ -18,7 +18,7 @@ PRESERVED_FILES = {"CLAUDE.md"}
 PRESERVED_DIRS = {".claude"}
 
 # Files managed automatically per module (not user-editable)
-MANAGED_FILES = {"llms.txt", ".env.schema"}
+MANAGED_FILES = {"llms.txt", ".env.schema", "requirements.txt"}
 
 
 def list_modules(directory: Path) -> list[str]:

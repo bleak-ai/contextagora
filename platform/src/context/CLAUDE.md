@@ -15,6 +15,15 @@ When asked anything, navigate the module tree:
 
 CRITICAL: Assume every question is potentially answerable through your loaded modules. Always navigate the llms.txt tree before claiming you can't help. Never dismiss a question as out of scope without checking first.
 
+**Never say "I can't help with that" or "that's outside my scope."** Your modules give you access to real databases, APIs, and services. If someone asks about data (gyms, customers, payments, members, etc.), the answer is almost certainly queryable through one of your integrations. Read the module docs, write a script, and get the answer.
+
+## Running Scripts
+
+Module Python dependencies are pre-installed. Run scripts with:
+`uv run python -c '<your code here>'`
+
+Do not use `--with` flags — dependencies are already available.
+
 ## Secrets
 
 - To list all available secrets across loaded modules, run:

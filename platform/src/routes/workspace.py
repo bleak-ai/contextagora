@@ -7,6 +7,7 @@ from fastapi import APIRouter
 from src.llms import generate_root_llms_txt
 from src.models import WorkspaceLoadRequest
 from src.server import CONTEXT_DIR, MANAGED_FILES, PRESERVED_DIRS, PRESERVED_FILES, list_modules
+from src.services.deps import install_module_deps
 from src.services.github import download_module, list_available_modules
 from src.services.schemas import augment_schema
 from src.services.secrets import get_secrets_status, load_module_secrets
@@ -58,6 +59,13 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
         if schema_file.exists():
             original = schema_file.read_text()
             schema_file.write_text(augment_schema(original, name))
+
+    for name in loaded:
+        module_dir = CONTEXT_DIR / name
+        result = install_module_deps(module_dir)
+        if result is not None and result.returncode != 0:
+            log.warning("pip install failed for '%s':\n%s\n%s", name, result.stderr, result.stdout)
+            errors.append(f"Failed to install deps for '{name}': {result.stderr.strip()}")
 
     for name in loaded:
         module_dir = CONTEXT_DIR / name
