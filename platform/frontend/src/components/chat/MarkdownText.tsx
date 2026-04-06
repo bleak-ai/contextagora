@@ -1,7 +1,15 @@
 import type { ComponentPropsWithoutRef } from "react";
 import type { TextMessagePartProps } from "@assistant-ui/react";
+import { MessagePartPrimitive } from "@assistant-ui/react";
 import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import remarkGfm from "remark-gfm";
+
+const TypingIndicator = () => (
+  <span className="typing-indicator">
+    <span className="typing-ping" />
+    <span className="typing-core" />
+  </span>
+);
 
 const DownloadLink = (props: ComponentPropsWithoutRef<"a">) => {
   const { href, children, ...rest } = props;
@@ -44,9 +52,14 @@ const REMARK_PLUGINS = [remarkGfm];
 const MD_COMPONENTS = { a: DownloadLink };
 
 export const MarkdownText = (_props: TextMessagePartProps) => (
-  <MarkdownTextPrimitive
-    className="aui-md"
-    remarkPlugins={REMARK_PLUGINS}
-    components={MD_COMPONENTS}
-  />
+  <>
+    <MarkdownTextPrimitive
+      className="aui-md"
+      remarkPlugins={REMARK_PLUGINS}
+      components={MD_COMPONENTS}
+    />
+    <MessagePartPrimitive.InProgress>
+      <TypingIndicator />
+    </MessagePartPrimitive.InProgress>
+  </>
 );
