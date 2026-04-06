@@ -25,7 +25,7 @@ export function IconRail() {
           height="18"
           viewBox="0 0 24 24"
           fill="none"
-          stroke={isChat ? "var(--color-accent)" : "#8888aa"}
+          stroke={isChat ? "var(--color-accent)" : "var(--color-text-secondary)"}
           strokeWidth="2"
         >
           <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
@@ -45,7 +45,7 @@ export function IconRail() {
           height="18"
           viewBox="0 0 24 24"
           fill="none"
-          stroke={isModules ? "var(--color-accent)" : "#8888aa"}
+          stroke={isModules ? "var(--color-accent)" : "var(--color-text-secondary)"}
           strokeWidth="2"
         >
           <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
