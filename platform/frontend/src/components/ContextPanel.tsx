@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchModules } from "../api/modules";
 import { fetchWorkspace, loadModules, refreshSecrets } from "../api/workspace";
@@ -28,6 +28,8 @@ export function ContextPanel() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const toggleCollapsed = useCallback(() => setCollapsed((c) => !c), []);
 
   // Module + workspace queries
   const { data: modulesData } = useQuery({
@@ -116,6 +118,25 @@ export function ContextPanel() {
     }
   };
 
+  if (collapsed) {
+    return (
+      <aside className="w-10 flex-shrink-0 border-l border-border bg-bg-raised flex flex-col items-center h-full">
+        <button
+          onClick={toggleCollapsed}
+          className="mt-3 p-1.5 rounded hover:bg-bg-hover text-text-muted hover:text-text transition-colors"
+          title="Expand sidebar"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+        {loaded.length > 0 && (
+          <span className="mt-2 text-accent text-[9px] font-medium">{loaded.length}</span>
+        )}
+      </aside>
+    );
+  }
+
   return (
     <aside className="w-[320px] flex-shrink-0 border-l border-border bg-bg-raised flex flex-col h-full">
       {/* Header */}
@@ -123,11 +144,22 @@ export function ContextPanel() {
         <span className="text-accent text-[11px] font-semibold tracking-wider">
           CONTEXT
         </span>
-        {loaded.length > 0 && (
-          <span className="bg-accent-dim text-accent text-[10px] px-2 py-0.5 rounded-full">
-            {loaded.length} loaded
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {loaded.length > 0 && (
+            <span className="bg-accent-dim text-accent text-[10px] px-2 py-0.5 rounded-full">
+              {loaded.length} loaded
+            </span>
+          )}
+          <button
+            onClick={toggleCollapsed}
+            className="p-1 rounded hover:bg-bg-hover text-text-muted hover:text-text transition-colors"
+            title="Collapse sidebar"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-2.5 py-2.5">
