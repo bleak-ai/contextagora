@@ -1,6 +1,5 @@
-import { createLazyFileRoute } from "@tanstack/react-router";
-import { ModuleRegistry } from "../components/ModuleRegistry";
+import { createLazyFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createLazyFileRoute("/modules")({
-  component: ModuleRegistry,
+  component: () => <Outlet />,
 });
