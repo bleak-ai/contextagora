@@ -87,10 +87,7 @@ def list_remote_modules(*, bypass_cache: bool = False) -> list[str]:
     if not bypass_cache and _modules_cache and (time.monotonic() - _modules_cache_ts) < _CACHE_TTL:
         return _modules_cache
     items = gh_api("")
-    _modules_cache = sorted(
-        item["name"] for item in items
-        if item["type"] == "dir" and not item["name"].startswith(".")
-    )
+    _modules_cache = sorted(item["name"] for item in items if item["type"] == "dir")
     _modules_cache_ts = time.monotonic()
     return _modules_cache
 

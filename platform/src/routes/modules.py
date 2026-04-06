@@ -36,7 +36,8 @@ router = APIRouter(prefix="/api/modules", tags=["modules"])
 @router.get("")
 async def api_list_modules():
     """List available modules from GitHub."""
-    return {"modules": list_available_modules()}
+    modules = [m for m in list_available_modules() if not m.startswith(".")]
+    return {"modules": modules}
 
 
 @router.get("/{name}")
@@ -171,7 +172,8 @@ async def api_delete_module(name: str):
 @router.post("/refresh")
 async def api_refresh_modules():
     """Force-refresh the module list from GitHub (bypasses cache)."""
-    return {"modules": list_available_modules(bypass_cache=True)}
+    modules = [m for m in list_available_modules(bypass_cache=True) if not m.startswith(".")]
+    return {"modules": modules}
 
 
 # ── AI generation ────────────────────────────────────────────
