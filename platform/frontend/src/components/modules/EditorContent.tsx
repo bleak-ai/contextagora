@@ -68,12 +68,20 @@ export function EditorContent({
 
       {/* Editor */}
       {currentFile && (
-        <textarea
-          value={currentFile.content}
-          onChange={(e) => onFileChange(activeFile, e.target.value)}
-          className="flex-1 w-full bg-bg-input p-4 text-sm text-text font-mono resize-none outline-none"
-          spellCheck={false}
-        />
+        <div className="flex-1 flex flex-col min-h-0">
+          {activeFile === "info.md" && (
+            <div className="px-4 py-2 text-xs text-text-muted border-b border-border/50 bg-bg-raised/30">
+              Write or paste everything you know about this tool — setup details, API docs, account info, credentials.
+              Then use <span className="text-accent font-medium">Generate with AI</span> to structure it.
+            </div>
+          )}
+          <textarea
+            value={currentFile.content}
+            onChange={(e) => onFileChange(activeFile, e.target.value)}
+            className="flex-1 w-full bg-bg-input p-4 text-sm text-text font-mono resize-none outline-none"
+            spellCheck={false}
+          />
+        </div>
       )}
     </div>
   );
