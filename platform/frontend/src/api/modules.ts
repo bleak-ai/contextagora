@@ -86,10 +86,7 @@ export function deleteModuleFile(
 // --- AI generation ---
 
 export interface GenerateResult {
-  content: string;
   summary: string;
-  secrets: string[];
-  docs: { path: string; content: string }[];
 }
 
 export function generateModule(
