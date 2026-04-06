@@ -7,7 +7,6 @@ dependencies = [
     "fastapi",
     "uvicorn",
     "httpx",
-    "mcp>=1.27.0",
 ]
 
 [project.scripts]
