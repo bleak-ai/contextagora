@@ -24,8 +24,15 @@
 - [platform/frontend/src/components/chat/DecisionTreePanel.tsx](platform/frontend/src/components/chat/DecisionTreePanel.tsx) — Tree navigation visualization with breadcrumbs and module access counts
 - [platform/frontend/src/api/sessions.ts](platform/frontend/src/api/sessions.ts) — Session CRUD API client (create, rename, delete, list)
 - [platform/frontend/src/hooks/useSessionStore.ts](platform/frontend/src/hooks/useSessionStore.ts) — Zustand store for session list and active session (localStorage-persisted)
+- [platform/frontend/src/hooks/useSidebarMode.ts](platform/frontend/src/hooks/useSidebarMode.ts) — Zustand store for sidebar layout mode (classic/accordion/zones/cards) and collapsed state (localStorage-persisted)
 - [platform/frontend/src/components/SessionList.tsx](platform/frontend/src/components/SessionList.tsx) — Session list UI with create, rename (double-click), and delete
 - [platform/frontend/src/components/](platform/frontend/src/components/) — React components (Chat, ModuleRegistry, IconRail, ContextPanel, etc.)
+- [platform/frontend/src/components/context/useContextData.ts](platform/frontend/src/components/context/useContextData.ts) — Shared hook extracting all data-fetching, mutations, session handlers, and derived state from ContextPanel (returns ContextData for layout components to consume)
+- [platform/frontend/src/components/context/SidebarHeader.tsx](platform/frontend/src/components/context/SidebarHeader.tsx) — Sidebar header with CONTEXT label, 4-icon mode switcher (classic/accordion/zones/cards segmented control), and collapse toggle
+- [platform/frontend/src/components/context/ClassicLayout.tsx](platform/frontend/src/components/context/ClassicLayout.tsx) — Original flat-section sidebar layout (Sessions, Modules, Secrets, Decision Tree)
+- [platform/frontend/src/components/context/AccordionLayout.tsx](platform/frontend/src/components/context/AccordionLayout.tsx) — Accordion layout mode with always-visible module pills, 4 collapsible sections (File Access, Sessions, Modules, Secrets), and auto-close Modules section when loaded data arrives
+- [platform/frontend/src/components/context/ZonesLayout.tsx](platform/frontend/src/components/context/ZonesLayout.tsx) — Two-zone sidebar layout: top status strip with module pills and secret/session summary, bottom tabbed area with Files (DecisionTreePanel), Sessions, and Setup tabs
+- [platform/frontend/src/components/context/CardsLayout.tsx](platform/frontend/src/components/context/CardsLayout.tsx) — Card-based layout with module card (inline manage expand), file access card, and compact session card
 - [platform/frontend/src/routes/](platform/frontend/src/routes/) — TanStack Router file-based routes
 - [platform/frontend/src/utils/humanizeToolCall.ts](platform/frontend/src/utils/humanizeToolCall.ts) — Utility to translate raw tool call names/args into human-readable labels with module resolution
 - [Dockerfile](Dockerfile) — Multi-stage container image (Node build + Python runtime)
