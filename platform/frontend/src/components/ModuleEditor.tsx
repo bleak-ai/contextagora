@@ -217,26 +217,7 @@ export function ModuleEditor() {
     setIsGenerating(true);
     try {
       const result = await generateModule(name, content);
-
-      // Apply all file changes in a single state update
-      setOpenFiles((prev) => {
-        const next = new Map(prev);
-        next.set("info.md", {
-          content: result.content,
-          dirty: true,
-          original: prev.get("info.md")?.original ?? "",
-        });
-        for (const doc of result.docs) {
-          next.set(doc.path, { content: doc.content, dirty: true, original: "" });
-        }
-        return next;
-      });
-      setActiveFile("info.md");
-      setMode("files");
-
-      // Apply summary and secrets
       setSummary(result.summary);
-      setSecrets(result.secrets);
     } catch (err) {
       console.error("Generate failed:", err);
     } finally {
