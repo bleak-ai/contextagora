@@ -44,7 +44,7 @@ export function EditorHeader({
           </button>
           {showTooltip && !isGenerating && (
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs text-text bg-bg-raised border border-border rounded shadow-lg whitespace-nowrap z-50">
-              Generates a 2-3 sentence summary from your info.md content.
+              Generates a 1-2 sentence summary from your info.md content.
               <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-border" />
             </div>
           )}

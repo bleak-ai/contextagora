@@ -47,4 +47,4 @@ class GenerateModuleRequest(BaseModel):
 
 
 class GenerateModuleResponse(BaseModel):
-    summary: str  # 2-3 sentence module summary
+    summary: str  # 1-2 sentence module summary
