@@ -13,43 +13,6 @@ from src.services.claude_sessions import list_sessions
 
 log = logging.getLogger(__name__)
 
-# ── Tree state tracking ───────────────────────────────────────
-tree_states: dict[str, dict] = {}  # claude_session_id -> tree state
-
-
-def update_tree_state(session_id: str, file_path: str) -> dict | None:
-    """Update tree state when Claude reads a file."""
-    if session_id not in tree_states:
-        tree_states[session_id] = {
-            "active_path": [],
-            "accessed_files": set(),
-            "module_counts": {}
-        }
-
-    state = tree_states[session_id]
-
-    try:
-        # Normalize path to relative from CONTEXT_DIR
-        relative_path = Path(file_path).relative_to(CONTEXT_DIR)
-        path_parts = str(relative_path).split("/")
-
-        # Update active path
-        state["active_path"] = path_parts
-        state["accessed_files"].add(str(relative_path))
-
-        # Count module access
-        if path_parts:
-            module = path_parts[0]
-            state["module_counts"][module] = state["module_counts"].get(module, 0) + 1
-
-        return {
-            "active_path": state["active_path"],
-            "accessed_files": list(state["accessed_files"]),
-            "module_counts": state["module_counts"]
-        }
-    except ValueError:
-        return None  # Path outside CONTEXT_DIR, ignore
-
 router = APIRouter(prefix="/api", tags=["chat"])
 
 
@@ -105,10 +68,13 @@ async def api_chat(body: ChatRequest):
             text=True,
         )
 
-        # Track active session id for tree_states keying. We may not know it
-        # until the first `system` event arrives, so capture it then.
-        active_sid: str | None = body.claude_session_id
         seen_tool_ids = set()
+
+        # Per-request tree state. Lives only for the duration of this stream;
+        # the frontend treats `tree_navigation` events as a live view, not
+        # persisted history.
+        tree_accessed: set[str] = set()
+        tree_module_counts: dict[str, int] = {}
 
         for line in proc.stdout:
             line = line.strip()
@@ -124,7 +90,6 @@ async def api_chat(body: ChatRequest):
             if event_type == "system":
                 sid = event.get("session_id")
                 if sid:
-                    active_sid = sid
                     yield f"event: session\ndata: {json.dumps({'session_id': sid})}\n\n"
 
             elif event_type == "stream_event":
@@ -141,10 +106,6 @@ async def api_chat(body: ChatRequest):
                         yield f"event: tool_input\ndata: {json.dumps({'partial_json': delta.get('partial_json', '')})}\n\n"
 
             elif event_type == "assistant":
-                sid = event.get("session_id")
-                if sid:
-                    active_sid = sid
-
                 message = event.get("message", {})
                 content = message.get("content", [])
                 for block in content:
@@ -156,11 +117,24 @@ async def api_chat(body: ChatRequest):
                             seen_tool_ids.add(tool_id)
                             yield f"event: tool_use\ndata: {json.dumps({'tool': tool_name, 'tool_id': tool_id, 'input': tool_input})}\n\n"
 
-                            if tool_name == "Read" and active_sid:
+                            if tool_name == "Read":
                                 file_path = tool_input.get("file_path", "") or tool_input.get("path", "")
-                                tree_state = update_tree_state(active_sid, file_path)
-                                if tree_state:
-                                    yield f"event: tree_navigation\ndata: {json.dumps(tree_state)}\n\n"
+                                try:
+                                    relative_path = Path(file_path).relative_to(CONTEXT_DIR)
+                                except ValueError:
+                                    relative_path = None
+                                if relative_path is not None:
+                                    path_parts = str(relative_path).split("/")
+                                    tree_accessed.add(str(relative_path))
+                                    if path_parts:
+                                        module = path_parts[0]
+                                        tree_module_counts[module] = tree_module_counts.get(module, 0) + 1
+                                    payload = {
+                                        "active_path": path_parts,
+                                        "accessed_files": list(tree_accessed),
+                                        "module_counts": tree_module_counts,
+                                    }
+                                    yield f"event: tree_navigation\ndata: {json.dumps(payload)}\n\n"
 
             elif event_type == "user":
                 message = event.get("message", {})

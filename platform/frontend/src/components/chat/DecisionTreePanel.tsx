@@ -3,7 +3,6 @@ import { Search, FileCheck } from "lucide-react";
 import { fetchModuleFiles } from "../../api/modules";
 import { fetchWorkspace } from "../../api/workspace";
 import { useChatStore } from "../../hooks/useChatStore";
-import { useSessionStore } from "../../hooks/useSessionStore";
 
 interface TreeNode {
   name: string;
@@ -126,8 +125,7 @@ function TreeNodeView({
 }
 
 export function DecisionTreePanel() {
-  const activeClaudeSessionId = useSessionStore((s) => s.activeClaudeSessionId);
-  const treeState = useChatStore((s) => activeClaudeSessionId ? s.treeStateBySession[activeClaudeSessionId] : null) ?? null;
+  const treeState = useChatStore((s) => s.currentTreeState);
   const isStreaming = useChatStore((s) => s.streamingSessionId !== null);
   const { data: workspace } = useQuery({
     queryKey: ["workspace"],

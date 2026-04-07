@@ -28,21 +28,28 @@ export interface ChatMessage {
   error?: string;
 }
 
+export interface TreeState {
+  active_path: string[];
+  accessed_files: string[];
+  module_counts: Record<string, number>;
+}
+
 interface ChatState {
   messagesBySession: Record<string, ChatMessage[]>;
   streamingSessionId: string | null;
   abortController: AbortController | null;
   moduleToolCompletedCount: number;
-  treeStateBySession: Record<string, {
-    active_path: string[];
-    accessed_files: string[];
-    module_counts: Record<string, number>;
-  }>;
+  // Live, ephemeral. Belongs to whatever stream is currently running (or
+  // whatever just finished). Never persisted, never keyed by session — when
+  // the user clicks a past session, they get the *current* live tree, not a
+  // reconstruction of that session's history.
+  currentTreeState: TreeState | null;
 
   sendMessage: (sessionId: string | null, prompt: string) => void;
   cancelStream: () => void;
   clearMessages: (sessionId: string) => void;
   deleteSessionMessages: (sessionId: string) => void;
+  resetTreeState: () => void;
 }
 
 export const useChatStore = create<ChatState>()(
@@ -52,7 +59,7 @@ export const useChatStore = create<ChatState>()(
       streamingSessionId: null,
       abortController: null,
       moduleToolCompletedCount: 0,
-      treeStateBySession: {},
+      currentTreeState: null,
 
       sendMessage: (inputSessionId: string | null, prompt: string) => {
         // Use a placeholder key when starting a brand-new chat; migrate to the
@@ -89,6 +96,9 @@ export const useChatStore = create<ChatState>()(
           },
           streamingSessionId: sessionId,
           abortController: controller,
+          // Fresh tree for this turn — we don't carry over what the previous
+          // stream visited.
+          currentTreeState: null,
         }));
 
         const updateAssistant = (updater: (msg: ChatMessage) => ChatMessage) => {
@@ -181,27 +191,19 @@ export const useChatStore = create<ChatState>()(
                 const newId = event.session_id;
                 useSessionStore.getState().setActiveClaudeSessionId(newId);
                 if (newId && newId !== sessionId) {
-                  // Migrate messages/tree state from placeholder (or old id) to real id.
+                  // Migrate messages from placeholder (or old id) to real id.
                   const oldId = sessionId;
                   set((state) => {
                     const oldMsgs = state.messagesBySession[oldId];
-                    const oldTree = state.treeStateBySession[oldId];
                     const {
                       [oldId]: _drop,
                       ...restMsgs
                     } = state.messagesBySession;
-                    const {
-                      [oldId]: _dropTree,
-                      ...restTree
-                    } = state.treeStateBySession;
                     return {
                       messagesBySession: {
                         ...restMsgs,
                         [newId]: oldMsgs ?? [],
                       },
-                      treeStateBySession: oldTree
-                        ? { ...restTree, [newId]: oldTree }
-                        : restTree,
                       streamingSessionId:
                         state.streamingSessionId === oldId
                           ? newId
@@ -213,17 +215,13 @@ export const useChatStore = create<ChatState>()(
                 break;
               }
               case "tree_navigation":
-                set((state) => ({
-                  ...state,
-                  treeStateBySession: {
-                    ...state.treeStateBySession,
-                    [sessionId]: {
-                      active_path: event.active_path,
-                      accessed_files: event.accessed_files,
-                      module_counts: event.module_counts
-                    }
-                  }
-                }));
+                set({
+                  currentTreeState: {
+                    active_path: event.active_path,
+                    accessed_files: event.accessed_files,
+                    module_counts: event.module_counts,
+                  },
+                });
                 break;
               case "error":
                 updateAssistant((m) => ({
@@ -273,9 +271,12 @@ export const useChatStore = create<ChatState>()(
       deleteSessionMessages: (sessionId: string) => {
         set((state) => {
           const { [sessionId]: _, ...rest } = state.messagesBySession;
-          const { [sessionId]: __, ...restTree } = state.treeStateBySession;
-          return { messagesBySession: rest, treeStateBySession: restTree };
+          return { messagesBySession: rest };
         });
+      },
+
+      resetTreeState: () => {
+        set({ currentTreeState: null });
       },
     }),
     {
