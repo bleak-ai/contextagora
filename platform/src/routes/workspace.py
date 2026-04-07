@@ -1,20 +1,21 @@
 import logging
 import shutil
 
-import httpx
 from fastapi import APIRouter
 
 from src.llms import generate_root_llms_txt
 from src.models import WorkspaceLoadRequest
 from src.server import CONTEXT_DIR, PRESERVED_FILES, list_modules
+from src.services import git_repo
 from src.services.deps import install_module_deps
-from src.services.github import download_module, list_available_modules
 from src.services.schemas import augment_schema
 from src.services.secrets import get_secrets_status, load_module_secrets
 
 log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/workspace", tags=["workspace"])
+
+PRESERVED_DIRS = [".claude"]
 
 # Cache for secrets status (only refreshed on /load or explicit refresh)
 _secrets_cache: dict[str, dict[str, str | None]] = {}
@@ -40,7 +41,15 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
         elif p.is_file() and p.name not in PRESERVED_FILES:
             p.unlink()
 
-    available = set(list_available_modules())
+    # Copy preserved dirs (e.g. .claude) from the local clone if they exist
+    for dirname in PRESERVED_DIRS:
+        if git_repo.module_exists(dirname):
+            try:
+                git_repo.copy_module_to(dirname, CONTEXT_DIR / dirname)
+            except (OSError, ValueError, FileNotFoundError) as exc:
+                log.warning("Failed to copy preserved dir '%s': %s", dirname, exc)
+
+    available = set(git_repo.list_modules()) | set(PRESERVED_DIRS)
     loaded = []
     errors = []
     for name in body.modules:
@@ -48,11 +57,11 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
             errors.append(f"Module '{name}' not available")
             continue
         try:
-            download_module(name, CONTEXT_DIR / name)
+            git_repo.copy_module_to(name, CONTEXT_DIR / name)
             loaded.append(name)
-        except (httpx.HTTPError, ValueError) as exc:
-            log.error("Failed to download module '%s': %s", name, exc)
-            errors.append(f"Failed to download '{name}': {exc}")
+        except (OSError, ValueError, FileNotFoundError) as exc:
+            log.error("Failed to copy module '%s': %s", name, exc)
+            errors.append(f"Failed to copy '{name}': {exc}")
             continue
 
         schema_file = CONTEXT_DIR / name / ".env.schema"
@@ -73,7 +82,9 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
             continue
         result = load_module_secrets(module_dir)
         if result.returncode != 0:
-            log.warning("varlock: %s has missing secrets:\n%s\n%s", name, result.stderr, result.stdout)
+            log.warning(
+                "varlock: %s has missing secrets:\n%s\n%s", name, result.stderr, result.stdout
+            )
 
     generate_root_llms_txt(CONTEXT_DIR)
 

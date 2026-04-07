@@ -32,12 +32,14 @@ def list_modules(directory: Path) -> list[str]:
 # Moving these imports above the constants will cause ImportError.
 app = FastAPI()
 
+from src.routes.chat import router as chat_router  # noqa: E402
+from src.routes.commands import router as commands_router  # noqa: E402
+from src.routes.files import router as files_router  # noqa: E402
 from src.routes.health import router as health_router  # noqa: E402
 from src.routes.modules import router as modules_router  # noqa: E402
+from src.routes.sync import router as sync_router  # noqa: E402
 from src.routes.workspace import router as workspace_router  # noqa: E402
-from src.routes.chat import router as chat_router  # noqa: E402
-from src.routes.files import router as files_router  # noqa: E402
-from src.routes.commands import router as commands_router  # noqa: E402
+from src.services import git_repo  # noqa: E402
 
 app.include_router(health_router)
 app.include_router(modules_router)
@@ -45,6 +47,16 @@ app.include_router(workspace_router)
 app.include_router(chat_router)
 app.include_router(files_router)
 app.include_router(commands_router)
+app.include_router(sync_router)
+
+
+@app.on_event("startup")
+def _bootstrap_modules_repo() -> None:
+    try:
+        git_repo.init_repo()
+        log.info("Modules repo cloned at %s", git_repo.MODULES_REPO_DIR)
+    except git_repo.GitRepoError as exc:
+        log.error("Failed to init modules repo: %s", exc)
 
 # --- SPA static file serving ---
 STATIC_DIR = BASE_DIR / "static"

@@ -36,6 +36,7 @@ RUN mkdir -p src/context
 ENV GH_OWNER=""
 ENV GH_REPO=""
 ENV GH_TOKEN=""
+ENV GH_BRANCH="main"
 ENV ANTHROPIC_AUTH_TOKEN=""
 ENV ANTHROPIC_BASE_URL=""
 # ── Optional: model overrides ────────────────────────────────

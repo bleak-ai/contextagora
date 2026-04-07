@@ -1,14 +1,6 @@
-import base64
 from pathlib import Path
 
-import httpx
-
-from src.services.github import (
-    gh_api,
-    gh_create_file,
-    gh_update_file,
-    list_all_module_file_paths,
-)
+from src.services import git_repo
 
 
 def generate_module_llms_txt(name: str, summary: str, files: list[str]) -> str:
@@ -48,21 +40,20 @@ def generate_root_llms_txt(context_dir: Path) -> None:
     (context_dir / "llms.txt").write_text("\n".join(lines) + "\n")
 
 
-def regenerate_module_llms_txt(name: str, managed_files: set[str], summary: str | None = None) -> None:
-    """Regenerate a module's llms.txt from its current files and summary."""
+def regenerate_module_llms_txt(
+    name: str, managed_files: set[str], summary: str | None = None
+) -> None:
+    """Regenerate a module's llms.txt from its current files and summary.
+
+    Reads and writes through the local git_repo clone.
+    """
     if summary is None:
         try:
-            llms_data = gh_api(f"{name}/llms.txt")
-            llms_text = base64.b64decode(llms_data["content"]).decode()
+            llms_text = git_repo.read_file(name, "llms.txt")
             summary = extract_module_summary(llms_text)
-        except httpx.HTTPStatusError:
+        except FileNotFoundError:
             summary = ""
 
-    files = list_all_module_file_paths(name, managed_files)
+    files = [f["path"] for f in git_repo.list_module_files(name, managed_files)]
     llms_txt = generate_module_llms_txt(name, summary, files)
-
-    try:
-        llms_data = gh_api(f"{name}/llms.txt")
-        gh_update_file(f"{name}/llms.txt", llms_txt, llms_data["sha"], f"Update llms.txt for {name}")
-    except httpx.HTTPStatusError:
-        gh_create_file(f"{name}/llms.txt", llms_txt, f"Add llms.txt for {name}")
+    git_repo.write_file(name, "llms.txt", llms_txt)

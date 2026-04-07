@@ -1,6 +1,7 @@
 platform/src/context/*
 !platform/src/context/CLAUDE.md
 !platform/src/context/.claude
+platform/src/modules-repo/
 platform/.venv/
 __pycache__/
 *.egg-info/

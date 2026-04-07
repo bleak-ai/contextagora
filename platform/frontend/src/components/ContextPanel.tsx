@@ -10,6 +10,7 @@ import {
 import { useSessionStore } from "../hooks/useSessionStore";
 import { useChatStore } from "../hooks/useChatStore";
 import { DecisionTreePanel } from "./chat/DecisionTreePanel";
+import { SyncControls } from "./SyncControls";
 
 export function ContextPanel() {
   const queryClient = useQueryClient();
@@ -145,6 +146,7 @@ export function ContextPanel() {
           CONTEXT
         </span>
         <div className="flex items-center gap-2">
+          <SyncControls />
           {loaded.length > 0 && (
             <span className="bg-accent-dim text-accent text-[10px] px-2 py-0.5 rounded-full">
               {loaded.length} loaded
