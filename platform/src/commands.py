@@ -1,12 +1,6 @@
-"""Static slash-command definitions.
-
-Commands are materialized into CONTEXT_DIR/.claude/commands/ at startup
-and after workspace loads, so the Claude CLI subprocess can resolve them
-from its working directory.
-"""
+"""Static slash-command registry consumed by the /api/commands endpoint."""
 
 from dataclasses import dataclass
-from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -49,14 +43,3 @@ COMMANDS: list[CommandDef] = [
         prompt=_DOWNLOAD_PROMPT,
     ),
 ]
-
-
-def materialize_commands(context_dir: Path) -> None:
-    """Write all command .md files into context_dir/.claude/commands/.
-
-    Idempotent — safe to call multiple times.
-    """
-    commands_dir = context_dir / ".claude" / "commands"
-    commands_dir.mkdir(parents=True, exist_ok=True)
-    for cmd in COMMANDS:
-        (commands_dir / f"{cmd.name}.md").write_text(cmd.prompt)

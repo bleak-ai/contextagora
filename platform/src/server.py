@@ -17,11 +17,6 @@ PRESERVED_FILES = {"CLAUDE.md"}
 # Files managed automatically per module (not user-editable)
 MANAGED_FILES = {"llms.txt", ".env.schema", "requirements.txt"}
 
-# Materialize static slash-command files into .claude/commands/ at startup
-from src.commands import materialize_commands  # noqa: E402
-
-materialize_commands(CONTEXT_DIR)
-
 
 def list_modules(directory: Path) -> list[str]:
     """Return sorted names of subdirectories (each subdir = one module)."""
