@@ -9,9 +9,16 @@ export function fetchWorkspace(): Promise<WorkspaceState> {
   return apiFetch("/workspace");
 }
 
+export interface LoadError {
+  module: string;
+  reason: "not_available" | "invalid_path" | "missing_secrets" | "load_failed";
+  missing?: string[];
+  details?: string;
+}
+
 export function loadModules(
   modules: string[],
-): Promise<WorkspaceState & { errors?: string[] }> {
+): Promise<WorkspaceState & { errors?: LoadError[] }> {
   return apiFetch("/workspace/load", {
     method: "POST",
     body: JSON.stringify({ modules }),

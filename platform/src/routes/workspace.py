@@ -9,7 +9,11 @@ from src.server import CONTEXT_DIR, PRESERVED_FILES, list_modules
 from src.services import git_repo
 from src.services.deps import install_module_deps
 from src.services.schemas import augment_schema
-from src.services.secrets import get_secrets_status, load_module_secrets
+from src.services.secrets import (
+    SecretsValidationError,
+    get_secrets_status,
+    load_and_mask_module_secrets,
+)
 
 log = logging.getLogger(__name__)
 
@@ -50,47 +54,69 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
                 log.warning("Failed to copy preserved dir '%s': %s", dirname, exc)
 
     available = set(git_repo.list_modules()) | set(PRESERVED_DIRS)
-    loaded = []
-    errors = []
+    loaded: list[str] = []
+    errors: list[dict] = []
+    secrets: dict[str, dict[str, str | None]] = {}
+
     for name in body.modules:
         if name not in available:
-            errors.append(f"Module '{name}' not available")
+            errors.append({"module": name, "reason": "not_available"})
             continue
+
+        module_dir = CONTEXT_DIR / name
+
+        # Defensive: never let a bad name escape CONTEXT_DIR
         try:
-            git_repo.copy_module_to(name, CONTEXT_DIR / name)
+            module_dir.resolve().relative_to(CONTEXT_DIR.resolve())
+        except ValueError:
+            errors.append({"module": name, "reason": "invalid_path"})
+            continue
+
+        def _rollback():
+            shutil.rmtree(module_dir, ignore_errors=True)
+
+        try:
+            git_repo.copy_module_to(name, module_dir)
+
+            schema_file = module_dir / ".env.schema"
+            if schema_file.exists():
+                schema_file.write_text(augment_schema(schema_file.read_text(), name))
+
+            dep_result = install_module_deps(module_dir)
+            if dep_result is not None and dep_result.returncode != 0:
+                raise RuntimeError(
+                    f"pip install failed: {dep_result.stderr.strip()}"
+                )
+
+            if schema_file.exists():
+                secrets[name] = load_and_mask_module_secrets(module_dir)
+
             loaded.append(name)
-        except (OSError, ValueError, FileNotFoundError) as exc:
-            log.error("Failed to copy module '%s': %s", name, exc)
-            errors.append(f"Failed to copy '{name}': {exc}")
-            continue
 
-        schema_file = CONTEXT_DIR / name / ".env.schema"
-        if schema_file.exists():
-            original = schema_file.read_text()
-            schema_file.write_text(augment_schema(original, name))
-
-    for name in loaded:
-        module_dir = CONTEXT_DIR / name
-        result = install_module_deps(module_dir)
-        if result is not None and result.returncode != 0:
-            log.warning("pip install failed for '%s':\n%s\n%s", name, result.stderr, result.stdout)
-            errors.append(f"Failed to install deps for '{name}': {result.stderr.strip()}")
-
-    for name in loaded:
-        module_dir = CONTEXT_DIR / name
-        if not (module_dir / ".env.schema").exists():
-            continue
-        result = load_module_secrets(module_dir)
-        if result.returncode != 0:
+        except SecretsValidationError as exc:
             log.warning(
-                "varlock: %s has missing secrets:\n%s\n%s", name, result.stderr, result.stdout
+                "varlock validation failed for '%s': missing=%s", name, exc.missing
             )
+            _rollback()
+            errors.append({
+                "module": name,
+                "reason": "missing_secrets",
+                "missing": exc.missing,
+            })
+        except (OSError, ValueError, FileNotFoundError, RuntimeError) as exc:
+            log.error("Failed to load module '%s': %s", name, exc)
+            _rollback()
+            errors.append({
+                "module": name,
+                "reason": "load_failed",
+                "details": str(exc),
+            })
 
     generate_root_llms_txt(CONTEXT_DIR)
 
-    _secrets_cache = get_secrets_status(CONTEXT_DIR, list_modules)
+    _secrets_cache = secrets
 
-    response = {"modules": loaded, "secrets": _secrets_cache}
+    response = {"modules": loaded, "secrets": secrets}
     if errors:
         response["errors"] = errors
     return response
@@ -100,5 +126,5 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
 async def api_workspace_secrets():
     """Re-check secrets status from Infisical."""
     global _secrets_cache
-    _secrets_cache = get_secrets_status(CONTEXT_DIR, list_modules)
+    _secrets_cache = await get_secrets_status(CONTEXT_DIR, list_modules)
     return {"secrets": _secrets_cache}

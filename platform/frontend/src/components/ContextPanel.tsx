@@ -1,7 +1,12 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchModules } from "../api/modules";
-import { fetchWorkspace, loadModules, refreshSecrets } from "../api/workspace";
+import {
+  fetchWorkspace,
+  loadModules,
+  refreshSecrets,
+  type LoadError,
+} from "../api/workspace";
 import {
   createSession,
   deleteSession as apiDeleteSession,
@@ -30,6 +35,7 @@ export function ContextPanel() {
   const [editName, setEditName] = useState("");
   const [creating, setCreating] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [loadErrors, setLoadErrors] = useState<LoadError[]>([]);
   const toggleCollapsed = useCallback(() => setCollapsed((c) => !c), []);
 
   // Module + workspace queries
@@ -45,8 +51,9 @@ export function ContextPanel() {
 
   const loadMutation = useMutation({
     mutationFn: loadModules,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["workspace"] });
+      setLoadErrors(data.errors ?? []);
     },
   });
 
@@ -294,6 +301,41 @@ export function ContextPanel() {
                 ? `${loaded.length} Module${loaded.length !== 1 ? "s" : ""} Loaded`
                 : "Load Selected"}
           </button>
+
+          {loadErrors.length > 0 && (
+            <div className="mt-2 rounded-md border border-red-500/40 bg-red-500/10 p-2 text-xs text-red-300">
+              <div className="flex items-start justify-between gap-2">
+                <span className="font-medium">Failed to load:</span>
+                <button
+                  type="button"
+                  onClick={() => setLoadErrors([])}
+                  className="opacity-60 hover:opacity-100"
+                  aria-label="Dismiss"
+                >
+                  ×
+                </button>
+              </div>
+              <ul className="mt-1 space-y-1">
+                {loadErrors.map((e) => (
+                  <li key={e.module}>
+                    <span className="font-mono">{e.module}</span>
+                    {e.reason === "missing_secrets" ? (
+                      <>
+                        {" — missing "}
+                        {e.missing?.length ? (
+                          <span className="font-mono">{e.missing.join(", ")}</span>
+                        ) : (
+                          "secrets"
+                        )}
+                      </>
+                    ) : (
+                      <> — {e.reason}</>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Secrets */}
