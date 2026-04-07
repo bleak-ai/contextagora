@@ -7,13 +7,8 @@ import {
   refreshSecrets,
   type LoadError,
 } from "../api/workspace";
-import {
-  createSession,
-  deleteSession as apiDeleteSession,
-  renameSession as apiRenameSession,
-} from "../api/sessions";
+import { fetchSessions } from "../api/sessions";
 import { useSessionStore } from "../hooks/useSessionStore";
-import { useChatStore } from "../hooks/useChatStore";
 import { DecisionTreePanel } from "./chat/DecisionTreePanel";
 import { SyncControls } from "./SyncControls";
 
@@ -22,18 +17,17 @@ export function ContextPanel() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   // Session state
-  const {
-    activeSessionId,
-    setActiveSession,
-    addSession,
-    removeSession,
-    renameSession: renameLocal,
-    sessions,
-  } = useSessionStore();
-  const deleteSessionMessages = useChatStore((s) => s.deleteSessionMessages);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
-  const [creating, setCreating] = useState(false);
+  const activeClaudeSessionId = useSessionStore(
+    (s) => s.activeClaudeSessionId,
+  );
+  const setActiveClaudeSessionId = useSessionStore(
+    (s) => s.setActiveClaudeSessionId,
+  );
+  const { data: sessionsData } = useQuery({
+    queryKey: ["sessions"],
+    queryFn: fetchSessions,
+  });
+  const sessions = sessionsData?.sessions ?? [];
   const [collapsed, setCollapsed] = useState(false);
   const [loadErrors, setLoadErrors] = useState<LoadError[]>([]);
   const toggleCollapsed = useCallback(() => setCollapsed((c) => !c), []);
@@ -92,40 +86,6 @@ export function ContextPanel() {
     [...selected].every((m) => loaded.includes(m));
   const isLoading = loadMutation.isPending;
 
-  // Session handlers
-  const handleCreateSession = async () => {
-    setCreating(true);
-    try {
-      const session = await createSession();
-      addSession({
-        id: session.id,
-        name: session.name,
-        createdAt: session.created_at,
-      });
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const handleDeleteSession = (id: string) => {
-    deleteSessionMessages(id);
-    removeSession(id);
-    apiDeleteSession(id).catch(() => {});
-  };
-
-  const startRename = (id: string, currentName: string) => {
-    setEditingId(id);
-    setEditName(currentName);
-  };
-
-  const submitRename = () => {
-    if (editingId && editName.trim()) {
-      renameLocal(editingId, editName.trim());
-      apiRenameSession(editingId, editName.trim()).catch(() => {});
-      setEditingId(null);
-    }
-  };
-
   if (collapsed) {
     return (
       <aside className="w-10 flex-shrink-0 border-l border-border bg-bg-raised flex flex-col items-center h-full">
@@ -179,11 +139,10 @@ export function ContextPanel() {
               SESSIONS
             </span>
             <button
-              onClick={handleCreateSession}
-              disabled={creating}
+              onClick={() => setActiveClaudeSessionId(null)}
               className="text-[10px] text-accent hover:text-accent-hover"
             >
-              + New
+              + New chat
             </button>
           </div>
           <div className="space-y-0.5 max-h-[150px] overflow-y-auto">
@@ -195,46 +154,14 @@ export function ContextPanel() {
             {sessions.map((s) => (
               <div
                 key={s.id}
-                onClick={() => setActiveSession(s.id)}
+                onClick={() => setActiveClaudeSessionId(s.id)}
                 className={`group flex items-center gap-1 px-1.5 py-1.5 rounded cursor-pointer transition-colors ${
-                  s.id === activeSessionId
+                  s.id === activeClaudeSessionId
                     ? "bg-accent/10 text-accent"
                     : "text-text hover:bg-bg-hover"
                 }`}
               >
-                {editingId === s.id ? (
-                  <input
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    onBlur={submitRename}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") submitRename();
-                      if (e.key === "Escape") setEditingId(null);
-                    }}
-                    autoFocus
-                    className="flex-1 text-xs bg-transparent border-b border-accent outline-none"
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                ) : (
-                  <span
-                    className="flex-1 text-xs truncate"
-                    onDoubleClick={(e) => {
-                      e.stopPropagation();
-                      startRename(s.id, s.name);
-                    }}
-                  >
-                    {s.name}
-                  </span>
-                )}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteSession(s.id);
-                  }}
-                  className="hidden group-hover:block text-text-muted hover:text-danger text-xs"
-                >
-                  x
-                </button>
+                <span className="flex-1 text-xs truncate">{s.name}</span>
               </div>
             ))}
           </div>

@@ -30,15 +30,7 @@ class ModuleDetail(BaseModel):
 
 class ChatRequest(BaseModel):
     prompt: str
-    session_id: str
-
-
-class CreateSessionRequest(BaseModel):
-    name: str = "New chat"
-
-
-class RenameSessionRequest(BaseModel):
-    name: str
+    claude_session_id: str | None = None
 
 
 class WorkspaceLoadRequest(BaseModel):

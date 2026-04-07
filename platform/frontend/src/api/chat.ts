@@ -12,14 +12,17 @@ export type ChatEvent =
 
 export async function streamChat(
   prompt: string,
-  sessionId: string,
+  claudeSessionId: string | null,
   onEvent: (event: ChatEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
   const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt, session_id: sessionId }),
+    body: JSON.stringify({
+      prompt,
+      claude_session_id: claudeSessionId ?? undefined,
+    }),
     signal,
   });
 

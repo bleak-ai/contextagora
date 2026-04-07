@@ -1,7 +1,7 @@
 import { useExternalStoreRuntime } from "@assistant-ui/react";
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import type { ReadonlyJSONObject } from "assistant-stream/utils";
-import { useChatStore, type ChatMessage } from "./useChatStore";
+import { useChatStore, NEW_CHAT_KEY, type ChatMessage } from "./useChatStore";
 
 function convertMessage(msg: ChatMessage): ThreadMessageLike {
   const content: Array<
@@ -69,27 +69,29 @@ export function useContextChatRuntime(opts: {
   // IMPORTANT: Use direct selector on messagesBySession, NOT a getMessages() method.
   // A function call inside a selector won't trigger re-renders.
   // Use a stable empty array reference to avoid infinite re-render loops.
+  const messagesKey = opts.sessionId ?? NEW_CHAT_KEY;
   const messages = useChatStore(
-    (s) => (opts.sessionId ? s.messagesBySession[opts.sessionId] : null) ?? EMPTY_MESSAGES,
+    (s) => s.messagesBySession[messagesKey] ?? EMPTY_MESSAGES,
   );
   const streamingSessionId = useChatStore((s) => s.streamingSessionId);
   const sendMessage = useChatStore((s) => s.sendMessage);
   const cancelStream = useChatStore((s) => s.cancelStream);
   const clearMessages = useChatStore((s) => s.clearMessages);
 
-  const isRunning = streamingSessionId === opts.sessionId && opts.sessionId !== null;
+  const isRunning =
+    streamingSessionId !== null && streamingSessionId === messagesKey;
 
   const runtime = useExternalStoreRuntime({
     messages,
     isRunning,
-    isDisabled: opts.isDisabled || !opts.sessionId,
+    isDisabled: opts.isDisabled,
     convertMessage,
     onNew: async (message) => {
       const textParts = message.content.filter(
         (p): p is { type: "text"; text: string } => p.type === "text",
       );
       const text = textParts.map((p) => p.text).join("");
-      if (text.trim() && opts.sessionId) {
+      if (text.trim()) {
         sendMessage(opts.sessionId, text);
       }
     },
@@ -100,9 +102,7 @@ export function useContextChatRuntime(opts: {
 
   return {
     runtime,
-    clearMessages: opts.sessionId
-      ? () => clearMessages(opts.sessionId!)
-      : () => {},
+    clearMessages: () => clearMessages(messagesKey),
     hasMessages: messages.length > 0,
   };
 }

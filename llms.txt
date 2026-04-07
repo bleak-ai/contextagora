@@ -8,13 +8,16 @@
 - [platform/src/llms.py](platform/src/llms.py) — llms.txt generation and parsing helpers
 - [platform/src/routes/modules.py](platform/src/routes/modules.py) — Module CRUD and file CRUD endpoints
 - [platform/src/routes/workspace.py](platform/src/routes/workspace.py) — Workspace load, secrets endpoints
-- [platform/src/routes/chat.py](platform/src/routes/chat.py) — Session CRUD endpoints and chat SSE streaming (scoped to session)
+- [platform/src/routes/chat.py](platform/src/routes/chat.py) — Stateless chat SSE streaming and `GET /api/sessions` (lists sessions from disk via claude_sessions service)
 - [platform/src/routes/health.py](platform/src/routes/health.py) — Health check endpoint
 - [platform/src/routes/files.py](platform/src/routes/files.py) — File download endpoint (GET /api/files/download) with path validation against CONTEXT_DIR and /tmp
-- [platform/src/routes/commands.py](platform/src/routes/commands.py) — Slash commands listing endpoint (GET /api/commands) reading .claude/commands/*.md
-- [platform/src/context/.claude/commands/download.md](platform/src/context/.claude/commands/download.md) — /download command definition for Claude CLI
-- [platform/src/services/sessions.py](platform/src/services/sessions.py) — In-memory session store (SessionStore, Session dataclass, singleton `store`)
-- [platform/src/services/github.py](platform/src/services/github.py) — GitHub API client, module download, cache
+- [platform/src/routes/commands.py](platform/src/routes/commands.py) — Slash commands listing endpoint (GET /api/commands) from static COMMANDS registry
+- [platform/src/commands.py](platform/src/commands.py) — Static slash-command registry (CommandDef + COMMANDS list)
+- [platform/src/services/claude_sessions.py](platform/src/services/claude_sessions.py) — Reads Claude Code's on-disk session transcripts (~/.claude/projects/<encoded-cwd>/*.jsonl); pure functions claude_project_dir, first_user_message, list_sessions; no state
+- [platform/src/services/git_repo.py](platform/src/services/git_repo.py) — Local git clone wrapper (clone, read/write, sync_status/pull/push)
+- [platform/src/routes/sync.py](platform/src/routes/sync.py) — Sync API endpoints (GET /api/sync/status, POST /api/sync/pull, POST /api/sync/push)
+- [platform/frontend/src/api/sync.ts](platform/frontend/src/api/sync.ts) — Sync API client (fetchSyncStatus, pullSync, pushSync)
+- [platform/frontend/src/components/SyncControls.tsx](platform/frontend/src/components/SyncControls.tsx) — Pull/Push buttons driven by sync status
 - [platform/src/services/schemas.py](platform/src/services/schemas.py) — Env schema generation, parsing, Infisical augmentation
 - [platform/src/services/secrets.py](platform/src/services/secrets.py) — Varlock secret status and loading
 - [platform/frontend/](platform/frontend/) — React SPA (Vite + TanStack Router + TanStack Query)
@@ -22,10 +25,9 @@
 - [platform/frontend/src/api/commands.ts](platform/frontend/src/api/commands.ts) — Slash commands API client (fetchCommands, Command type)
 - [platform/frontend/src/components/chat/SlashCommandSelector.tsx](platform/frontend/src/components/chat/SlashCommandSelector.tsx) — Slash command dropdown selector component and useSlashCommands hook
 - [platform/frontend/src/components/chat/DecisionTreePanel.tsx](platform/frontend/src/components/chat/DecisionTreePanel.tsx) — Tree navigation visualization with breadcrumbs and module access counts
-- [platform/frontend/src/api/sessions.ts](platform/frontend/src/api/sessions.ts) — Session CRUD API client (create, rename, delete, list)
-- [platform/frontend/src/hooks/useSessionStore.ts](platform/frontend/src/hooks/useSessionStore.ts) — Zustand store for session list and active session (localStorage-persisted)
+- [platform/frontend/src/api/sessions.ts](platform/frontend/src/api/sessions.ts) — Sessions API client (fetchSessions only; SessionInfo type)
+- [platform/frontend/src/hooks/useSessionStore.ts](platform/frontend/src/hooks/useSessionStore.ts) — Zustand store holding only `activeClaudeSessionId` (localStorage-persisted); session list comes from the server
 - [platform/frontend/src/hooks/useSidebarMode.ts](platform/frontend/src/hooks/useSidebarMode.ts) — Zustand store for sidebar layout mode (classic/accordion/zones/cards) and collapsed state (localStorage-persisted)
-- [platform/frontend/src/components/SessionList.tsx](platform/frontend/src/components/SessionList.tsx) — Session list UI with create, rename (double-click), and delete
 - [platform/frontend/src/components/](platform/frontend/src/components/) — React components (Chat, ModuleRegistry, IconRail, ContextPanel, etc.)
 - [platform/frontend/src/components/context/useContextData.ts](platform/frontend/src/components/context/useContextData.ts) — Shared hook extracting all data-fetching, mutations, session handlers, and derived state from ContextPanel (returns ContextData for layout components to consume)
 - [platform/frontend/src/components/context/SidebarHeader.tsx](platform/frontend/src/components/context/SidebarHeader.tsx) — Sidebar header with CONTEXT label, 4-icon mode switcher (classic/accordion/zones/cards segmented control), and collapse toggle
@@ -47,6 +49,7 @@
 - [docs/plans/09-module-management-react.md](docs/plans/09-module-management-react.md) — Plan: Module management UI with React SPA
 - [docs/plans/10-module-llms-txt.md](docs/plans/10-module-llms-txt.md) — Plan: Multi-file module structure with llms.txt navigation
 - [docs/plans/11-registry-ux.md](docs/plans/11-registry-ux.md) — Plan: Module registry UX improvements (detail panel, multi-file, secrets)
+- [docs/plans/12-local-first-modules.md](docs/plans/12-local-first-modules.md) — Plan: Local-first module architecture (git clone replaces GitHub API)
 
 ## Guides
 - [docs/guides/deployment.md](docs/guides/deployment.md) — End-user deployment guide (Docker, env vars, HTTPS, troubleshooting)

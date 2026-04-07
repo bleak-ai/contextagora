@@ -2,20 +2,19 @@ import json
 import logging
 import os
 import subprocess
-import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
-from src.models import ChatRequest, CreateSessionRequest, RenameSessionRequest
+from src.models import ChatRequest
 from src.server import CONTEXT_DIR
-from src.services.sessions import store
+from src.services.claude_sessions import list_sessions
 
 log = logging.getLogger(__name__)
 
 # ── Tree state tracking ───────────────────────────────────────
-tree_states: dict[str, dict] = {}  # session_id -> tree state
+tree_states: dict[str, dict] = {}  # claude_session_id -> tree state
 
 
 def update_tree_state(session_id: str, file_path: str) -> dict | None:
@@ -54,74 +53,30 @@ def update_tree_state(session_id: str, file_path: str) -> dict | None:
 router = APIRouter(prefix="/api", tags=["chat"])
 
 
-# ── Session CRUD ─────────────────────────────────────────────
+# ── Session listing (read-through to Claude's on-disk transcripts) ──
 
 
 @router.get("/sessions")
-async def list_sessions():
-    """Return all sessions, newest first."""
-    return {
-        "sessions": [
-            {"id": s.id, "name": s.name, "created_at": s.created_at}
-            for s in store.list_all()
-        ]
-    }
+async def api_list_sessions():
+    """List all Claude sessions for CONTEXT_DIR, newest first.
 
-
-@router.post("/sessions")
-async def create_session(body: CreateSessionRequest):
-    """Create a new chat session."""
-    session_id = uuid.uuid4().hex[:12]
-    session = store.create(session_id, body.name)
-    return {"id": session.id, "name": session.name, "created_at": session.created_at}
-
-
-@router.patch("/sessions/{session_id}")
-async def rename_session(session_id: str, body: RenameSessionRequest):
-    """Rename a session."""
-    session = store.rename(session_id, body.name)
-    if not session:
-        raise HTTPException(404, "session not found")
-    return {"id": session.id, "name": session.name}
-
-
-@router.delete("/sessions/{session_id}")
-async def delete_session(session_id: str):
-    """Delete a session."""
-    if not store.delete(session_id):
-        raise HTTPException(404, "session not found")
-    return {"ok": True}
-
-
-# ── Chat (scoped to session) ────────────────────────────────
+    Sessions are read directly from ~/.claude/projects/<encoded-cwd>/*.jsonl.
+    There is no server-side session state; this is a pure projection of disk.
+    """
+    return {"sessions": list_sessions(CONTEXT_DIR)}
 
 
 @router.post("/chat")
 async def api_chat(body: ChatRequest):
-    """Run claude with stream-json output, scoped to a session.
+    """Run claude with stream-json output.
 
-    Lazy-creates the backend session if it doesn't exist (handles
-    server restarts where frontend still has the session in localStorage).
+    Stateless w.r.t. sessions: if `claude_session_id` is provided, resume it;
+    otherwise start a fresh Claude session. The new session id is streamed
+    back to the client via the `session` SSE event so it can be remembered
+    for the next turn.
     """
-    session = store.get(body.session_id)
-    if not session:
-        session = store.create(body.session_id, "Restored session")
-
-    # Auto-name session from the first prompt if still default
-    is_default_name = session.name in ("New chat", "Restored session")
-    auto_name = None
-    if is_default_name:
-        trimmed = body.prompt.strip().split("\n")[0][:60]
-        if len(body.prompt.strip()) > 60:
-            trimmed += "..."
-        session.name = trimmed
-        auto_name = trimmed
 
     def generate():
-        # Emit auto-generated name before streaming starts
-        if auto_name:
-            yield f"event: session_name\ndata: {json.dumps({'name': auto_name})}\n\n"
-
         env = {
             **os.environ,
             "DISABLE_AUTOUPDATER": "1",
@@ -130,19 +85,16 @@ async def api_chat(body: ChatRequest):
             "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
         }
 
-        prompt = body.prompt
-
         cmd = [
-            "claude", "-p", prompt,
+            "claude", "-p", body.prompt,
             "--verbose",
             "--output-format", "stream-json",
             "--include-partial-messages",
             "--allowedTools", "Bash(*)", "Read(*)", "Write(*)", "Edit(*)", "Glob(*)", "Grep(*)",
         ]
 
-        # Resume existing Claude session or start fresh
-        if session.claude_session_id:
-            cmd.extend(["--resume", session.claude_session_id])
+        if body.claude_session_id:
+            cmd.extend(["--resume", body.claude_session_id])
 
         proc = subprocess.Popen(
             cmd,
@@ -153,7 +105,11 @@ async def api_chat(body: ChatRequest):
             text=True,
         )
 
+        # Track active session id for tree_states keying. We may not know it
+        # until the first `system` event arrives, so capture it then.
+        active_sid: str | None = body.claude_session_id
         seen_tool_ids = set()
+
         for line in proc.stdout:
             line = line.strip()
             if not line:
@@ -168,13 +124,12 @@ async def api_chat(body: ChatRequest):
             if event_type == "system":
                 sid = event.get("session_id")
                 if sid:
-                    session.claude_session_id = sid
+                    active_sid = sid
                     yield f"event: session\ndata: {json.dumps({'session_id': sid})}\n\n"
 
             elif event_type == "stream_event":
                 inner = event.get("event", {})
                 inner_type = inner.get("type", "")
-
                 if inner_type == "content_block_delta":
                     delta = inner.get("delta", {})
                     delta_type = delta.get("type", "")
@@ -188,7 +143,7 @@ async def api_chat(body: ChatRequest):
             elif event_type == "assistant":
                 sid = event.get("session_id")
                 if sid:
-                    session.claude_session_id = sid
+                    active_sid = sid
 
                 message = event.get("message", {})
                 content = message.get("content", [])
@@ -197,15 +152,13 @@ async def api_chat(body: ChatRequest):
                         tool_id = block.get("id", "")
                         tool_name = block.get("name", "")
                         tool_input = block.get("input", {})
-
                         if tool_id not in seen_tool_ids:
                             seen_tool_ids.add(tool_id)
                             yield f"event: tool_use\ndata: {json.dumps({'tool': tool_name, 'tool_id': tool_id, 'input': tool_input})}\n\n"
 
-                            # Track Read operations
-                            if tool_name == "Read":
+                            if tool_name == "Read" and active_sid:
                                 file_path = tool_input.get("file_path", "") or tool_input.get("path", "")
-                                tree_state = update_tree_state(body.session_id, file_path)
+                                tree_state = update_tree_state(active_sid, file_path)
                                 if tree_state:
                                     yield f"event: tree_navigation\ndata: {json.dumps(tree_state)}\n\n"
 

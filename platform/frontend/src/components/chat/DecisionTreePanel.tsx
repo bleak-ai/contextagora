@@ -126,8 +126,8 @@ function TreeNodeView({
 }
 
 export function DecisionTreePanel() {
-  const activeSessionId = useSessionStore((s) => s.activeSessionId);
-  const treeState = useChatStore((s) => activeSessionId ? s.treeStateBySession[activeSessionId] : null) ?? null;
+  const activeClaudeSessionId = useSessionStore((s) => s.activeClaudeSessionId);
+  const treeState = useChatStore((s) => activeClaudeSessionId ? s.treeStateBySession[activeClaudeSessionId] : null) ?? null;
   const isStreaming = useChatStore((s) => s.streamingSessionId !== null);
   const { data: workspace } = useQuery({
     queryKey: ["workspace"],

@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { fetchWorkspace } from "../api/workspace";
 import { fetchModules } from "../api/modules";
-import { createSession } from "../api/sessions";
 import { useSessionStore } from "../hooks/useSessionStore";
 import { useChatStore } from "../hooks/useChatStore";
 import { useContextChatRuntime } from "../hooks/useContextChatRuntime";
@@ -11,29 +10,10 @@ import { Thread } from "./chat/Thread";
 import { ContextPanel } from "./ContextPanel";
 
 export function Chat() {
-  const activeSessionId = useSessionStore((s) => s.activeSessionId);
-  const addSession = useSessionStore((s) => s.addSession);
+  const activeClaudeSessionId = useSessionStore((s) => s.activeClaudeSessionId);
   const queryClient = useQueryClient();
   const moduleToolCount = useChatStore((s) => s.moduleToolCompletedCount);
   const prevCount = useRef(moduleToolCount);
-  const creatingSession = useRef(false);
-
-  // Auto-create a session if none exists
-  useEffect(() => {
-    if (!activeSessionId && !creatingSession.current) {
-      creatingSession.current = true;
-      createSession("New chat").then((session) => {
-        addSession({
-          id: session.id,
-          name: session.name,
-          createdAt: session.created_at,
-        });
-        creatingSession.current = false;
-      }).catch(() => {
-        creatingSession.current = false;
-      });
-    }
-  }, [activeSessionId, addSession]);
 
   // Refresh module list when the agent creates/updates a module
   useEffect(() => {
@@ -58,7 +38,7 @@ export function Chat() {
 
   const { runtime, clearMessages, hasMessages } = useContextChatRuntime({
     isDisabled: false,
-    sessionId: activeSessionId,
+    sessionId: activeClaudeSessionId,
   });
 
   return (

@@ -2,6 +2,9 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { streamChat, type ChatEvent } from "../api/chat";
 import { useSessionStore } from "./useSessionStore";
+import { queryClient } from "../main";
+
+export const NEW_CHAT_KEY = "__new_chat__";
 
 export interface ToolCall {
   id: string;
@@ -36,7 +39,7 @@ interface ChatState {
     module_counts: Record<string, number>;
   }>;
 
-  sendMessage: (sessionId: string, prompt: string) => void;
+  sendMessage: (sessionId: string | null, prompt: string) => void;
   cancelStream: () => void;
   clearMessages: (sessionId: string) => void;
   deleteSessionMessages: (sessionId: string) => void;
@@ -51,7 +54,11 @@ export const useChatStore = create<ChatState>()(
       moduleToolCompletedCount: 0,
       treeStateBySession: {},
 
-      sendMessage: (sessionId: string, prompt: string) => {
+      sendMessage: (inputSessionId: string | null, prompt: string) => {
+        // Use a placeholder key when starting a brand-new chat; migrate to the
+        // real Claude session id as soon as the `session` SSE event arrives.
+        let sessionId: string = inputSessionId ?? NEW_CHAT_KEY;
+        const claudeSessionIdToSend: string | null = inputSessionId;
         const userMsg: ChatMessage = {
           id: crypto.randomUUID(),
           role: "user",
@@ -100,7 +107,7 @@ export const useChatStore = create<ChatState>()(
 
         streamChat(
           prompt,
-          sessionId,
+          claudeSessionIdToSend,
           (event: ChatEvent) => {
             switch (event.type) {
               case "thinking":
@@ -170,13 +177,41 @@ export const useChatStore = create<ChatState>()(
                 break;
               case "tool_input":
                 break;
-              case "session":
-                // Claude session_id is now tracked server-side per session
+              case "session": {
+                const newId = event.session_id;
+                useSessionStore.getState().setActiveClaudeSessionId(newId);
+                if (newId && newId !== sessionId) {
+                  // Migrate messages/tree state from placeholder (or old id) to real id.
+                  const oldId = sessionId;
+                  set((state) => {
+                    const oldMsgs = state.messagesBySession[oldId];
+                    const oldTree = state.treeStateBySession[oldId];
+                    const {
+                      [oldId]: _drop,
+                      ...restMsgs
+                    } = state.messagesBySession;
+                    const {
+                      [oldId]: _dropTree,
+                      ...restTree
+                    } = state.treeStateBySession;
+                    return {
+                      messagesBySession: {
+                        ...restMsgs,
+                        [newId]: oldMsgs ?? [],
+                      },
+                      treeStateBySession: oldTree
+                        ? { ...restTree, [newId]: oldTree }
+                        : restTree,
+                      streamingSessionId:
+                        state.streamingSessionId === oldId
+                          ? newId
+                          : state.streamingSessionId,
+                    };
+                  });
+                  sessionId = newId;
+                }
                 break;
-              case "session_name":
-                // Auto-rename session from first prompt
-                useSessionStore.getState().renameSession(sessionId, event.name);
-                break;
+              }
               case "tree_navigation":
                 set((state) => ({
                   ...state,
@@ -199,6 +234,7 @@ export const useChatStore = create<ChatState>()(
               case "done":
                 updateAssistant((m) => ({ ...m, streaming: false }));
                 set({ streamingSessionId: null, abortController: null });
+                queryClient.invalidateQueries({ queryKey: ["sessions"] });
                 break;
             }
           },
