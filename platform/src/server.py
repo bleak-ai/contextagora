@@ -14,11 +14,13 @@ CONTEXT_DIR.mkdir(exist_ok=True)
 # Files in context/ that should survive when modules are reloaded
 PRESERVED_FILES = {"CLAUDE.md"}
 
-# Directories in context/ that should survive when modules are reloaded
-PRESERVED_DIRS = {".claude"}
-
 # Files managed automatically per module (not user-editable)
 MANAGED_FILES = {"llms.txt", ".env.schema", "requirements.txt"}
+
+# Materialize static slash-command files into .claude/commands/ at startup
+from src.commands import materialize_commands  # noqa: E402
+
+materialize_commands(CONTEXT_DIR)
 
 
 def list_modules(directory: Path) -> list[str]:

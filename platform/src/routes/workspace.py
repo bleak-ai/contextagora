@@ -4,9 +4,10 @@ import shutil
 import httpx
 from fastapi import APIRouter
 
+from src.commands import materialize_commands
 from src.llms import generate_root_llms_txt
 from src.models import WorkspaceLoadRequest
-from src.server import CONTEXT_DIR, MANAGED_FILES, PRESERVED_DIRS, PRESERVED_FILES, list_modules
+from src.server import CONTEXT_DIR, PRESERVED_FILES, list_modules
 from src.services.deps import install_module_deps
 from src.services.github import download_module, list_available_modules
 from src.services.schemas import augment_schema
@@ -35,10 +36,13 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
     global _secrets_cache
 
     for p in CONTEXT_DIR.iterdir():
-        if p.is_dir() and p.name not in PRESERVED_DIRS:
+        if p.is_dir():
             shutil.rmtree(p)
         elif p.is_file() and p.name not in PRESERVED_FILES:
             p.unlink()
+
+    # Re-create static slash-command files (wiped by cleanup above)
+    materialize_commands(CONTEXT_DIR)
 
     available = set(list_available_modules())
     loaded = []
