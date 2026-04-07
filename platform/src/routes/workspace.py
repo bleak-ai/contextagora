@@ -9,11 +9,7 @@ from src.server import CONTEXT_DIR, PRESERVED_FILES, list_modules
 from src.services import git_repo
 from src.services.deps import install_module_deps
 from src.services.schemas import augment_schema
-from src.services.secrets import (
-    SecretsValidationError,
-    get_secrets_status,
-    load_and_mask_module_secrets,
-)
+from src.services.secrets import get_secrets_status
 
 log = logging.getLogger(__name__)
 
@@ -36,9 +32,7 @@ async def api_workspace():
 
 @router.post("/load")
 async def api_workspace_load(body: WorkspaceLoadRequest):
-    """Clear workspace, download selected modules, validate secrets."""
-    global _secrets_cache
-
+    """Clear workspace and download selected modules."""
     for p in CONTEXT_DIR.iterdir():
         if p.is_dir():
             shutil.rmtree(p)
@@ -56,7 +50,6 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
     available = set(git_repo.list_modules()) | set(PRESERVED_DIRS)
     loaded: list[str] = []
     errors: list[dict] = []
-    secrets: dict[str, dict[str, str | None]] = {}
 
     for name in body.modules:
         if name not in available:
@@ -72,9 +65,6 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
             errors.append({"module": name, "reason": "invalid_path"})
             continue
 
-        def _rollback():
-            shutil.rmtree(module_dir, ignore_errors=True)
-
         try:
             git_repo.copy_module_to(name, module_dir)
 
@@ -88,24 +78,11 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
                     f"pip install failed: {dep_result.stderr.strip()}"
                 )
 
-            if schema_file.exists():
-                secrets[name] = load_and_mask_module_secrets(module_dir)
-
             loaded.append(name)
 
-        except SecretsValidationError as exc:
-            log.warning(
-                "varlock validation failed for '%s': missing=%s", name, exc.missing
-            )
-            _rollback()
-            errors.append({
-                "module": name,
-                "reason": "missing_secrets",
-                "missing": exc.missing,
-            })
         except (OSError, ValueError, FileNotFoundError, RuntimeError) as exc:
             log.error("Failed to load module '%s': %s", name, exc)
-            _rollback()
+            shutil.rmtree(module_dir, ignore_errors=True)
             errors.append({
                 "module": name,
                 "reason": "load_failed",
@@ -114,9 +91,7 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
 
     generate_root_llms_txt(CONTEXT_DIR)
 
-    _secrets_cache = secrets
-
-    response = {"modules": loaded, "secrets": secrets}
+    response: dict = {"modules": loaded}
     if errors:
         response["errors"] = errors
     return response
