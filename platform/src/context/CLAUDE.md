@@ -24,6 +24,8 @@ Module Python dependencies are pre-installed. Run scripts with:
 
 Do not use `--with` flags — dependencies are already available.
 
+**Efficiency rules (non-negotiable):** never fetch per-item inside a loop over results from another query — collect ids first, then batch-fetch (`db.get_all([...])`, batch endpoints, etc.); bound every query with `.limit()` or `.where()` unless you can name out loud how many rows it returns; emit progress with `print(..., flush=True)` every ~50 iterations; use the exact `doc.id` from prior queries, never reuse a search term as an identifier.
+
 ## Secrets
 
 Some modules need secret values (API keys, service account JSON, database

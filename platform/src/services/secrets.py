@@ -18,7 +18,13 @@ _MISSING_VAR_PATTERNS = [
     re.compile(r"⛔\s+([A-Z_][A-Z0-9_]*)"),
     re.compile(r'Failed to fetch secret "([A-Z_][A-Z0-9_]*)"'),
     re.compile(r'secret "([A-Z_][A-Z0-9_]*)" has no value', re.IGNORECASE),
+    re.compile(r'Secret "([A-Z_][A-Z0-9_]*)" at path '),
 ]
+
+# Matches ANSI CSI escape sequences (color codes etc.) that varlock emits
+# even in non-TTY mode. Stripped before regex matching so the var-name
+# patterns above don't have to deal with `\x1b[31m` wrappers.
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 
 
 class SecretsValidationError(Exception):
@@ -44,13 +50,35 @@ def parse_varlock_failure(stderr: str) -> list[str]:
     """Extract missing variable names from varlock's human-readable error output.
 
     Tries multiple patterns since varlock's output varies with TTY/non-TTY.
+    Strips ANSI color codes first because varlock wraps var names in
+    `\\x1b[31m...\\x1b[39m` which breaks `[A-Z_]+` matching.
     """
+    cleaned = _ANSI_RE.sub("", stderr)
     found: list[str] = []
     for pat in _MISSING_VAR_PATTERNS:
-        for m in pat.findall(stderr):
+        for m in pat.findall(cleaned):
             if m not in found:
                 found.append(m)
     return found
+
+
+def _read_schema_vars(module_dir: Path) -> list[str]:
+    """Best-effort: list non-comment KEY= entries from a module's
+    .env.schema, excluding the Infisical bootstrap vars. Used as a
+    fallback when varlock errors out before naming what's missing."""
+    schema = module_dir / ".env.schema"
+    if not schema.exists():
+        return []
+    names: list[str] = []
+    for line in schema.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        key, sep, _ = line.partition("=")
+        key = key.strip()
+        if sep and key and key not in INFISICAL_VARS and key not in names:
+            names.append(key)
+    return names
 
 
 def load_and_mask_module_secrets(module_dir: Path) -> dict[str, str | None]:
@@ -101,7 +129,12 @@ async def get_secrets_status(
             return name, previews
         except SecretsValidationError as e:
             log.warning("refresh: %s still invalid (missing=%s)", name, e.missing)
-            return name, {k: None for k in e.missing}
+            # If varlock failed without naming what's missing (or only
+            # named the first one), fall back to the schema so the UI
+            # always shows every declared secret.
+            schema_vars = _read_schema_vars(directory / name)
+            keys = list(dict.fromkeys([*e.missing, *schema_vars]))
+            return name, {k: None for k in keys}
 
     results = await asyncio.gather(*(safe(m) for m in modules))
     return dict(results)

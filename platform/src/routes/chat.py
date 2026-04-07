@@ -7,6 +7,7 @@ from pathlib import Path
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
+from src.commands import COMMANDS
 from src.models import ChatRequest
 from src.server import CONTEXT_DIR
 from src.services.claude_sessions import list_sessions
@@ -14,6 +15,22 @@ from src.services.claude_sessions import list_sessions
 log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["chat"])
+
+_COMMANDS_BY_NAME = {c.name: c for c in COMMANDS}
+
+
+def _expand_slash_command(prompt: str) -> str:
+    """If prompt starts with /<registered-command>, replace with the
+    command's full prompt text, appending any trailing args."""
+    if not prompt.startswith("/"):
+        return prompt
+    head, _, rest = prompt[1:].partition(" ")
+    cmd_def = _COMMANDS_BY_NAME.get(head)
+    if cmd_def is None:
+        return prompt
+    if rest.strip():
+        return f"{cmd_def.prompt}\n\nUser arguments: {rest.strip()}"
+    return cmd_def.prompt
 
 
 # ── Session listing (read-through to Claude's on-disk transcripts) ──
@@ -49,7 +66,7 @@ async def api_chat(body: ChatRequest):
         }
 
         cmd = [
-            "claude", "-p", body.prompt,
+            "claude", "-p", _expand_slash_command(body.prompt),
             "--verbose",
             "--output-format", "stream-json",
             "--include-partial-messages",
