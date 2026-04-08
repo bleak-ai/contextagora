@@ -32,6 +32,7 @@ def list_modules(directory: Path) -> list[str]:
 # Moving these imports above the constants will cause ImportError.
 app = FastAPI()
 
+from src.routes.benchmarks import router as benchmarks_router  # noqa: E402
 from src.routes.chat import router as chat_router  # noqa: E402
 from src.routes.commands import router as commands_router  # noqa: E402
 from src.routes.files import router as files_router  # noqa: E402
@@ -48,6 +49,7 @@ app.include_router(chat_router)
 app.include_router(files_router)
 app.include_router(commands_router)
 app.include_router(sync_router)
+app.include_router(benchmarks_router)
 
 
 @app.on_event("startup")

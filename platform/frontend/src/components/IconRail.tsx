@@ -4,6 +4,7 @@ export function IconRail() {
   const location = useLocation();
   const isChat = location.pathname === "/";
   const isModules = location.pathname === "/modules";
+  const isBenchmarks = location.pathname.startsWith("/benchmarks");
 
   return (
     <nav className="w-12 flex-shrink-0 border-r border-border bg-bg-raised flex flex-col items-center py-3 gap-1 h-full">
@@ -50,6 +51,31 @@ export function IconRail() {
         >
           <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
           <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
+        </svg>
+      </Link>
+
+      {/* Benchmarks */}
+      <Link
+        to="/benchmarks"
+        title="Benchmarks"
+        className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+          isBenchmarks ? "bg-accent/25" : "hover:bg-bg-hover"
+        }`}
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={
+            isBenchmarks
+              ? "var(--color-accent)"
+              : "var(--color-text-secondary)"
+          }
+          strokeWidth="2"
+        >
+          <path d="M3 3v18h18" />
+          <path d="M7 15l4-4 4 4 5-5" />
         </svg>
       </Link>
 

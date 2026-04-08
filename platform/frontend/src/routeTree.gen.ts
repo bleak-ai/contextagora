@@ -10,15 +10,25 @@
 
 import { Route as rootRouteImport } from "./routes/__root"
 import { Route as ModulesRouteImport } from "./routes/modules"
+import { Route as BenchmarksRouteImport } from "./routes/benchmarks"
 import { Route as IndexRouteImport } from "./routes/index"
 import { Route as ModulesIndexRouteImport } from "./routes/modules.index"
+import { Route as BenchmarksIndexRouteImport } from "./routes/benchmarks.index"
 import { Route as ModulesNameRouteImport } from "./routes/modules.$name"
+import { Route as BenchmarksTaskIdRouteImport } from "./routes/benchmarks.$taskId"
+import { Route as BenchmarksTaskIdIndexRouteImport } from "./routes/benchmarks.$taskId.index"
+import { Route as BenchmarksTaskIdRunIdRouteImport } from "./routes/benchmarks.$taskId.$runId"
 
 const ModulesRoute = ModulesRouteImport.update({
   id: "/modules",
   path: "/modules",
   getParentRoute: () => rootRouteImport,
 } as any).lazy(() => import("./routes/modules.lazy").then((d) => d.Route))
+const BenchmarksRoute = BenchmarksRouteImport.update({
+  id: "/benchmarks",
+  path: "/benchmarks",
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: "/",
   path: "/",
@@ -29,40 +39,101 @@ const ModulesIndexRoute = ModulesIndexRouteImport.update({
   path: "/",
   getParentRoute: () => ModulesRoute,
 } as any).lazy(() => import("./routes/modules.index.lazy").then((d) => d.Route))
+const BenchmarksIndexRoute = BenchmarksIndexRouteImport.update({
+  id: "/",
+  path: "/",
+  getParentRoute: () => BenchmarksRoute,
+} as any)
 const ModulesNameRoute = ModulesNameRouteImport.update({
   id: "/$name",
   path: "/$name",
   getParentRoute: () => ModulesRoute,
 } as any).lazy(() => import("./routes/modules.$name.lazy").then((d) => d.Route))
+const BenchmarksTaskIdRoute = BenchmarksTaskIdRouteImport.update({
+  id: "/$taskId",
+  path: "/$taskId",
+  getParentRoute: () => BenchmarksRoute,
+} as any)
+const BenchmarksTaskIdIndexRoute = BenchmarksTaskIdIndexRouteImport.update({
+  id: "/",
+  path: "/",
+  getParentRoute: () => BenchmarksTaskIdRoute,
+} as any)
+const BenchmarksTaskIdRunIdRoute = BenchmarksTaskIdRunIdRouteImport.update({
+  id: "/$runId",
+  path: "/$runId",
+  getParentRoute: () => BenchmarksTaskIdRoute,
+} as any).lazy(() =>
+  import("./routes/benchmarks.$taskId.$runId.lazy").then((d) => d.Route),
+)
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
+  "/benchmarks": typeof BenchmarksRouteWithChildren
   "/modules": typeof ModulesRouteWithChildren
+  "/benchmarks/$taskId": typeof BenchmarksTaskIdRouteWithChildren
   "/modules/$name": typeof ModulesNameRoute
+  "/benchmarks/": typeof BenchmarksIndexRoute
   "/modules/": typeof ModulesIndexRoute
+  "/benchmarks/$taskId/$runId": typeof BenchmarksTaskIdRunIdRoute
+  "/benchmarks/$taskId/": typeof BenchmarksTaskIdIndexRoute
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
   "/modules/$name": typeof ModulesNameRoute
+  "/benchmarks": typeof BenchmarksIndexRoute
   "/modules": typeof ModulesIndexRoute
+  "/benchmarks/$taskId/$runId": typeof BenchmarksTaskIdRunIdRoute
+  "/benchmarks/$taskId": typeof BenchmarksTaskIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   "/": typeof IndexRoute
+  "/benchmarks": typeof BenchmarksRouteWithChildren
   "/modules": typeof ModulesRouteWithChildren
+  "/benchmarks/$taskId": typeof BenchmarksTaskIdRouteWithChildren
   "/modules/$name": typeof ModulesNameRoute
+  "/benchmarks/": typeof BenchmarksIndexRoute
   "/modules/": typeof ModulesIndexRoute
+  "/benchmarks/$taskId/$runId": typeof BenchmarksTaskIdRunIdRoute
+  "/benchmarks/$taskId/": typeof BenchmarksTaskIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/" | "/modules" | "/modules/$name" | "/modules/"
+  fullPaths:
+    | "/"
+    | "/benchmarks"
+    | "/modules"
+    | "/benchmarks/$taskId"
+    | "/modules/$name"
+    | "/benchmarks/"
+    | "/modules/"
+    | "/benchmarks/$taskId/$runId"
+    | "/benchmarks/$taskId/"
   fileRoutesByTo: FileRoutesByTo
-  to: "/" | "/modules/$name" | "/modules"
-  id: "__root__" | "/" | "/modules" | "/modules/$name" | "/modules/"
+  to:
+    | "/"
+    | "/modules/$name"
+    | "/benchmarks"
+    | "/modules"
+    | "/benchmarks/$taskId/$runId"
+    | "/benchmarks/$taskId"
+  id:
+    | "__root__"
+    | "/"
+    | "/benchmarks"
+    | "/modules"
+    | "/benchmarks/$taskId"
+    | "/modules/$name"
+    | "/benchmarks/"
+    | "/modules/"
+    | "/benchmarks/$taskId/$runId"
+    | "/benchmarks/$taskId/"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BenchmarksRoute: typeof BenchmarksRouteWithChildren
   ModulesRoute: typeof ModulesRouteWithChildren
 }
 
@@ -73,6 +144,13 @@ declare module "@tanstack/react-router" {
       path: "/modules"
       fullPath: "/modules"
       preLoaderRoute: typeof ModulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/benchmarks": {
+      id: "/benchmarks"
+      path: "/benchmarks"
+      fullPath: "/benchmarks"
+      preLoaderRoute: typeof BenchmarksRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/": {
@@ -89,6 +167,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof ModulesIndexRouteImport
       parentRoute: typeof ModulesRoute
     }
+    "/benchmarks/": {
+      id: "/benchmarks/"
+      path: "/"
+      fullPath: "/benchmarks/"
+      preLoaderRoute: typeof BenchmarksIndexRouteImport
+      parentRoute: typeof BenchmarksRoute
+    }
     "/modules/$name": {
       id: "/modules/$name"
       path: "/$name"
@@ -96,8 +181,56 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof ModulesNameRouteImport
       parentRoute: typeof ModulesRoute
     }
+    "/benchmarks/$taskId": {
+      id: "/benchmarks/$taskId"
+      path: "/$taskId"
+      fullPath: "/benchmarks/$taskId"
+      preLoaderRoute: typeof BenchmarksTaskIdRouteImport
+      parentRoute: typeof BenchmarksRoute
+    }
+    "/benchmarks/$taskId/": {
+      id: "/benchmarks/$taskId/"
+      path: "/"
+      fullPath: "/benchmarks/$taskId/"
+      preLoaderRoute: typeof BenchmarksTaskIdIndexRouteImport
+      parentRoute: typeof BenchmarksTaskIdRoute
+    }
+    "/benchmarks/$taskId/$runId": {
+      id: "/benchmarks/$taskId/$runId"
+      path: "/$runId"
+      fullPath: "/benchmarks/$taskId/$runId"
+      preLoaderRoute: typeof BenchmarksTaskIdRunIdRouteImport
+      parentRoute: typeof BenchmarksTaskIdRoute
+    }
   }
 }
+
+interface BenchmarksTaskIdRouteChildren {
+  BenchmarksTaskIdRunIdRoute: typeof BenchmarksTaskIdRunIdRoute
+  BenchmarksTaskIdIndexRoute: typeof BenchmarksTaskIdIndexRoute
+}
+
+const BenchmarksTaskIdRouteChildren: BenchmarksTaskIdRouteChildren = {
+  BenchmarksTaskIdRunIdRoute: BenchmarksTaskIdRunIdRoute,
+  BenchmarksTaskIdIndexRoute: BenchmarksTaskIdIndexRoute,
+}
+
+const BenchmarksTaskIdRouteWithChildren =
+  BenchmarksTaskIdRoute._addFileChildren(BenchmarksTaskIdRouteChildren)
+
+interface BenchmarksRouteChildren {
+  BenchmarksTaskIdRoute: typeof BenchmarksTaskIdRouteWithChildren
+  BenchmarksIndexRoute: typeof BenchmarksIndexRoute
+}
+
+const BenchmarksRouteChildren: BenchmarksRouteChildren = {
+  BenchmarksTaskIdRoute: BenchmarksTaskIdRouteWithChildren,
+  BenchmarksIndexRoute: BenchmarksIndexRoute,
+}
+
+const BenchmarksRouteWithChildren = BenchmarksRoute._addFileChildren(
+  BenchmarksRouteChildren,
+)
 
 interface ModulesRouteChildren {
   ModulesNameRoute: typeof ModulesNameRoute
@@ -114,6 +247,7 @@ const ModulesRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BenchmarksRoute: BenchmarksRouteWithChildren,
   ModulesRoute: ModulesRouteWithChildren,
 }
 export const routeTree = rootRouteImport
