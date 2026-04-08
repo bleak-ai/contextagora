@@ -38,6 +38,7 @@ from src.routes.commands import router as commands_router  # noqa: E402
 from src.routes.files import router as files_router  # noqa: E402
 from src.routes.health import router as health_router  # noqa: E402
 from src.routes.modules import router as modules_router  # noqa: E402
+from src.routes.root_context import router as root_context_router  # noqa: E402
 from src.routes.sync import router as sync_router  # noqa: E402
 from src.routes.workspace import router as workspace_router  # noqa: E402
 from src.services import git_repo  # noqa: E402
@@ -50,6 +51,7 @@ app.include_router(files_router)  # Read/write files inside modules
 app.include_router(commands_router)  # Execute predefined commands/scripts
 app.include_router(sync_router)  # Sync modules with the remote git repo
 app.include_router(benchmarks_router)  # Benchmark task CRUD, runs, and reports
+app.include_router(root_context_router)  # Read-only: root CLAUDE.md and llms.txt
 
 
 @app.on_event("startup")

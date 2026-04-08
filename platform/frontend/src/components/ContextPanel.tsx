@@ -12,6 +12,7 @@ import { useSessionStore } from "../hooks/useSessionStore";
 import { DecisionTreePanel } from "./chat/DecisionTreePanel";
 import { SyncControls } from "./SyncControls";
 import { ModuleList } from "./sidebar/ModuleList";
+import { RootSection } from "./sidebar/RootSection";
 
 export function ContextPanel() {
   const queryClient = useQueryClient();
@@ -108,6 +109,7 @@ export function ContextPanel() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["workspace"] });
       queryClient.invalidateQueries({ queryKey: ["workspace-files"] });
+      queryClient.invalidateQueries({ queryKey: ["root-context"] });
       setLoadErrors(data.errors ?? []);
       // Auto-fetch secrets so newly-loaded modules immediately show their
       // Infisical state without requiring a separate manual click.
@@ -229,6 +231,7 @@ export function ContextPanel() {
       <div className="flex-1 overflow-y-auto px-2.5 py-2.5">
         {tab === "context" && (
           <div>
+            <RootSection />
             <ModuleList
               loaded={loaded}
               available={modules}

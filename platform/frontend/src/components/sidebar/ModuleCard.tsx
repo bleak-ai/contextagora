@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { fetchModuleFile } from "../../api/modules";
 import type { LoadedModule } from "../../api/workspace";
+import { FilePreviewModal } from "./FilePreviewModal";
 
 interface Props {
   module: LoadedModule;
@@ -161,7 +162,7 @@ export function ModuleCard({
       )}
 
       {previewFile && (
-        <FilePreview
+        <ModuleFilePreview
           moduleName={module.name}
           path={previewFile}
           onClose={() => setPreviewFile(null)}
@@ -171,7 +172,7 @@ export function ModuleCard({
   );
 }
 
-function FilePreview({
+function ModuleFilePreview({
   moduleName,
   path,
   onClose,
@@ -187,41 +188,18 @@ function FilePreview({
   });
 
   return (
-    <div
-      onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[80vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-bg-raised shadow-2xl"
-      >
-        <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
-          <span className="font-mono text-xs text-text">
-            <span className="text-text-muted">{moduleName}/</span>
-            {path}
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded p-1 text-text-muted hover:bg-bg-hover hover:text-text"
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        </div>
-        <div className="overflow-auto bg-black/40 px-4 py-3">
-          {isLoading && <p className="text-xs text-text-muted">loading…</p>}
-          {error && (
-            <p className="text-xs text-red-400">failed to load file</p>
-          )}
-          {data && (
-            <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-text">
-              {data.content}
-            </pre>
-          )}
-        </div>
-      </div>
-    </div>
+    <FilePreviewModal
+      title={
+        <>
+          <span className="text-text-muted">{moduleName}/</span>
+          {path}
+        </>
+      }
+      content={data?.content ?? null}
+      isLoading={isLoading}
+      error={!!error}
+      onClose={onClose}
+    />
   );
 }
 
