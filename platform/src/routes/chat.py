@@ -57,13 +57,7 @@ async def api_chat(body: ChatRequest):
     """
 
     def generate():
-        env = {
-            **os.environ,
-            "DISABLE_AUTOUPDATER": "1",
-            "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
-            "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
-            "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
-        }
+        env = {**os.environ}
 
         cmd = [
             "claude", "-p", _expand_slash_command(body.prompt),
