@@ -12,10 +12,11 @@ FastAPI backend + React SPA frontend with a full chat interface and module manag
 ## How it works
 
 1. Modules are structured folders with an `info.md` file and optional additional docs. They live in a separate GitHub repo (e.g. `bleak-ai/context-loader-module-demo`).
-2. `platform/src/server.py` exposes a JSON API at `:8080` and serves the React SPA as static files.
-3. `platform/src/context/` is the runtime output directory (gitignored). This is what the agent reads from.
-4. A static `CLAUDE.md` lives in `context/` instructing the agent to only use files within that directory. The agent starts here.
-5. Module source is configured via `GH_OWNER` and `GH_REPO` env vars.
+2. On startup, that repo is cloned once into `platform/src/modules-repo/` (configurable via `MODULES_REPO_DIR`). All module reads/writes go to this local clone — no GitHub Contents API calls per request.
+3. `platform/src/server.py` exposes a JSON API at `:8080` and serves the React SPA as static files.
+4. `platform/src/context/` is the runtime output directory (gitignored). This is what the agent reads from. Workspace load copies modules from the local clone (uncommitted edits included) into `context/`.
+5. A static `CLAUDE.md` lives in `context/` instructing the agent to only use files within that directory. The agent starts here.
+6. Module source is configured via `GH_OWNER`, `GH_REPO`, and `GH_BRANCH` env vars.
 
 ### API endpoints
 
@@ -29,15 +30,22 @@ FastAPI backend + React SPA frontend with a full chat interface and module manag
 - `POST /api/workspace/load` — clears context, downloads selected modules, generates `CLAUDE.md`, injects secrets
 - `POST /api/workspace/secrets` — re-checks secrets status from Infisical
 
-**Modules** (`routes/modules.py`):
-- `GET /api/modules` — lists available modules (cached, fetched from GitHub)
-- `GET /api/modules/{name}` — module detail (info.md content, summary, secrets schema)
-- `POST /api/modules` — create new module
-- `PUT /api/modules/{name}` — update module content/summary/secrets
-- `DELETE /api/modules/{name}` — delete module from GitHub
-- `POST /api/modules/refresh` — force-refresh module list (bypass cache)
+**Modules** (`routes/modules.py`) — all operate on the local clone:
+- `GET /api/modules` — lists modules from the local clone (always fresh, no cache)
+- `GET /api/modules/{name}` — module detail (info.md content, summary, secrets schema, requirements)
+- `POST /api/modules` — create new module (writes to local clone)
+- `PUT /api/modules/{name}` — update module content/summary/secrets/requirements
+- `DELETE /api/modules/{name}` — delete module directory from the local clone
+- `POST /api/modules/refresh` — kept for frontend compatibility; same as list
+- `POST /api/modules/{name}/generate` — uses Claude to generate a summary from info.md
+- `POST /api/modules/{name}/detect-packages` — uses Claude to detect Python deps
 - `GET /api/modules/{name}/files` — list files in module
 - `GET/PUT/DELETE /api/modules/{name}/files/{path}` — file CRUD (auto-regenerates `llms.txt`)
+
+**Sync** (`routes/sync.py`) — git round-trip with the GitHub remote:
+- `GET /api/sync/status` — `git fetch` + reports `dirty`, `ahead`, `behind`, `can_pull`, `can_push`
+- `POST /api/sync/pull` — hard-resets local clone to remote (discards local changes — "remote always wins")
+- `POST /api/sync/push` — stages all changes, commits with the supplied message, and pushes. Refuses if remote is ahead (must pull first).
 
 **Health** (`routes/health.py`):
 - `GET /api/health` — Docker health check
@@ -72,13 +80,16 @@ Beyond loading modules, the UI supports full CRUD for module content:
 
 Managed files (`llms.txt`, `.env.schema`) are auto-generated and not user-editable. `CLAUDE.md` is preserved across module reloads.
 
-## Module loading (GitHub API)
+## Module loading (local git clone)
 
-Modules are listed and downloaded on demand via the GitHub Contents API. No git clone at startup — the app calls GitHub when the UI loads and downloads only the modules the user selects.
+Modules live in a local git clone of the configured GitHub repo, managed by `platform/src/services/git_repo.py`. All listing, reading, and editing happens against the local working tree — no per-request GitHub API calls.
 
-- Module list is cached for 60s to avoid GitHub API rate limits
-- `POST /refresh-modules` bypasses the cache to pick up newly added modules
-- Auth via `GH_TOKEN` (fine-grained PAT with Contents read-only)
+- On startup the repo is cloned (single-branch, shallow checkout of `GH_BRANCH`) into `platform/src/modules-repo/`
+- All module CRUD writes to this working tree directly; changes are uncommitted until the user explicitly pushes
+- The user can edit modules in the UI, then commit + push back to GitHub via `POST /api/sync/push`
+- `POST /api/sync/pull` hard-resets local to remote (discards local changes — "remote always wins" by design)
+- Workspace load copies the module's working tree (uncommitted changes included) into `context/`, so users can test edits before pushing
+- Auth via `GH_TOKEN` (fine-grained PAT with Contents read/write); embedded in the clone URL as `x-access-token`
 
 ### Configuration
 
@@ -87,7 +98,8 @@ GitHub module loading is configured via env vars (`.envrc` for local dev, `.env`
 ```
 GH_OWNER=bleak-ai
 GH_REPO=context-loader-module-demo
-GH_TOKEN=github_pat_...
+GH_BRANCH=main           # optional, defaults to main
+GH_TOKEN=github_pat_...  # needs Contents read/write to enable push
 ```
 
 ## Secret management
