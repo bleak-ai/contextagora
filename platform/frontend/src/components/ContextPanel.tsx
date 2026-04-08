@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchModules } from "../api/modules";
 import {
@@ -11,6 +11,7 @@ import { fetchSessions } from "../api/sessions";
 import { useSessionStore } from "../hooks/useSessionStore";
 import { DecisionTreePanel } from "./chat/DecisionTreePanel";
 import { SyncControls } from "./SyncControls";
+import { ModuleList } from "./sidebar/ModuleList";
 
 export function ContextPanel() {
   const queryClient = useQueryClient();
@@ -31,6 +32,48 @@ export function ContextPanel() {
   const [collapsed, setCollapsed] = useState(false);
   const [loadErrors, setLoadErrors] = useState<LoadError[]>([]);
   const toggleCollapsed = useCallback(() => setCollapsed((c) => !c), []);
+
+  // Resizable width
+  const MIN_WIDTH = 240;
+  const MAX_WIDTH = 640;
+  const [width, setWidth] = useState<number>(() => {
+    const stored = Number(localStorage.getItem("context-panel-width"));
+    return Number.isFinite(stored) && stored >= MIN_WIDTH && stored <= MAX_WIDTH
+      ? stored
+      : 320;
+  });
+  const draggingRef = useRef(false);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!draggingRef.current) return;
+      const next = Math.min(
+        MAX_WIDTH,
+        Math.max(MIN_WIDTH, window.innerWidth - e.clientX),
+      );
+      setWidth(next);
+    };
+    const onUp = () => {
+      if (!draggingRef.current) return;
+      draggingRef.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      localStorage.setItem("context-panel-width", String(width));
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [width]);
+
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    draggingRef.current = true;
+    document.body.style.cursor = "ew-resize";
+    document.body.style.userSelect = "none";
+  };
 
   // Module + workspace queries
   const { data: modulesData } = useQuery({
@@ -58,13 +101,13 @@ export function ContextPanel() {
     },
   });
 
-  const modules = modulesData?.modules || [];
-  const loaded = workspace?.modules || [];
-  const secrets = workspace?.secrets || {};
+  const modules = modulesData?.modules || [];           // string[] — all available
+  const loaded = workspace?.modules || [];              // LoadedModule[] — currently loaded
+  const loadedNames = loaded.map((m) => m.name);
 
   // Sync selected state with loaded modules on first load
-  if (selected.size === 0 && loaded.length > 0) {
-    setSelected(new Set(loaded));
+  if (selected.size === 0 && loadedNames.length > 0) {
+    setSelected(new Set(loadedNames));
   }
 
   const toggleModule = (name: string) => {
@@ -82,9 +125,8 @@ export function ContextPanel() {
 
   // Determine load button state
   const selectionMatchesLoaded =
-    selected.size === loaded.length &&
-    [...selected].every((m) => loaded.includes(m));
-  const isLoading = loadMutation.isPending;
+    selected.size === loadedNames.length &&
+    loadedNames.every((n) => selected.has(n));
 
   if (collapsed) {
     return (
@@ -167,67 +209,19 @@ export function ContextPanel() {
           </div>
         </div>
 
-        {/* Modules */}
+        {/* Modules + Secrets */}
         <div className="mb-3">
-          <div className="px-1 mb-1.5">
-            <span className="text-[10px] text-text-muted tracking-wider">
-              MODULES
-            </span>
-          </div>
-          <div className="space-y-0.5">
-            {modules.map((name) => {
-              const isSelected = selected.has(name);
-              const isLoaded = loaded.includes(name);
-              return (
-                <label
-                  key={name}
-                  className={`flex items-center gap-2 px-1.5 py-1.5 rounded cursor-pointer transition-colors ${
-                    isSelected ? "bg-accent/10" : ""
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => toggleModule(name)}
-                    className="accent-accent w-3.5 h-3.5"
-                  />
-                  <span
-                    className={`flex-1 text-xs ${
-                      isSelected
-                        ? "text-accent font-medium"
-                        : "text-text-secondary"
-                    }`}
-                  >
-                    {name}
-                  </span>
-                  {isLoaded && (
-                    <span className="text-success text-[10px]" title="Loaded">
-                      &#10003;
-                    </span>
-                  )}
-                </label>
-              );
-            })}
-          </div>
-
-          {/* Load button */}
-          <button
-            onClick={handleLoad}
-            disabled={isLoading || selected.size === 0 || (selectionMatchesLoaded && loaded.length > 0)}
-            className={`mt-2 w-full py-1.5 text-xs font-medium rounded-md transition-all ${
-              isLoading
-                ? "bg-accent/20 text-accent animate-pulse"
-                : selectionMatchesLoaded && loaded.length > 0
-                  ? "bg-accent/10 text-accent/70 border border-accent/20 cursor-default"
-                  : "bg-accent text-accent-text hover:bg-accent-hover"
-            } disabled:opacity-30 disabled:cursor-not-allowed`}
-          >
-            {isLoading
-              ? "Loading..."
-              : selectionMatchesLoaded && loaded.length > 0
-                ? `${loaded.length} Module${loaded.length !== 1 ? "s" : ""} Loaded`
-                : "Load Selected"}
-          </button>
+          <ModuleList
+            loaded={loaded}
+            available={modules}
+            selected={selected}
+            onToggleSelect={toggleModule}
+            onLoad={handleLoad}
+            isLoading={loadMutation.isPending}
+            selectionMatchesLoaded={selectionMatchesLoaded}
+            onRefreshSecrets={() => secretsMutation.mutate()}
+            isRefreshingSecrets={secretsMutation.isPending}
+          />
 
           {loadErrors.length > 0 && (
             <div className="mt-2 rounded-md border border-red-500/40 bg-red-500/10 p-2 text-xs text-red-300">
@@ -262,70 +256,6 @@ export function ContextPanel() {
                 ))}
               </ul>
             </div>
-          )}
-        </div>
-
-        {/* Secrets */}
-        <div className="pt-3 border-t border-border">
-          <div className="flex items-center justify-between mb-2 px-1">
-            <span className="text-[10px] text-text-muted tracking-wider">
-              SECRETS
-            </span>
-            <button
-              onClick={() => secretsMutation.mutate()}
-              disabled={secretsMutation.isPending}
-              className="flex items-center gap-1 text-[10px] text-text-secondary bg-border border border-border-light px-1.5 py-0.5 rounded hover:text-text"
-            >
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-              >
-                <path d="M23 4v6h-6" />
-                <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
-              </svg>
-              {secretsMutation.isPending ? "Loading..." : "Check Infisical Secrets"}
-            </button>
-          </div>
-
-          {loaded.length === 0 ? (
-            <p className="text-[11px] text-text-muted text-center py-3">
-              Load modules to see secrets
-            </p>
-          ) : (
-            loaded.map((name) => (
-              <div key={name} className="mb-2.5">
-                <div className="text-[11px] text-accent font-medium mb-1 px-1">
-                  {name}
-                </div>
-                {secrets[name] &&
-                  Object.entries(secrets[name]).map(([key, val]) => (
-                    <div
-                      key={key}
-                      className="flex items-center gap-1.5 text-[10px] px-1.5 mb-0.5"
-                    >
-                      <span className={val ? "text-success" : "text-danger"}>
-                        {val ? "\u2713" : "\u2717"}
-                      </span>
-                      <span className="text-text-secondary font-mono">
-                        {key}
-                      </span>
-                      {val ? (
-                        <span className="ml-auto text-text-muted font-mono">
-                          {val}
-                        </span>
-                      ) : (
-                        <span className="ml-auto bg-danger/10 text-danger text-[9px] px-1.5 py-0.5 rounded">
-                          missing
-                        </span>
-                      )}
-                    </div>
-                  ))}
-              </div>
-            ))
           )}
         </div>
 

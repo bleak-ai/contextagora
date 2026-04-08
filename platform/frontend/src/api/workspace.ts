@@ -1,8 +1,20 @@
 import { apiFetch } from "./client";
 
+export interface PackageInfo {
+  name: string;
+  version: string | null;
+  installed: boolean;
+}
+
+export interface LoadedModule {
+  name: string;
+  files: string[];
+  secrets: Record<string, string | null>; // null = missing, otherwise masked preview
+  packages: PackageInfo[];
+}
+
 export interface WorkspaceState {
-  modules: string[];
-  secrets: Record<string, Record<string, string | null>>;
+  modules: LoadedModule[];
 }
 
 export function fetchWorkspace(): Promise<WorkspaceState> {
@@ -18,7 +30,7 @@ export interface LoadError {
 
 export function loadModules(
   modules: string[],
-): Promise<WorkspaceState & { errors?: LoadError[] }> {
+): Promise<{ modules: string[]; errors?: LoadError[] }> {
   return apiFetch("/workspace/load", {
     method: "POST",
     body: JSON.stringify({ modules }),

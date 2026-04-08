@@ -33,7 +33,7 @@ export function Chat() {
     queryFn: fetchModules,
   });
 
-  const loaded = workspace?.modules || [];
+  const loaded = workspace?.modules.map((m) => m.name) || [];
   const allModules = modulesData?.modules || [];
 
   const { runtime, clearMessages, hasMessages } = useContextChatRuntime({

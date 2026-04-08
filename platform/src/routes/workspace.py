@@ -5,7 +5,11 @@ from fastapi import APIRouter
 
 from src.llms import generate_root_llms_txt
 from src.models import WorkspaceLoadRequest
-from src.server import CONTEXT_DIR, PRESERVED_FILES, list_modules
+from src.server import CONTEXT_DIR, MANAGED_FILES, PRESERVED_FILES, list_modules
+from src.services.workspace_inspect import (
+    inspect_module_packages,
+    list_workspace_files,
+)
 from src.services import git_repo
 from src.services.deps import install_module_deps
 from src.services.schemas import augment_schema
@@ -23,11 +27,21 @@ _secrets_cache: dict[str, dict[str, str | None]] = {}
 
 @router.get("")
 async def api_workspace():
-    """Return loaded modules and their secrets status."""
-    return {
-        "modules": list_modules(CONTEXT_DIR),
-        "secrets": _secrets_cache,
-    }
+    """Return loaded modules with per-module files, secrets, and packages."""
+    modules = []
+    for name in list_modules(CONTEXT_DIR):
+        module_dir = CONTEXT_DIR / name
+        try:
+            files = list_workspace_files(module_dir, MANAGED_FILES)
+        except FileNotFoundError:
+            files = []
+        modules.append({
+            "name": name,
+            "files": files,
+            "secrets": _secrets_cache.get(name, {}),
+            "packages": inspect_module_packages(module_dir),
+        })
+    return {"modules": modules}
 
 
 @router.post("/load")

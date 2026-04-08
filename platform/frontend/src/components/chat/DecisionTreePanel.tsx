@@ -132,7 +132,7 @@ export function DecisionTreePanel() {
     queryFn: fetchWorkspace,
   });
 
-  const modules = workspace?.modules || [];
+  const modules = workspace?.modules.map((m) => m.name) || [];
 
   const fileQueries = useQueries({
     queries: modules.map((mod) => ({

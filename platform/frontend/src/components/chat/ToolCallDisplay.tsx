@@ -17,7 +17,7 @@ export const ToolCallDisplay: FC<ToolCallMessagePartProps> = ({
     queryFn: fetchWorkspace,
   });
 
-  const modules = workspace?.modules ?? [];
+  const modules = workspace?.modules.map((m) => m.name) ?? [];
   const argsObj = (args ?? {}) as Record<string, unknown>;
   const { verb, moduleName, fileName, fallbackLabel } = humanizeToolCall(
     toolName,
