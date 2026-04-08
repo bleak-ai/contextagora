@@ -14,7 +14,7 @@ FastAPI backend + React SPA frontend with a full chat interface and module manag
 1. Modules are structured folders with an `info.md` file and optional additional docs. They live in a separate GitHub repo (e.g. `bleak-ai/context-loader-module-demo`).
 2. On startup, that repo is cloned once into `platform/src/modules-repo/` (configurable via `MODULES_REPO_DIR`). All module reads/writes go to this local clone — no GitHub Contents API calls per request.
 3. `platform/src/server.py` exposes a JSON API at `:8080` and serves the React SPA as static files.
-4. `platform/src/context/` is the runtime output directory (gitignored). This is what the agent reads from. Workspace load copies modules from the local clone (uncommitted edits included) into `context/`.
+4. `platform/src/context/` is the runtime workspace the agent reads from (gitignored). Workspace load **symlinks** each selected module from the clone into `context/<name>` — there's no copy. Agent edits inside `context/` flow directly back into the local clone and surface as dirty git state in the sync UI.
 5. A static `CLAUDE.md` lives in `context/` instructing the agent to only use files within that directory. The agent starts here.
 6. Module source is configured via `GH_OWNER`, `GH_REPO`, and `GH_BRANCH` env vars.
 
@@ -80,7 +80,7 @@ Beyond loading modules, the UI supports full CRUD for module content:
 
 Managed files (`llms.txt`, `.env.schema`) are auto-generated and not user-editable. `CLAUDE.md` is preserved across module reloads.
 
-## Module loading (local git clone)
+## Module loading (local git clone + symlinks)
 
 Modules live in a local git clone of the configured GitHub repo, managed by `platform/src/services/git_repo.py`. All listing, reading, and editing happens against the local working tree — no per-request GitHub API calls.
 
@@ -88,7 +88,8 @@ Modules live in a local git clone of the configured GitHub repo, managed by `pla
 - All module CRUD writes to this working tree directly; changes are uncommitted until the user explicitly pushes
 - The user can edit modules in the UI, then commit + push back to GitHub via `POST /api/sync/push`
 - `POST /api/sync/pull` hard-resets local to remote (discards local changes — "remote always wins" by design)
-- Workspace load copies the module's working tree (uncommitted changes included) into `context/`, so users can test edits before pushing
+- **Workspace load symlinks** each selected module from `modules-repo/<name>` into `context/<name>` — there's no copy. Edits the agent makes inside `context/<name>/...` are edits to the clone and surface immediately as dirty git state in `GET /api/sync/status`. The user reviews/pushes/discards them via the existing sync flow.
+- Augmented `.env.schema` files (with Infisical wiring) are written to a sibling path `context/.schemas/<name>.env.schema` so the source `.env.schema` in the clone is never mutated. See "Secret management" below.
 - Auth via `GH_TOKEN` (fine-grained PAT with Contents read/write); embedded in the clone URL as `x-access-token`
 
 ### Configuration
@@ -108,19 +109,27 @@ Module secrets (API keys, credentials) are managed via **Infisical** and resolve
 
 ### How it works
 
-1. Modules declare what secrets they need in a simple `.env.schema`:
+1. Modules declare what secrets they need in a simple `.env.schema`, written to the local clone at `modules-repo/<name>/.env.schema`:
    ```
    # @required @sensitive @type=string
    LINEAR_API_KEY=
    ```
-2. When a module is loaded via the UI, `server.py` augments its `.env.schema` in `context/` — prepending the `@varlock/infisical-plugin` config, `@initInfisical(...)` with platform credentials, and rewriting `KEY=` → `KEY=infisical()`.
-3. Varlock reads the augmented schema, connects to Infisical using bootstrap credentials (passed as container env vars), and fetches the secret values.
-4. The original module `.env.schema` in the remote repo stays clean and portable.
+   This is the **clean source schema** — portable, deployment-agnostic, and the only version that ever gets pushed back to GitHub. Editing secrets via `PUT /api/modules/{name}` writes here.
+2. When a module is loaded into the workspace, `api_workspace_load` reads the source schema from the clone, runs `augment_schema()` to inject the `@varlock/infisical-plugin` config, `@initInfisical(...)` with platform credentials, and rewrites `KEY=` → `KEY=infisical()`. The result is written to a **sibling path** `context/.schemas/<name>.env.schema` — *not* into the symlinked module dir. The source schema in `modules-repo/` is never touched.
+3. Varlock loads `context/.schemas/<name>.env.schema`, connects to Infisical using bootstrap credentials (passed as container env vars), and fetches the secret values.
+4. Because the augmented schema lives outside the module dir, the symlink from `context/<name>` to `modules-repo/<name>` stays safe — agent edits flow to the clone, but the deployment-specific Infisical wiring never leaks back into git.
+
+**Where things end up when you add a secret via the UI:**
+
+| File | Path | Lifetime |
+|---|---|---|
+| Clean source schema | `platform/src/modules-repo/<name>/.env.schema` | Persistent — committed and pushed to GitHub |
+| Augmented schema | `platform/src/context/.schemas/<name>.env.schema` | Regenerated on every workspace load — never committed |
 
 ### Key files
 
 - `platform/src/.env.schema` — declares the Infisical bootstrap credentials (`INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET`, `INFISICAL_PROJECT_ID`, `INFISICAL_ENVIRONMENT`). Imported by augmented module schemas via `@import(../../.env.schema)`.
-- `platform/src/server.py` → `augment_schema()` — transforms module schemas at load time.
+- `platform/src/services/schemas.py` → `augment_schema()` — transforms module schemas at load time. Called from `api_workspace_load` in `routes/workspace.py`; output is written to `context/.schemas/<name>.env.schema`.
 - `docker-compose.yml` — passes Infisical bootstrap credentials + `INFISICAL_SITE_URL` to the container.
 
 ### Convention

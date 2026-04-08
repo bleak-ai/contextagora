@@ -5,7 +5,7 @@ from fastapi import APIRouter
 
 from src.llms import generate_root_llms_txt
 from src.models import WorkspaceLoadRequest
-from src.server import CONTEXT_DIR, MANAGED_FILES, PRESERVED_FILES, list_modules
+from src.server import CONTEXT_DIR, MANAGED_FILES, PRESERVED_FILES, SCHEMAS_DIR, list_modules
 from src.services.workspace_inspect import (
     inspect_module_packages,
     list_workspace_files,
@@ -68,20 +68,37 @@ async def api_workspace_files():
 
 @router.post("/load")
 async def api_workspace_load(body: WorkspaceLoadRequest):
-    """Clear workspace and download selected modules."""
+    """Clear workspace and (re)link selected modules into context/.
+
+    Each loaded module becomes a symlink context/<name> -> modules-repo/<name>.
+    The augmented Infisical schema is written to context/.schemas/<name>.env.schema
+    so the source .env.schema in the local clone is never mutated.
+    """
+    # 1. Clear context/: unlink symlinks, delete real subdirs (legacy copies),
+    #    delete loose files except PRESERVED_FILES. Leave SCHEMAS_DIR in place
+    #    but empty it.
     for p in CONTEXT_DIR.iterdir():
-        if p.is_dir():
+        if p == SCHEMAS_DIR:
+            continue
+        if p.is_symlink():
+            p.unlink()
+        elif p.is_dir():
             shutil.rmtree(p)
         elif p.is_file() and p.name not in PRESERVED_FILES:
             p.unlink()
 
-    # Copy preserved dirs (e.g. .claude) from the local clone if they exist
+    for old_schema in SCHEMAS_DIR.iterdir():
+        if old_schema.is_file():
+            old_schema.unlink()
+
+    # 2. Link preserved dirs (e.g. .claude) from the local clone if they exist.
     for dirname in PRESERVED_DIRS:
         if git_repo.module_exists(dirname):
             try:
-                git_repo.copy_module_to(dirname, CONTEXT_DIR / dirname)
-            except (OSError, ValueError, FileNotFoundError) as exc:
-                log.warning("Failed to copy preserved dir '%s': %s", dirname, exc)
+                src = git_repo.MODULES_REPO_DIR / dirname
+                (CONTEXT_DIR / dirname).symlink_to(src, target_is_directory=True)
+            except (OSError, ValueError) as exc:
+                log.warning("Failed to link preserved dir '%s': %s", dirname, exc)
 
     available = set(git_repo.list_modules()) | set(PRESERVED_DIRS)
     loaded: list[str] = []
@@ -92,23 +109,30 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
             errors.append({"module": name, "reason": "not_available"})
             continue
 
-        module_dir = CONTEXT_DIR / name
+        link_path = CONTEXT_DIR / name
 
-        # Defensive: never let a bad name escape CONTEXT_DIR
+        # Defensive: never let a bad name escape CONTEXT_DIR.
         try:
-            module_dir.resolve().relative_to(CONTEXT_DIR.resolve())
+            link_path.resolve().relative_to(CONTEXT_DIR.resolve())
         except ValueError:
             errors.append({"module": name, "reason": "invalid_path"})
             continue
 
         try:
-            git_repo.copy_module_to(name, module_dir)
+            target = git_repo.MODULES_REPO_DIR / name
+            if not target.is_dir():
+                raise FileNotFoundError(f"Module '{name}' not found in clone")
 
-            schema_file = module_dir / ".env.schema"
-            if schema_file.exists():
-                schema_file.write_text(augment_schema(schema_file.read_text(), name))
+            link_path.symlink_to(target, target_is_directory=True)
 
-            dep_result = install_module_deps(module_dir)
+            # Augment schema into sibling file (does NOT touch the source).
+            source_schema = target / ".env.schema"
+            if source_schema.exists():
+                augmented = augment_schema(source_schema.read_text(), name)
+                (SCHEMAS_DIR / f"{name}.env.schema").write_text(augmented)
+
+            # install_module_deps reads requirements.txt via the symlink — fine.
+            dep_result = install_module_deps(link_path)
             if dep_result is not None and dep_result.returncode != 0:
                 raise RuntimeError(
                     f"pip install failed: {dep_result.stderr.strip()}"
@@ -118,7 +142,14 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
 
         except (OSError, ValueError, FileNotFoundError, RuntimeError) as exc:
             log.error("Failed to load module '%s': %s", name, exc)
-            shutil.rmtree(module_dir, ignore_errors=True)
+            if link_path.is_symlink() or link_path.exists():
+                try:
+                    link_path.unlink()
+                except OSError:
+                    pass
+            schema_out = SCHEMAS_DIR / f"{name}.env.schema"
+            if schema_out.exists():
+                schema_out.unlink()
             errors.append({
                 "module": name,
                 "reason": "load_failed",

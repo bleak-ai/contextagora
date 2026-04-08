@@ -185,24 +185,6 @@ def delete_module_dir(name: str, *, clone_dir: Path | None = None) -> None:
     shutil.rmtree(path)
 
 
-def copy_module_to(
-    module: str,
-    dest: Path,
-    *,
-    clone_dir: Path | None = None,
-) -> None:
-    """Copy the module's working tree (uncommitted changes included) to dest.
-
-    Excludes any `.git` directory. Used by workspace load.
-    """
-    src = _resolve_clone(clone_dir) / module
-    if not src.is_dir():
-        raise FileNotFoundError(f"Module '{module}' not found")
-    if dest.exists():
-        shutil.rmtree(dest)
-    shutil.copytree(src, dest, ignore=shutil.ignore_patterns(".git"))
-
-
 # --- Sync ops ---
 
 def _current_branch(clone: Path) -> str:
