@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { streamChat, type ChatEvent } from "../api/chat";
 import { useSessionStore } from "./useSessionStore";
-import { queryClient } from "../main";
+import { queryClient } from "../lib/queryClient";
 
 export const NEW_CHAT_KEY = "__new_chat__";
 
