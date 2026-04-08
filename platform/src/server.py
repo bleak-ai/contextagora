@@ -42,14 +42,14 @@ from src.routes.sync import router as sync_router  # noqa: E402
 from src.routes.workspace import router as workspace_router  # noqa: E402
 from src.services import git_repo  # noqa: E402
 
-app.include_router(health_router)
-app.include_router(modules_router)
-app.include_router(workspace_router)
-app.include_router(chat_router)
-app.include_router(files_router)
-app.include_router(commands_router)
-app.include_router(sync_router)
-app.include_router(benchmarks_router)
+app.include_router(health_router)  # Liveness/readiness probes
+app.include_router(modules_router)  # CRUD for context modules (subdirs of context/)
+app.include_router(workspace_router)  # Active workspace state & module selection
+app.include_router(chat_router)  # Chat/LLM interaction endpoints
+app.include_router(files_router)  # Read/write files inside modules
+app.include_router(commands_router)  # Execute predefined commands/scripts
+app.include_router(sync_router)  # Sync modules with the remote git repo
+app.include_router(benchmarks_router)  # Benchmark task CRUD, runs, and reports
 
 
 @app.on_event("startup")
