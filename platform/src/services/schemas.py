@@ -79,7 +79,7 @@ def augment_schema(schema_text: str, module_name: str) -> str:
         else:
             augmented_body.append(line)
 
-    infisical_header = f"""# @import(../../.env.schema)
+    infisical_header = f"""# @import(../../../.env.schema)
 # @plugin({VARLOCK_INFISICAL_PLUGIN})
 # @initInfisical(
 #   projectId=$INFISICAL_PROJECT_ID,

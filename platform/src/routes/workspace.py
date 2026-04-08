@@ -71,12 +71,14 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
     """Clear workspace and (re)link selected modules into context/.
 
     Each loaded module becomes a symlink context/<name> -> modules-repo/<name>.
-    The augmented Infisical schema is written to context/.schemas/<name>.env.schema
-    so the source .env.schema in the local clone is never mutated.
+    The augmented Infisical schema is written to a per-module subdir
+    context/.schemas/<name>/.env.schema so the source .env.schema in the local
+    clone is never mutated, and `varlock load --path context/.schemas/<name>`
+    can find it by name.
     """
     # 1. Clear context/: unlink symlinks, delete real subdirs (legacy copies),
-    #    delete loose files except PRESERVED_FILES. Leave SCHEMAS_DIR in place
-    #    but empty it.
+    #    delete loose files except PRESERVED_FILES. Wipe SCHEMAS_DIR contents
+    #    (per-module subdirs) but leave the dir itself.
     for p in CONTEXT_DIR.iterdir():
         if p == SCHEMAS_DIR:
             continue
@@ -87,9 +89,11 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
         elif p.is_file() and p.name not in PRESERVED_FILES:
             p.unlink()
 
-    for old_schema in SCHEMAS_DIR.iterdir():
-        if old_schema.is_file():
-            old_schema.unlink()
+    for entry in SCHEMAS_DIR.iterdir():
+        if entry.is_dir():
+            shutil.rmtree(entry)
+        elif entry.is_file():
+            entry.unlink()
 
     # 2. Link preserved dirs (e.g. .claude) from the local clone if they exist.
     for dirname in PRESERVED_DIRS:
@@ -125,11 +129,13 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
 
             link_path.symlink_to(target, target_is_directory=True)
 
-            # Augment schema into sibling file (does NOT touch the source).
+            # Augment schema into per-module sibling subdir (never touches source).
             source_schema = target / ".env.schema"
             if source_schema.exists():
                 augmented = augment_schema(source_schema.read_text(), name)
-                (SCHEMAS_DIR / f"{name}.env.schema").write_text(augmented)
+                schema_subdir = SCHEMAS_DIR / name
+                schema_subdir.mkdir(parents=True, exist_ok=True)
+                (schema_subdir / ".env.schema").write_text(augmented)
 
             # install_module_deps reads requirements.txt via the symlink — fine.
             dep_result = install_module_deps(link_path)
@@ -147,9 +153,9 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
                     link_path.unlink()
                 except OSError:
                     pass
-            schema_out = SCHEMAS_DIR / f"{name}.env.schema"
+            schema_out = SCHEMAS_DIR / name
             if schema_out.exists():
-                schema_out.unlink()
+                shutil.rmtree(schema_out, ignore_errors=True)
             errors.append({
                 "module": name,
                 "reason": "load_failed",
@@ -168,5 +174,5 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
 async def api_workspace_secrets():
     """Re-check secrets status from Infisical."""
     global _secrets_cache
-    _secrets_cache = await get_secrets_status(CONTEXT_DIR, list_modules)
+    _secrets_cache = await get_secrets_status(SCHEMAS_DIR, list_modules)
     return {"secrets": _secrets_cache}
