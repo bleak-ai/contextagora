@@ -5,6 +5,7 @@ description = "Minimal POC for the context module loader system"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi",
+    "python-multipart",
     "uvicorn",
     "httpx",
     "pyyaml>=6.0.3",
