@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import type { LoadedModule } from "../../api/workspace";
 
 interface Props {
@@ -71,62 +73,76 @@ export function ModuleCard({
       </div>
 
       {expanded && (
-        <div className="border-t border-dashed border-border bg-black/25 px-3 py-2">
-          {module.files.length > 0 && (
-            <Section title="📄 FILES" count={`${module.files.length}`}>
-              {module.files.map((f) => (
-                <Item key={f} name={f} />
-              ))}
-            </Section>
-          )}
+        <div className="border-t border-border bg-black/30 px-3 py-2.5">
+          <Section
+            title="📄 FILES"
+            count={`${module.files.length}`}
+            defaultOpen={false}
+          >
+            {module.files.length === 0 ? (
+              <Empty>no files</Empty>
+            ) : (
+              module.files.map((f) => (
+                <Item key={f} name={f} bullet="text-accent/60" />
+              ))
+            )}
+          </Section>
 
-          {totalSecretCount > 0 && (
-            <Section
-              title="🔑 SECRETS"
-              count={secretCountLabel}
-              warn={secretCountWarn}
-            >
-              {Object.entries(module.secrets).map(([key, val]) => (
+          <Section
+            title="🔑 SECRETS"
+            count={totalSecretCount === 0 ? "0" : secretCountLabel}
+            warn={secretCountWarn}
+            defaultOpen={secretCountWarn}
+          >
+            {totalSecretCount === 0 ? (
+              <Empty>none declared</Empty>
+            ) : (
+              Object.entries(module.secrets).map(([key, val]) => (
                 <Item
                   key={key}
                   name={key}
+                  bullet={val === null ? "text-red-400/70" : "text-accent/60"}
                   trailing={
                     val === null ? (
-                      <span className="rounded border border-red-500/35 bg-red-500/10 px-1.5 py-px text-[9px] text-red-400">
-                        missing
-                      </span>
+                      <Pill tone="bad">missing</Pill>
                     ) : (
-                      <span className="font-mono text-[10px] text-text-secondary">
+                      <Pill tone="ok" mono>
                         {val}
-                      </span>
+                      </Pill>
                     )
                   }
                 />
-              ))}
-            </Section>
-          )}
+              ))
+            )}
+          </Section>
 
-          {module.packages.length > 0 && (
-            <Section title="📦 PACKAGES" count={`${module.packages.length}`}>
-              {module.packages.map((p) => (
+          <Section
+            title="📦 PACKAGES"
+            count={`${module.packages.length}`}
+            warn={module.packages.some((p) => !p.installed)}
+            defaultOpen={module.packages.some((p) => !p.installed)}
+          >
+            {module.packages.length === 0 ? (
+              <Empty>none declared</Empty>
+            ) : (
+              module.packages.map((p) => (
                 <Item
                   key={p.name}
                   name={p.name}
+                  bullet={p.installed ? "text-accent/60" : "text-red-400/70"}
                   trailing={
                     p.installed ? (
-                      <span className="font-mono text-[10px] text-text-secondary">
-                        {p.version}
-                      </span>
+                      <Pill tone="ok" mono>
+                        v{p.version}
+                      </Pill>
                     ) : (
-                      <span className="rounded border border-red-500/35 bg-red-500/10 px-1.5 py-px text-[9px] text-red-400">
-                        not installed
-                      </span>
+                      <Pill tone="bad">not installed</Pill>
                     )
                   }
                 />
-              ))}
-            </Section>
-          )}
+              ))
+            )}
+          </Section>
         </div>
       )}
     </div>
@@ -137,22 +153,36 @@ function Section({
   title,
   count,
   warn,
+  defaultOpen = false,
   children,
 }: {
   title: string;
   count: string;
   warn?: boolean;
+  defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="mt-2 first:mt-0">
-      <div className="mb-1 flex items-center justify-between text-[9px] font-semibold tracking-wider text-text-muted">
-        <span>{title}</span>
-        <span className={`font-mono ${warn ? "text-amber-400" : ""}`}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-2 rounded border-l-2 border-accent py-1 pl-2 pr-1.5 text-[10px] font-bold uppercase tracking-wider text-text hover:bg-accent/5"
+      >
+        <span className="flex items-center gap-1.5">
+          <span className="text-[9px] text-text-muted">
+            {open ? "▾" : "▸"}
+          </span>
+          {title}
+        </span>
+        <span
+          className={`font-mono rounded px-1.5 py-0.5 text-[10px] font-semibold ${warn ? "bg-amber-400/20 text-amber-300" : "bg-accent/20 text-accent"}`}
+        >
           {count}
         </span>
-      </div>
-      {children}
+      </button>
+      {open && <div className="mt-1 space-y-px">{children}</div>}
     </div>
   );
 }
@@ -160,14 +190,47 @@ function Section({
 function Item({
   name,
   trailing,
+  bullet,
 }: {
   name: string;
   trailing?: React.ReactNode;
+  bullet?: string;
 }) {
   return (
-    <div className="flex items-baseline gap-2 py-0.5 text-[11px] font-mono">
-      <span className="flex-1 truncate text-text">{name}</span>
+    <div className="group flex items-center gap-2 rounded px-1.5 py-1 text-[11px] font-mono transition-colors hover:bg-accent/10">
+      <span className={`text-[9px] leading-none ${bullet ?? "text-accent"}`}>
+        ●
+      </span>
+      <span className="flex-1 truncate text-text font-medium">{name}</span>
       {trailing}
     </div>
+  );
+}
+
+function Empty({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="px-1.5 py-1 text-[10px] italic text-text-muted">{children}</p>
+  );
+}
+
+function Pill({
+  children,
+  tone,
+  mono,
+}: {
+  children: React.ReactNode;
+  tone: "ok" | "bad";
+  mono?: boolean;
+}) {
+  const toneClass =
+    tone === "bad"
+      ? "border-red-500/50 bg-red-500/15 text-red-300"
+      : "border-accent/50 bg-accent/15 text-accent";
+  return (
+    <span
+      className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${toneClass} ${mono ? "font-mono" : ""}`}
+    >
+      {children}
+    </span>
   );
 }

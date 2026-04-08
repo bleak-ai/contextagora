@@ -1,6 +1,5 @@
-import { useState } from "react";
-
 import type { LoadedModule } from "../../api/workspace";
+import { IdleModuleCard } from "./IdleModuleCard";
 import { ModuleCard } from "./ModuleCard";
 
 interface Props {
@@ -26,15 +25,6 @@ export function ModuleList({
   onRefreshSecrets,
   isRefreshingSecrets,
 }: Props) {
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const toggleExpand = (name: string) =>
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
-
   const loadedNames = new Set(loaded.map((m) => m.name));
   const idleModules = available.filter((n) => !loadedNames.has(n));
 
@@ -48,46 +38,36 @@ export function ModuleList({
           type="button"
           onClick={onRefreshSecrets}
           disabled={isRefreshingSecrets}
-          className="text-[10px] text-text-secondary hover:text-text"
-          title="Re-check Infisical secrets"
+          className="flex items-center gap-1 rounded border border-border bg-bg-raised px-1.5 py-0.5 text-[9px] text-text-secondary transition-colors hover:border-accent/40 hover:text-accent disabled:opacity-50"
+          title="Re-fetch secrets from Infisical for all loaded modules"
         >
-          {isRefreshingSecrets ? "…" : "↻"}
+          <span className={isRefreshingSecrets ? "animate-spin" : ""}>↻</span>
+          <span>{isRefreshingSecrets ? "checking…" : "Re-check secrets"}</span>
         </button>
       </div>
 
-      {loaded.map((m) => (
-        <ModuleCard
-          key={m.name}
-          module={m}
-          expanded={expanded.has(m.name)}
-          selected={selected.has(m.name)}
-          onToggleExpand={() => toggleExpand(m.name)}
-          onToggleSelect={() => onToggleSelect(m.name)}
-        />
-      ))}
-
-      {idleModules.map((name) => {
-        const isSelected = selected.has(name);
+      {loaded.map((m) => {
+        const isSelected = selected.has(m.name);
         return (
-          <label
-            key={name}
-            className={`mb-1.5 flex w-full cursor-pointer items-center gap-2 rounded-md border px-2.5 py-2 transition-colors ${
-              isSelected
-                ? "border-accent/60 bg-accent/10"
-                : "border-dashed border-border opacity-55 hover:opacity-100"
-            }`}
-          >
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onChange={() => onToggleSelect(name)}
-              className="h-3.5 w-3.5 accent-accent"
-            />
-            <span className="h-1.5 w-1.5 rounded-full bg-text-muted" />
-            <span className="flex-1 text-xs text-text-secondary">{name}</span>
-          </label>
+          <ModuleCard
+            key={m.name}
+            module={m}
+            expanded={isSelected}
+            selected={isSelected}
+            onToggleExpand={() => onToggleSelect(m.name)}
+            onToggleSelect={() => onToggleSelect(m.name)}
+          />
         );
       })}
+
+      {idleModules.map((name) => (
+        <IdleModuleCard
+          key={name}
+          name={name}
+          selected={selected.has(name)}
+          onToggleSelect={() => onToggleSelect(name)}
+        />
+      ))}
 
       <button
         type="button"

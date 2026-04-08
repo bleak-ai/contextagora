@@ -33,6 +33,16 @@ export function ContextPanel() {
   const [loadErrors, setLoadErrors] = useState<LoadError[]>([]);
   const toggleCollapsed = useCallback(() => setCollapsed((c) => !c), []);
 
+  type Tab = "context" | "tree" | "sessions";
+  const [tab, setTab] = useState<Tab>(() => {
+    const stored = localStorage.getItem("context-panel-tab");
+    return stored === "tree" || stored === "sessions" ? stored : "context";
+  });
+  const selectTab = (t: Tab) => {
+    setTab(t);
+    localStorage.setItem("context-panel-tab", t);
+  };
+
   // Resizable width
   const MIN_WIDTH = 240;
   const MAX_WIDTH = 640;
@@ -86,18 +96,21 @@ export function ContextPanel() {
     queryFn: fetchWorkspace,
   });
 
+  const secretsMutation = useMutation({
+    mutationFn: refreshSecrets,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workspace"] });
+    },
+  });
+
   const loadMutation = useMutation({
     mutationFn: loadModules,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["workspace"] });
       setLoadErrors(data.errors ?? []);
-    },
-  });
-
-  const secretsMutation = useMutation({
-    mutationFn: refreshSecrets,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workspace"] });
+      // Auto-fetch secrets so newly-loaded modules immediately show their
+      // Infisical state without requiring a separate manual click.
+      secretsMutation.mutate();
     },
   });
 
@@ -148,7 +161,16 @@ export function ContextPanel() {
   }
 
   return (
-    <aside className="w-[320px] flex-shrink-0 border-l border-border bg-bg-raised flex flex-col h-full">
+    <aside
+      style={{ width }}
+      className="relative flex-shrink-0 border-l border-border bg-bg-raised flex flex-col h-full"
+    >
+      {/* Resize handle */}
+      <div
+        onMouseDown={startResize}
+        className="absolute left-0 top-0 h-full w-1 -translate-x-1/2 cursor-ew-resize hover:bg-accent/40 transition-colors z-10"
+        title="Drag to resize"
+      />
       {/* Header */}
       <div className="px-3.5 py-3 border-b border-border flex items-center justify-between">
         <span className="text-accent text-[11px] font-semibold tracking-wider">
@@ -173,99 +195,125 @@ export function ContextPanel() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-2.5 py-2.5">
-        {/* Sessions */}
-        <div className="mb-3">
-          <div className="flex items-center justify-between mb-1.5 px-1">
-            <span className="text-[10px] text-text-muted tracking-wider">
-              SESSIONS
-            </span>
+      {/* Tab strip */}
+      <div className="flex border-b border-border bg-bg-raised">
+        {([
+          { id: "context", label: "Context", count: loaded.length },
+          { id: "tree", label: "Tree", count: null },
+          { id: "sessions", label: "Sessions", count: sessions.length },
+        ] as const).map((t) => {
+          const active = tab === t.id;
+          return (
             <button
-              onClick={() => setActiveClaudeSessionId(null)}
-              className="text-[10px] text-accent hover:text-accent-hover"
+              key={t.id}
+              type="button"
+              onClick={() => selectTab(t.id)}
+              className={`flex-1 px-2 py-2 text-[11px] font-medium transition-colors border-b-2 ${
+                active
+                  ? "text-accent border-accent"
+                  : "text-text-muted border-transparent hover:text-text hover:bg-bg-hover"
+              }`}
             >
-              + New chat
+              {t.label}
+              {t.count !== null && t.count > 0 && (
+                <span className={`ml-1.5 text-[9px] ${active ? "text-accent" : "text-text-muted"}`}>
+                  {t.count}
+                </span>
+              )}
             </button>
-          </div>
-          <div className="space-y-0.5 max-h-[150px] overflow-y-auto">
-            {sessions.length === 0 && (
-              <p className="text-[10px] text-text-muted px-1.5 py-1">
-                No sessions yet
-              </p>
+          );
+        })}
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-2.5 py-2.5">
+        {tab === "context" && (
+          <div>
+            <ModuleList
+              loaded={loaded}
+              available={modules}
+              selected={selected}
+              onToggleSelect={toggleModule}
+              onLoad={handleLoad}
+              isLoading={loadMutation.isPending}
+              selectionMatchesLoaded={selectionMatchesLoaded}
+              onRefreshSecrets={() => secretsMutation.mutate()}
+              isRefreshingSecrets={secretsMutation.isPending}
+            />
+
+            {loadErrors.length > 0 && (
+              <div className="mt-2 rounded-md border border-red-500/40 bg-red-500/10 p-2 text-xs text-red-300">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="font-medium">Failed to load:</span>
+                  <button
+                    type="button"
+                    onClick={() => setLoadErrors([])}
+                    className="opacity-60 hover:opacity-100"
+                    aria-label="Dismiss"
+                  >
+                    ×
+                  </button>
+                </div>
+                <ul className="mt-1 space-y-1">
+                  {loadErrors.map((e) => (
+                    <li key={e.module}>
+                      <span className="font-mono">{e.module}</span>
+                      {e.reason === "missing_secrets" ? (
+                        <>
+                          {" — missing "}
+                          {e.missing?.length ? (
+                            <span className="font-mono">{e.missing.join(", ")}</span>
+                          ) : (
+                            "secrets"
+                          )}
+                        </>
+                      ) : (
+                        <> — {e.reason}</>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
-            {sessions.map((s) => (
-              <div
-                key={s.id}
-                onClick={() => setActiveClaudeSessionId(s.id)}
-                className={`group flex items-center gap-1 px-1.5 py-1.5 rounded cursor-pointer transition-colors ${
-                  s.id === activeClaudeSessionId
-                    ? "bg-accent/10 text-accent"
-                    : "text-text hover:bg-bg-hover"
-                }`}
+          </div>
+        )}
+
+        {tab === "tree" && <DecisionTreePanel />}
+
+        {tab === "sessions" && (
+          <div>
+            <div className="flex items-center justify-between mb-1.5 px-1">
+              <span className="text-[10px] text-text-muted tracking-wider">
+                SESSIONS
+              </span>
+              <button
+                onClick={() => setActiveClaudeSessionId(null)}
+                className="text-[10px] text-accent hover:text-accent-hover"
               >
-                <span className="flex-1 text-xs truncate">{s.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Modules + Secrets */}
-        <div className="mb-3">
-          <ModuleList
-            loaded={loaded}
-            available={modules}
-            selected={selected}
-            onToggleSelect={toggleModule}
-            onLoad={handleLoad}
-            isLoading={loadMutation.isPending}
-            selectionMatchesLoaded={selectionMatchesLoaded}
-            onRefreshSecrets={() => secretsMutation.mutate()}
-            isRefreshingSecrets={secretsMutation.isPending}
-          />
-
-          {loadErrors.length > 0 && (
-            <div className="mt-2 rounded-md border border-red-500/40 bg-red-500/10 p-2 text-xs text-red-300">
-              <div className="flex items-start justify-between gap-2">
-                <span className="font-medium">Failed to load:</span>
-                <button
-                  type="button"
-                  onClick={() => setLoadErrors([])}
-                  className="opacity-60 hover:opacity-100"
-                  aria-label="Dismiss"
-                >
-                  ×
-                </button>
-              </div>
-              <ul className="mt-1 space-y-1">
-                {loadErrors.map((e) => (
-                  <li key={e.module}>
-                    <span className="font-mono">{e.module}</span>
-                    {e.reason === "missing_secrets" ? (
-                      <>
-                        {" — missing "}
-                        {e.missing?.length ? (
-                          <span className="font-mono">{e.missing.join(", ")}</span>
-                        ) : (
-                          "secrets"
-                        )}
-                      </>
-                    ) : (
-                      <> — {e.reason}</>
-                    )}
-                  </li>
-                ))}
-              </ul>
+                + New chat
+              </button>
             </div>
-          )}
-        </div>
-
-        {/* Decision Tree */}
-        <div className="pt-3 border-t border-border">
-          <div className="text-[10px] text-text-muted tracking-wider mb-2 px-1">
-            DECISION TREE
+            <div className="space-y-0.5">
+              {sessions.length === 0 && (
+                <p className="text-[10px] text-text-muted px-1.5 py-1">
+                  No sessions yet
+                </p>
+              )}
+              {sessions.map((s) => (
+                <div
+                  key={s.id}
+                  onClick={() => setActiveClaudeSessionId(s.id)}
+                  className={`group flex items-center gap-1 px-1.5 py-1.5 rounded cursor-pointer transition-colors ${
+                    s.id === activeClaudeSessionId
+                      ? "bg-accent/10 text-accent"
+                      : "text-text hover:bg-bg-hover"
+                  }`}
+                >
+                  <span className="flex-1 text-xs truncate">{s.name}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <DecisionTreePanel />
-        </div>
+        )}
       </div>
     </aside>
   );
