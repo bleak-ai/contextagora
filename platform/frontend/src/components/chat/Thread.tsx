@@ -59,7 +59,7 @@ export const Thread: FC<ThreadProps> = ({ emptyState }) => {
 
 const UserMessage: FC = () => (
   <MessagePrimitive.Root className="flex justify-end">
-    <div className="ml-auto max-w-[70%] bg-[var(--color-user-bubble)] border border-[var(--color-user-bubble-border)] rounded-[16px_16px_4px_16px] px-4 py-2.5 text-sm text-text">
+    <div className="ml-auto max-w-[70%] bg-[var(--color-user-bubble)] rounded-2xl px-4 py-2.5 text-sm text-text">
       <MessagePrimitive.Content
         components={{
           Text: ({ text }) => (
@@ -86,18 +86,9 @@ const AssistantText: FC<TextMessagePartProps> = (props) => {
   return <MarkdownText {...props} />;
 };
 
-/**
- * LeftRail renders the 2px colored vertical line.
- * Always renders one div; color set via CSS custom property from status.
- */
-const LeftRail: FC = () => (
-  <div className="flex-shrink-0 w-0.5 rounded-sm mr-4 bg-gradient-to-b from-accent to-success" />
-);
-
 const AssistantMessage: FC = () => (
   <MessagePrimitive.Root className="relative flex items-stretch gap-0 w-full group">
-    <LeftRail />
-    <div className="flex-1 min-w-0 max-w-[80%]">
+    <div className="flex-1 min-w-0 max-w-[85%]">
       <div className="space-y-1.5">
         <MessagePrimitive.Content
           components={{
@@ -220,7 +211,7 @@ const Composer: FC = () => {
           <ComposerPrimitive.Input
             autoFocus
             placeholder="Ask anything..."
-            rows={3}
+            rows={1}
             maxRows={10}
             onKeyDown={
               showSelector
@@ -232,7 +223,7 @@ const Composer: FC = () => {
             className="w-full resize-none bg-transparent px-4 py-3 pb-12 text-sm text-text placeholder:text-text-secondary placeholder:opacity-90 outline-none disabled:opacity-50"
           />
           <div className="absolute right-3 bottom-2.5 flex gap-2">
-            <AuiIf condition={(s) => !s.thread.isRunning}>
+            <AuiIf condition={(s: { thread: { isRunning: boolean } }) => !s.thread.isRunning}>
               <ComposerPrimitive.Send asChild>
                 <button
                   aria-label="Send message"
@@ -246,7 +237,7 @@ const Composer: FC = () => {
                 </button>
               </ComposerPrimitive.Send>
             </AuiIf>
-            <AuiIf condition={(s) => s.thread.isRunning}>
+            <AuiIf condition={(s: { thread: { isRunning: boolean } }) => s.thread.isRunning}>
               <ComposerPrimitive.Cancel asChild>
                 <button
                   aria-label="Stop generating"

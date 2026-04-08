@@ -49,7 +49,7 @@ export const ToolCallDisplay: FC<ToolCallMessagePartProps> = ({
         className={`w-full flex items-center gap-2 py-1.5 px-2.5 rounded-md transition-colors ${
           isRunning
             ? "bg-accent-dim border-l-2 border-l-accent"
-            : "bg-[rgba(255,255,255,0.02)] border-l-2 border-l-[#333] hover:bg-[rgba(255,255,255,0.04)]"
+            : "bg-[rgba(255,255,255,0.05)] border border-border-light border-l-2 border-l-[#6a6862] hover:bg-[rgba(255,255,255,0.08)]"
         }`}
       >
         {/* Status icon */}

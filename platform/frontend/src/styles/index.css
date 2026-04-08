@@ -2,18 +2,18 @@
 @import "@fontsource-variable/space-grotesk";
 
 @theme {
-  --color-bg: #0e0d0c;
-  --color-bg-raised: #181614;
-  --color-bg-input: #141312;
-  --color-bg-hover: #1e1c1a;
-  --color-border: #282624;
-  --color-border-light: #302e2c;
+  --color-bg: #262624;
+  --color-bg-raised: #2f2e2c;
+  --color-bg-input: #2c2c2a;
+  --color-bg-hover: #383735;
+  --color-border: #403e3a;
+  --color-border-light: #4d4b46;
   --color-text: #d8d6d4;
   --color-text-secondary: #908e8c;
   --color-text-muted: #5a5856;
   --color-bg-chat: #1a1816;
-  --color-user-bubble: rgba(196, 163, 90, 0.08);
-  --color-user-bubble-border: rgba(196, 163, 90, 0.15);
+  --color-user-bubble: #1a1a18;
+  --color-user-bubble-border: transparent;
   --color-accent: #c4a35a;
   --color-accent-hover: #d4b36a;
   --color-accent-dim: rgba(196, 163, 90, 0.1);

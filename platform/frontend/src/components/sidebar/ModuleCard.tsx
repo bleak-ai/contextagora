@@ -29,8 +29,13 @@ export function ModuleCard({
   const borderClass = !selected
     ? "border-border opacity-60"
     : status === "warn"
-      ? "border-amber-500/40"
-      : "border-accent/50";
+      ? "border-amber-500/60"
+      : "border-accent/70";
+  const cardBgClass = !selected
+    ? "bg-bg-hover"
+    : status === "warn"
+      ? "bg-amber-500/[0.08]"
+      : "bg-accent/[0.10]";
   const dotClass = !selected
     ? "bg-text-muted"
     : status === "warn"
@@ -51,7 +56,7 @@ export function ModuleCard({
 
   return (
     <div
-      className={`mb-1.5 overflow-hidden rounded-md border bg-bg-raised ${borderClass}`}
+      className={`mb-1.5 overflow-hidden rounded-md border ${cardBgClass} ${borderClass}`}
     >
       <div className="flex w-full items-center gap-2 px-2.5 py-2">
         <input
@@ -77,7 +82,7 @@ export function ModuleCard({
       </div>
 
       {expanded && (
-        <div className="border-t border-border bg-black/30 px-3 py-2.5">
+        <div className="border-t border-border bg-bg-raised px-3 py-2.5">
           <Section
             title="📄 FILES"
             count={`${module.files.length}`}

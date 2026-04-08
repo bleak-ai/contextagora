@@ -25,7 +25,7 @@ export function IdleModuleCard({ name, selected, onToggleSelect }: Props) {
 
   return (
     <div
-      className={`mb-1.5 overflow-hidden rounded-md border bg-bg-raised transition-colors ${borderClass}`}
+      className={`mb-1.5 overflow-hidden rounded-md border bg-bg-hover transition-colors ${selected ? borderClass : "border-border opacity-100"}`}
     >
       <label className="flex w-full cursor-pointer items-center gap-2 px-2.5 py-2">
         <input
@@ -38,13 +38,13 @@ export function IdleModuleCard({ name, selected, onToggleSelect }: Props) {
         <span className="flex-1 text-xs font-semibold text-text-secondary">
           {name}
         </span>
-        <span className="text-[9px] uppercase tracking-wider text-text-muted">
+        <span className="text-[9px] uppercase tracking-wider text-text-secondary">
           {selected ? "pending" : "available"}
         </span>
       </label>
 
       {selected && (
-        <div className="border-t border-dashed border-border bg-black/25 px-3 py-2">
+        <div className="border-t border-dashed border-border bg-bg-raised px-3 py-2">
           {isLoading && (
             <p className="py-1 font-mono text-[10px] text-text-muted">
               loading preview…
