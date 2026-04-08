@@ -57,6 +57,7 @@ async def api_chat(body: ChatRequest):
     """
 
     def generate():
+      try:
         env = {**os.environ}
 
         cmd = [
@@ -70,14 +71,23 @@ async def api_chat(body: ChatRequest):
         if body.claude_session_id:
             cmd.extend(["--resume", body.claude_session_id])
 
-        proc = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            cwd=str(CONTEXT_DIR),
-            env=env,
-            text=True,
-        )
+        try:
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                cwd=str(CONTEXT_DIR),
+                env=env,
+                text=True,
+            )
+        except FileNotFoundError:
+            yield f"event: error\ndata: {json.dumps({'message': 'claude CLI not found on server'})}\n\n"
+            yield f"event: done\ndata: {{}}\n\n"
+            return
+        except OSError as e:
+            yield f"event: error\ndata: {json.dumps({'message': f'Failed to start claude: {e}'})}\n\n"
+            yield f"event: done\ndata: {{}}\n\n"
+            return
 
         seen_tool_ids = set()
 
@@ -165,9 +175,13 @@ async def api_chat(body: ChatRequest):
 
         proc.wait()
         if proc.returncode != 0:
-            stderr = proc.stderr.read()
-            if stderr:
-                yield f"event: error\ndata: {json.dumps({'message': stderr.strip()})}\n\n"
-            yield f"event: done\ndata: {{}}\n\n"
+            stderr = proc.stderr.read() if proc.stderr else ""
+            msg = stderr.strip() or f"claude exited with code {proc.returncode}"
+            yield f"event: error\ndata: {json.dumps({'message': msg})}\n\n"
+        yield f"event: done\ndata: {{}}\n\n"
+      except Exception as e:
+        log.exception("chat stream crashed")
+        yield f"event: error\ndata: {json.dumps({'message': f'Server error: {e}'})}\n\n"
+        yield f"event: done\ndata: {{}}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")

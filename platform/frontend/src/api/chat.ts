@@ -33,6 +33,7 @@ export async function streamChat(
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let sawDone = false;
 
   while (true) {
     const { done, value } = await reader.read();
@@ -49,6 +50,7 @@ export async function streamChat(
       } else if (line.startsWith("data: ") && currentEventType) {
         try {
           const data = JSON.parse(line.slice(6));
+          if (currentEventType === "done") sawDone = true;
           onEvent({ type: currentEventType, ...data } as ChatEvent);
         } catch {
           // skip malformed data
@@ -56,5 +58,9 @@ export async function streamChat(
         currentEventType = "";
       }
     }
+  }
+
+  if (!sawDone) {
+    onEvent({ type: "error", message: "Connection closed unexpectedly" });
   }
 }

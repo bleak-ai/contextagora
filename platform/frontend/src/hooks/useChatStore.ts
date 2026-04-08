@@ -227,7 +227,10 @@ export const useChatStore = create<ChatState>()(
                 updateAssistant((m) => ({
                   ...m,
                   error: event.message,
+                  streaming: false,
                 }));
+                set({ streamingSessionId: null, abortController: null });
+                queryClient.invalidateQueries({ queryKey: ["sessions"] });
                 break;
               case "done":
                 updateAssistant((m) => ({ ...m, streaming: false }));
