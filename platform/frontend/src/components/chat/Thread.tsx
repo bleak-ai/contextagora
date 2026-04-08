@@ -9,6 +9,8 @@ import {
   useComposerRuntime,
 } from "@assistant-ui/react";
 import { SlashCommandSelector, useSlashCommands } from "./SlashCommandSelector";
+import { MentionSelector, useMentionPicker } from "./MentionSelector";
+import type { WorkspaceFile } from "../../api/workspace";
 import { MarkdownText } from "./MarkdownText";
 import { ToolCallDisplay } from "./ToolCallDisplay";
 import { ThinkingDisplay } from "./ThinkingDisplay";
@@ -164,6 +166,35 @@ const Composer: FC = () => {
     onDismiss: handleDismiss,
   });
 
+  const handleMentionSelect = useCallback(
+    (file: WorkspaceFile) => {
+      const text = composerRuntime.getState().text;
+      const c = text.length;
+      let start = -1;
+      for (let i = c - 1; i >= 0; i--) {
+        const ch = text[i];
+        if (ch === "@") {
+          if (i === 0 || /\s/.test(text[i - 1])) start = i;
+          break;
+        }
+        if (/\s/.test(ch)) break;
+      }
+      if (start === -1) return;
+      const before = text.slice(0, start);
+      const after = text.slice(c);
+      composerRuntime.setText(`${before}@${file.label} ${after}`);
+    },
+    [composerRuntime],
+  );
+
+  const mentionPicker = useMentionPicker({
+    inputText,
+    cursorPosition: inputText.length,
+    dismissed,
+    onSelect: handleMentionSelect,
+    onDismiss: handleDismiss,
+  });
+
   return (
     <div className="border-t border-border bg-bg px-5 py-3">
       <div className="relative max-w-[700px] mx-auto">
@@ -175,27 +206,56 @@ const Composer: FC = () => {
             onSelect={handleSelect}
           />
         )}
+        {!showSelector && mentionPicker.active && (
+          <MentionSelector
+            filtered={mentionPicker.filtered}
+            totalMatches={mentionPicker.totalMatches}
+            hasModules={mentionPicker.hasModules}
+            activeIndex={mentionPicker.activeIndex}
+            setActiveIndex={mentionPicker.setActiveIndex}
+            onSelect={handleMentionSelect}
+          />
+        )}
         <ComposerPrimitive.Root className="relative bg-bg-input border border-border rounded-xl focus-within:border-accent/40 transition-colors">
           <ComposerPrimitive.Input
             autoFocus
             placeholder="Ask anything..."
             rows={3}
             maxRows={10}
-            onKeyDown={showSelector ? handleKeyDown : undefined}
-            className="w-full resize-none bg-transparent px-4 py-3 pb-12 text-sm text-text placeholder-text-muted outline-none disabled:opacity-50"
+            onKeyDown={
+              showSelector
+                ? handleKeyDown
+                : mentionPicker.active
+                  ? mentionPicker.handleKeyDown
+                  : undefined
+            }
+            className="w-full resize-none bg-transparent px-4 py-3 pb-12 text-sm text-text placeholder:text-text-secondary placeholder:opacity-90 outline-none disabled:opacity-50"
           />
           <div className="absolute right-3 bottom-2.5 flex gap-2">
             <AuiIf condition={(s) => !s.thread.isRunning}>
               <ComposerPrimitive.Send asChild>
-                <button className="px-4 py-1.5 bg-accent text-accent-text text-xs font-semibold rounded-lg hover:bg-accent-hover disabled:opacity-30 disabled:cursor-not-allowed transition-opacity">
-                  Send
+                <button
+                  aria-label="Send message"
+                  title="Send"
+                  className="flex items-center justify-center w-8 h-8 bg-accent text-accent-text rounded-lg hover:bg-accent-hover disabled:opacity-30 disabled:cursor-not-allowed transition-opacity"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <line x1="12" y1="19" x2="12" y2="5" />
+                    <polyline points="5 12 12 5 19 12" />
+                  </svg>
                 </button>
               </ComposerPrimitive.Send>
             </AuiIf>
             <AuiIf condition={(s) => s.thread.isRunning}>
               <ComposerPrimitive.Cancel asChild>
-                <button className="px-4 py-1.5 bg-danger/20 text-danger text-xs font-semibold rounded-lg hover:bg-danger/30 transition-opacity">
-                  Stop
+                <button
+                  aria-label="Stop generating"
+                  title="Stop"
+                  className="flex items-center justify-center w-8 h-8 bg-danger/20 text-danger rounded-lg hover:bg-danger/30 transition-opacity"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <rect x="4" y="4" width="16" height="16" rx="1.5" />
+                  </svg>
                 </button>
               </ComposerPrimitive.Cancel>
             </AuiIf>

@@ -42,3 +42,13 @@ export function refreshSecrets(): Promise<{
 }> {
   return apiFetch("/workspace/secrets", { method: "POST" });
 }
+
+export interface WorkspaceFile {
+  module: string;
+  path: string;
+  label: string; // "<module>/<path>"
+}
+
+export function fetchWorkspaceFiles(): Promise<{ files: WorkspaceFile[] }> {
+  return apiFetch("/workspace/files");
+}

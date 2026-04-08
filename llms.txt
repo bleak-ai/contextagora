@@ -24,6 +24,7 @@
 - [platform/frontend/src/api/](platform/frontend/src/api/) — API client layer (fetch wrapper, modules, workspace, chat, sessions, commands)
 - [platform/frontend/src/api/commands.ts](platform/frontend/src/api/commands.ts) — Slash commands API client (fetchCommands, Command type)
 - [platform/frontend/src/components/chat/SlashCommandSelector.tsx](platform/frontend/src/components/chat/SlashCommandSelector.tsx) — Slash command dropdown selector component and useSlashCommands hook
+- [platform/frontend/src/components/chat/MentionSelector.tsx](platform/frontend/src/components/chat/MentionSelector.tsx) — @-mention file picker component (MentionSelector), useMentionPicker hook, and findActiveMention utility
 - [platform/frontend/src/components/chat/DecisionTreePanel.tsx](platform/frontend/src/components/chat/DecisionTreePanel.tsx) — Tree navigation visualization with breadcrumbs and module access counts
 - [platform/frontend/src/api/sessions.ts](platform/frontend/src/api/sessions.ts) — Sessions API client (fetchSessions only; SessionInfo type)
 - [platform/frontend/src/hooks/useSessionStore.ts](platform/frontend/src/hooks/useSessionStore.ts) — Zustand store holding only `activeClaudeSessionId` (localStorage-persisted); session list comes from the server

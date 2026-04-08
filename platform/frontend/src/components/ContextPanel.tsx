@@ -107,6 +107,7 @@ export function ContextPanel() {
     mutationFn: loadModules,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["workspace"] });
+      queryClient.invalidateQueries({ queryKey: ["workspace-files"] });
       setLoadErrors(data.errors ?? []);
       // Auto-fetch secrets so newly-loaded modules immediately show their
       // Infisical state without requiring a separate manual click.

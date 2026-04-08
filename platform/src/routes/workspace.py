@@ -44,6 +44,28 @@ async def api_workspace():
     return {"modules": modules}
 
 
+@router.get("/files")
+async def api_workspace_files():
+    """Flat list of every file across all currently loaded modules.
+
+    Used by the chat composer's @-mention picker. Each entry is a
+    `<module>/<relative_path>` string the agent can resolve via Read.
+    """
+    out: list[dict] = []
+    for name in list_modules(CONTEXT_DIR):
+        module_dir = CONTEXT_DIR / name
+        try:
+            for path in list_workspace_files(module_dir, MANAGED_FILES):
+                out.append({
+                    "module": name,
+                    "path": path,
+                    "label": f"{name}/{path}",
+                })
+        except FileNotFoundError:
+            continue
+    return {"files": out}
+
+
 @router.post("/load")
 async def api_workspace_load(body: WorkspaceLoadRequest):
     """Clear workspace and download selected modules."""
