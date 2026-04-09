@@ -37,15 +37,6 @@ class SecretsValidationError(Exception):
         super().__init__(f"{module}: missing {missing or '<unknown>'}")
 
 
-def load_module_secrets(module_dir: Path) -> subprocess.CompletedProcess:
-    """Run `varlock load --format json` for a module dir."""
-    return subprocess.run(
-        ["varlock", "load", "--format", "json", "--path", str(module_dir)],
-        capture_output=True,
-        text=True,
-    )
-
-
 def parse_varlock_failure(stderr: str) -> list[str]:
     """Extract missing variable names from varlock's human-readable error output.
 
@@ -62,42 +53,27 @@ def parse_varlock_failure(stderr: str) -> list[str]:
     return found
 
 
-def _read_schema_vars(module_dir: Path) -> list[str]:
-    """Best-effort: list non-comment KEY= entries from a module's
-    .env.schema, excluding the Infisical bootstrap vars. Used as a
-    fallback when varlock errors out before naming what's missing."""
-    schema = module_dir / ".env.schema"
-    if not schema.exists():
-        return []
-    names: list[str] = []
-    for line in schema.read_text().splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        key, sep, _ = line.partition("=")
-        key = key.strip()
-        if sep and key and key not in INFISICAL_VARS and key not in names:
-            names.append(key)
-    return names
+def load_and_mask_secrets(workspace_dir: Path) -> dict[str, str | None]:
+    """Run `varlock load --format json` at the workspace root.
 
-
-def load_and_mask_module_secrets(module_dir: Path) -> dict[str, str | None]:
-    """Run varlock once for a module and return {VAR: masked_preview}.
-
-    Raises SecretsValidationError on any varlock failure. The caller is
-    responsible for cleanup (e.g. removing the module dir).
+    Returns {VAR: masked_preview} for all non-bootstrap vars.
+    Raises SecretsValidationError on any varlock failure.
     """
-    result = load_module_secrets(module_dir)
+    result = subprocess.run(
+        ["varlock", "load", "--format", "json", "--path", str(workspace_dir)],
+        capture_output=True,
+        text=True,
+    )
     if result.returncode != 0:
         combined = (result.stderr or "") + "\n" + (result.stdout or "")
         missing = parse_varlock_failure(combined)
-        raise SecretsValidationError(module_dir.name, missing, combined.strip())
+        raise SecretsValidationError("workspace", missing, combined.strip())
 
     try:
         data = json.loads(result.stdout)
     except json.JSONDecodeError as exc:
         raise SecretsValidationError(
-            module_dir.name, [], f"varlock returned invalid JSON: {exc}\n{result.stdout}"
+            "workspace", [], f"varlock returned invalid JSON: {exc}\n{result.stdout}"
         ) from exc
 
     return {
@@ -110,31 +86,49 @@ def load_and_mask_module_secrets(module_dir: Path) -> dict[str, str | None]:
 async def get_secrets_status(
     directory: Path, list_modules_fn
 ) -> dict[str, dict[str, str | None]]:
-    """Refresh masked secret previews for every module currently on disk.
+    """Resolve secrets via the global schema and split results by module.
 
-    Modules whose `varlock load` fails are reported with their missing keys
-    set to None, but are NOT removed — that's the load endpoint's job.
+    The global schema at directory/.env.schema resolves all module secrets
+    in one varlock call. Results are split back to per-module dicts by
+    reading each module's dumb .env.schema for its declared var names.
     """
+    if not (directory / ".env.schema").exists():
+        return {}
+
+    # Build var_name -> module_name mapping from each module's dumb schema
+    var_to_module: dict[str, str] = {}
     modules = [
-        m
-        for m in list_modules_fn(directory)
+        m for m in list_modules_fn(directory)
         if (directory / m / ".env.schema").exists()
     ]
+    for name in modules:
+        schema = (directory / name / ".env.schema").read_text()
+        for line in schema.splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" in line:
+                key = line.split("=", 1)[0]
+                if key not in INFISICAL_VARS:
+                    var_to_module[key] = name
 
-    async def safe(name: str) -> tuple[str, dict[str, str | None]]:
-        try:
-            previews = await asyncio.to_thread(
-                load_and_mask_module_secrets, directory / name
-            )
-            return name, previews
-        except SecretsValidationError as e:
-            log.warning("refresh: %s still invalid (missing=%s)", name, e.missing)
-            # If varlock failed without naming what's missing (or only
-            # named the first one), fall back to the schema so the UI
-            # always shows every declared secret.
-            schema_vars = _read_schema_vars(directory / name)
-            keys = list(dict.fromkeys([*e.missing, *schema_vars]))
-            return name, {k: None for k in keys}
+    # Run varlock once at workspace root
+    try:
+        previews = await asyncio.to_thread(load_and_mask_secrets, directory)
+    except SecretsValidationError as e:
+        log.warning("global varlock failed (missing=%s)", e.missing)
+        result: dict[str, dict[str, str | None]] = {m: {} for m in modules}
+        for var, mod in var_to_module.items():
+            result[mod][var] = None
+        return result
 
-    results = await asyncio.gather(*(safe(m) for m in modules))
-    return dict(results)
+    # Split resolved vars by module
+    result = {m: {} for m in modules}
+    for var, value in previews.items():
+        mod = var_to_module.get(var)
+        if mod and mod in result:
+            result[mod][var] = value
+    for var, mod in var_to_module.items():
+        if var not in previews and mod in result:
+            result[mod][var] = None
+    return result

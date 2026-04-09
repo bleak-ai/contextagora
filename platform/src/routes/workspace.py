@@ -5,14 +5,14 @@ from fastapi import APIRouter
 
 from src.llms import generate_root_llms_txt
 from src.models import WorkspaceLoadRequest
-from src.server import CONTEXT_DIR, MANAGED_FILES, PRESERVED_FILES, SCHEMAS_DIR, list_modules
+from src.server import CONTEXT_DIR, MANAGED_FILES, PRESERVED_FILES, list_modules
 from src.services.workspace_inspect import (
     inspect_module_packages,
     list_workspace_files,
 )
 from src.services import git_repo
 from src.services.deps import install_module_deps
-from src.services.schemas import augment_schema
+from src.services.schemas import generate_global_schema
 from src.services.secrets import get_secrets_status
 
 log = logging.getLogger(__name__)
@@ -71,29 +71,18 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
     """Clear workspace and (re)link selected modules into context/.
 
     Each loaded module becomes a symlink context/<name> -> modules-repo/<name>.
-    The augmented Infisical schema is written to a per-module subdir
-    context/.schemas/<name>/.env.schema so the source .env.schema in the local
-    clone is never mutated, and `varlock load --path context/.schemas/<name>`
-    can find it by name.
+    A global context/.env.schema is generated with Infisical config for all
+    modules so varlock resolves secrets directly from the workspace root.
     """
     # 1. Clear context/: unlink symlinks, delete real subdirs (legacy copies),
-    #    delete loose files except PRESERVED_FILES. Wipe SCHEMAS_DIR contents
-    #    (per-module subdirs) but leave the dir itself.
+    #    delete loose files except PRESERVED_FILES.
     for p in CONTEXT_DIR.iterdir():
-        if p == SCHEMAS_DIR:
-            continue
         if p.is_symlink():
             p.unlink()
         elif p.is_dir():
             shutil.rmtree(p)
         elif p.is_file() and p.name not in PRESERVED_FILES:
             p.unlink()
-
-    for entry in SCHEMAS_DIR.iterdir():
-        if entry.is_dir():
-            shutil.rmtree(entry)
-        elif entry.is_file():
-            entry.unlink()
 
     # 2. Link preserved dirs (e.g. .claude) from the local clone if they exist.
     for dirname in PRESERVED_DIRS:
@@ -129,14 +118,6 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
 
             link_path.symlink_to(target, target_is_directory=True)
 
-            # Augment schema into per-module sibling subdir (never touches source).
-            source_schema = target / ".env.schema"
-            if source_schema.exists():
-                augmented = augment_schema(source_schema.read_text(), name)
-                schema_subdir = SCHEMAS_DIR / name
-                schema_subdir.mkdir(parents=True, exist_ok=True)
-                (schema_subdir / ".env.schema").write_text(augmented)
-
             # install_module_deps reads requirements.txt via the symlink — fine.
             dep_result = install_module_deps(link_path)
             if dep_result is not None and dep_result.returncode != 0:
@@ -153,9 +134,6 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
                     link_path.unlink()
                 except OSError:
                     pass
-            schema_out = SCHEMAS_DIR / name
-            if schema_out.exists():
-                shutil.rmtree(schema_out, ignore_errors=True)
             errors.append({
                 "module": name,
                 "reason": "load_failed",
@@ -163,6 +141,21 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
             })
 
     generate_root_llms_txt(CONTEXT_DIR)
+
+    # Generate global .env.schema for varlock at workspace root.
+    modules_with_schemas: dict[str, str] = {}
+    for name in loaded:
+        schema_path = CONTEXT_DIR / name / ".env.schema"
+        if schema_path.exists():
+            modules_with_schemas[name] = schema_path.read_text()
+    if modules_with_schemas:
+        (CONTEXT_DIR / ".env.schema").write_text(
+            generate_global_schema(modules_with_schemas)
+        )
+    else:
+        schema_file = CONTEXT_DIR / ".env.schema"
+        if schema_file.exists():
+            schema_file.unlink()
 
     response: dict = {"modules": loaded}
     if errors:
@@ -174,5 +167,5 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
 async def api_workspace_secrets():
     """Re-check secrets status from Infisical."""
     global _secrets_cache
-    _secrets_cache = await get_secrets_status(SCHEMAS_DIR, list_modules)
+    _secrets_cache = await get_secrets_status(CONTEXT_DIR, list_modules)
     return {"secrets": _secrets_cache}

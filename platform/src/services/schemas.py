@@ -1,8 +1,16 @@
 import os
 import re
+from pathlib import Path
 
+INFISICAL_PLUGIN = "@varlock/infisical-plugin@0.0.6"
 INFISICAL_SITE_URL = os.environ.get("INFISICAL_SITE_URL", "https://app.infisical.com")
-VARLOCK_INFISICAL_PLUGIN = "@varlock/infisical-plugin@0.0.6"
+
+INFISICAL_BOOTSTRAP_VARS = {
+    "INFISICAL_PROJECT_ID",
+    "INFISICAL_ENVIRONMENT",
+    "INFISICAL_CLIENT_ID",
+    "INFISICAL_CLIENT_SECRET",
+}
 
 _VALID_MODULE_NAME = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]*$")
 
@@ -32,7 +40,7 @@ def validate_module_file_path(file_path: str, managed_files: set[str]) -> str:
 
 
 def generate_env_schema(var_names: list[str]) -> str:
-    """Generate a .env.schema file from variable names."""
+    """Generate a dumb .env.schema for a single module (stored in git)."""
     lines = ["# ---"]
     for var in var_names:
         lines.append("# @required @sensitive @type=string")
@@ -41,56 +49,75 @@ def generate_env_schema(var_names: list[str]) -> str:
 
 
 def parse_env_schema(schema_text: str) -> list[str]:
-    """Extract variable names from a .env.schema file."""
+    """Extract variable names from a .env.schema, filtering out bootstrap vars."""
     return [
         line.split("=", 1)[0]
         for line in schema_text.splitlines()
-        if line.strip() and not line.strip().startswith("#") and "=" in line
+        if line.strip()
+        and not line.strip().startswith("#")
+        and "=" in line
+        and line.split("=", 1)[0] not in INFISICAL_BOOTSTRAP_VARS
     ]
 
 
-def augment_schema(schema_text: str, module_name: str) -> str:
-    """Wrap a module's .env.schema with Infisical plugin config."""
-    header_lines = []
-    separator_seen = False
-    body_lines = []
+def _extract_module_vars(schema_text: str) -> list[str]:
+    """Extract module-specific variable names from a dumb .env.schema."""
+    return [
+        line.split("=", 1)[0]
+        for line in schema_text.splitlines()
+        if line.strip()
+        and not line.strip().startswith("#")
+        and "=" in line
+        and line.split("=", 1)[0] not in INFISICAL_BOOTSTRAP_VARS
+    ]
 
-    for line in schema_text.splitlines():
-        if not separator_seen:
-            if line.strip() == "# ---":
-                separator_seen = True
-            header_lines.append(line)
-        else:
-            body_lines.append(line)
 
-    if not separator_seen:
-        body_lines = header_lines
-        header_lines = ["# ---"]
+def generate_global_schema(modules_with_schemas: dict[str, str]) -> str:
+    """Generate a single .env.schema for the workspace root.
 
-    augmented_body = []
-    for line in body_lines:
-        stripped = line.strip()
-        if stripped and not stripped.startswith("#") and "=" in stripped:
-            key, value = stripped.split("=", 1)
-            if not value:
-                augmented_body.append(f"{key}=infisical()")
-            else:
-                augmented_body.append(line)
-        else:
-            augmented_body.append(line)
+    Args:
+        modules_with_schemas: {module_name: raw_schema_text} for each
+            loaded module that has a .env.schema.
 
-    infisical_header = f"""# @import(../../../.env.schema)
-# @plugin({VARLOCK_INFISICAL_PLUGIN})
-# @initInfisical(
-#   projectId=$INFISICAL_PROJECT_ID,
-#   environment=$INFISICAL_ENVIRONMENT,
-#   clientId=$INFISICAL_CLIENT_ID,
-#   clientSecret=$INFISICAL_CLIENT_SECRET,
-#   secretPath=/{module_name},
-#   siteUrl={INFISICAL_SITE_URL}
-# )"""
+    Returns:
+        Complete schema text with one @initInfisical block per module,
+        shared bootstrap var declarations, and per-var infisical() resolvers.
+    """
+    lines = [f"# @plugin({INFISICAL_PLUGIN})"]
 
-    parts = [infisical_header]
-    parts.extend(header_lines)
-    parts.extend(augmented_body)
-    return "\n".join(parts) + "\n"
+    # One @initInfisical block per module
+    for module_name in sorted(modules_with_schemas):
+        lines.extend([
+            "# @initInfisical(",
+            f"#   id={module_name},",
+            "#   projectId=$INFISICAL_PROJECT_ID,",
+            "#   environment=$INFISICAL_ENVIRONMENT,",
+            "#   clientId=$INFISICAL_CLIENT_ID,",
+            "#   clientSecret=$INFISICAL_CLIENT_SECRET,",
+            f"#   secretPath=/{module_name},",
+            f"#   siteUrl={INFISICAL_SITE_URL}",
+            "# )",
+        ])
+
+    lines.append("# ---")
+
+    # Bootstrap vars (shared across all modules)
+    lines.extend([
+        "# @type=string @required",
+        "INFISICAL_PROJECT_ID=",
+        "# @type=string @required",
+        "INFISICAL_ENVIRONMENT=",
+        "# @type=infisicalClientId @required",
+        "INFISICAL_CLIENT_ID=",
+        "# @type=infisicalClientSecret @sensitive @required",
+        "INFISICAL_CLIENT_SECRET=",
+    ])
+
+    # Module-specific vars
+    for module_name in sorted(modules_with_schemas):
+        var_names = _extract_module_vars(modules_with_schemas[module_name])
+        for var in var_names:
+            lines.append("# @required @sensitive @type=string")
+            lines.append(f"{var}=infisical({module_name}, {var})")
+
+    return "\n".join(lines) + "\n"

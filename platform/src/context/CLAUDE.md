@@ -44,7 +44,7 @@ Bash invocation, no temp files, no nested quoting, no `sh -c`, no escaping.
 
 Concrete example — Python script that needs Firestore credentials:
 
-    varlock run --path ./firestore -- uv run python <<'PYEOF'
+    varlock run -- uv run python <<'PYEOF'
     import os, json
     from google.cloud import firestore
     from google.oauth2 import service_account
@@ -66,7 +66,7 @@ Why this works:
 - **The script reads its variables from inside Python via `os.environ`**, not
   from the command line, so there are no `$VAR` references for the parent
   shell to mishandle. No `sh -c` needed.
-- **Varlock injects the resolved values into `uv`'s environment**, `uv` passes
+- **Varlock injects all loaded module secrets into `uv`'s environment**, `uv` passes
   them to `python`, and `python` reads them from `os.environ`. The values
   exist only for the lifetime of this command.
 
@@ -79,7 +79,7 @@ delimiter (`NODEEOF`, `SHEOF`, …) and the interpreter.
 If your command is genuinely a single short shell command, you can use the
 inline form:
 
-    varlock run --path ./<module> -- sh -c '<one short command>'
+    varlock run -- sh -c '<one short command>'
 
 The `sh -c '...'` is required **only if your command line contains a `$VAR`
 reference that needs to be expanded after varlock injects**. Without `sh -c`,
@@ -88,11 +88,11 @@ empty, and your command receives an empty value.
 
 Wrong (silently uses an empty value):
 
-    varlock run --path ./firestore -- echo $FIRESTORE_MAAT_PROJECT_ID
+    varlock run -- echo $FIRESTORE_MAAT_PROJECT_ID
 
 Right (defers expansion):
 
-    varlock run --path ./firestore -- sh -c 'echo $FIRESTORE_MAAT_PROJECT_ID'
+    varlock run -- sh -c 'echo $FIRESTORE_MAAT_PROJECT_ID'
 
 For anything more than a single short command, prefer the heredoc form above.
 It is shorter, clearer, and has no quoting traps.

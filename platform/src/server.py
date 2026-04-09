@@ -11,12 +11,6 @@ BASE_DIR = Path(__file__).resolve().parent
 CONTEXT_DIR = BASE_DIR / "context"
 CONTEXT_DIR.mkdir(exist_ok=True)
 
-# Sibling dir for augmented .env.schemas (kept outside module dirs so the
-# source .env.schema in the local clone is never mutated). Hidden so it
-# doesn't show up in list_modules().
-SCHEMAS_DIR = CONTEXT_DIR / ".schemas"
-SCHEMAS_DIR.mkdir(exist_ok=True)
-
 # Files in context/ that should survive when modules are reloaded
 PRESERVED_FILES = {"CLAUDE.md"}
 
