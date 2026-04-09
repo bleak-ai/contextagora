@@ -83,7 +83,12 @@ def generate_global_schema(modules_with_schemas: dict[str, str]) -> str:
         Complete schema text with one @initInfisical block per module,
         shared bootstrap var declarations, and per-var infisical() resolvers.
     """
-    lines = [f"# @plugin({INFISICAL_PLUGIN})"]
+    lines = [
+        "# AUTO-GENERATED — do not edit or read this file.",
+        "# Varlock uses it to resolve module secrets at runtime.",
+        "# All credentials are pre-configured. Just use: varlock run -- <command>",
+        f"# @plugin({INFISICAL_PLUGIN})",
+    ]
 
     # One @initInfisical block per module
     for module_name in sorted(modules_with_schemas):
