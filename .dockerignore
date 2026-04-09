@@ -6,5 +6,6 @@
 __pycache__/
 *.egg-info/
 .git/
+**/node_modules/
 platform/src/context/*
 !platform/src/context/CLAUDE.md

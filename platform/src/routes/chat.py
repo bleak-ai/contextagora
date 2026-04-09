@@ -90,6 +90,7 @@ async def api_chat(body: ChatRequest):
             return
 
         seen_tool_ids = set()
+        non_json_stdout: list[str] = []
 
         # Per-request tree state. Lives only for the duration of this stream;
         # the frontend treats `tree_navigation` events as a live view, not
@@ -104,6 +105,7 @@ async def api_chat(body: ChatRequest):
             try:
                 event = json.loads(line)
             except json.JSONDecodeError:
+                non_json_stdout.append(line)
                 continue
 
             event_type = event.get("type", "")
@@ -175,9 +177,14 @@ async def api_chat(body: ChatRequest):
 
         proc.wait()
         if proc.returncode != 0:
-            stderr = proc.stderr.read() if proc.stderr else ""
-            msg = stderr.strip() or f"claude exited with code {proc.returncode}"
-            yield f"event: error\ndata: {json.dumps({'message': msg})}\n\n"
+            stderr = (proc.stderr.read() if proc.stderr else "").strip()
+            extra = "\n".join(non_json_stdout[-20:]).strip()
+            log.error(
+                "claude exited rc=%s cmd=%s stderr=%r stdout_tail=%r",
+                proc.returncode, cmd, stderr, extra,
+            )
+            msg = stderr or extra or f"claude exited with code {proc.returncode}"
+            yield f"event: error\ndata: {json.dumps({'message': msg, 'returncode': proc.returncode, 'stderr': stderr, 'stdout_tail': extra})}\n\n"
         yield f"event: done\ndata: {{}}\n\n"
       except Exception as e:
         log.exception("chat stream crashed")

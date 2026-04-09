@@ -28,7 +28,8 @@ uv run start
 To build from source with Docker:
 
 ```bash
-docker compose up -d --build
+docker build -t context-loader:local .  
+docker run --rm -p 8080:8080 --env-file .env.local  context-loader:local
 ```
 
 ## Test with Claude Code
