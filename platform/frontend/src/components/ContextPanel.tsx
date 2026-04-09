@@ -8,6 +8,7 @@ import {
   type LoadError,
 } from "../api/workspace";
 import { fetchSessions } from "../api/sessions";
+import { useChatStore } from "../hooks/useChatStore";
 import { useSessionStore } from "../hooks/useSessionStore";
 import { DecisionTreePanel } from "./chat/DecisionTreePanel";
 import { SyncControls } from "./SyncControls";
@@ -17,6 +18,11 @@ import { RootSection } from "./sidebar/RootSection";
 export function ContextPanel() {
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const rawModel = useChatStore((s) => s.model);
+  const modelLabel = rawModel
+    ? rawModel.replace("claude-", "").replace(/-\d{8}$/, "")
+    : null;
 
   // Session state
   const activeClaudeSessionId = useSessionStore(
@@ -176,9 +182,16 @@ export function ContextPanel() {
       />
       {/* Header */}
       <div className="px-3.5 py-3 border-b border-border flex items-center justify-between">
-        <span className="text-accent text-[11px] font-semibold tracking-wider">
-          CONTEXT
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-accent text-[11px] font-semibold tracking-wider">
+            CONTEXT
+          </span>
+          {modelLabel && (
+            <span className="text-[9px] text-text-secondary font-medium px-1.5 py-0.5 rounded border border-border">
+              {modelLabel}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <SyncControls />
           {loaded.length > 0 && (

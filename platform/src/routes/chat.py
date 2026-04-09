@@ -113,7 +113,11 @@ async def api_chat(body: ChatRequest):
             if event_type == "system":
                 sid = event.get("session_id")
                 if sid:
-                    yield f"event: session\ndata: {json.dumps({'session_id': sid})}\n\n"
+                    payload = {"session_id": sid}
+                    model = event.get("model")
+                    if model:
+                        payload["model"] = model
+                    yield f"event: session\ndata: {json.dumps(payload)}\n\n"
 
             elif event_type == "stream_event":
                 inner = event.get("event", {})

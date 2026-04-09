@@ -39,6 +39,7 @@ interface ChatState {
   streamingSessionId: string | null;
   abortController: AbortController | null;
   moduleToolCompletedCount: number;
+  model: string | null;
   // Live, ephemeral. Belongs to whatever stream is currently running (or
   // whatever just finished). Never persisted, never keyed by session — when
   // the user clicks a past session, they get the *current* live tree, not a
@@ -59,6 +60,7 @@ export const useChatStore = create<ChatState>()(
       streamingSessionId: null,
       abortController: null,
       moduleToolCompletedCount: 0,
+      model: null,
       currentTreeState: null,
 
       sendMessage: (inputSessionId: string | null, prompt: string) => {
@@ -189,6 +191,9 @@ export const useChatStore = create<ChatState>()(
                 break;
               case "session": {
                 const newId = event.session_id;
+                if (event.model) {
+                  set({ model: event.model });
+                }
                 useSessionStore.getState().setActiveClaudeSessionId(newId);
                 if (newId && newId !== sessionId) {
                   // Migrate messages from placeholder (or old id) to real id.
