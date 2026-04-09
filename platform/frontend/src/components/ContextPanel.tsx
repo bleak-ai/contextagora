@@ -181,33 +181,37 @@ export function ContextPanel() {
         title="Drag to resize"
       />
       {/* Header */}
-      <div className="px-3.5 py-3 border-b border-border flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-accent text-[11px] font-semibold tracking-wider">
-            CONTEXT
-          </span>
-          {modelLabel && (
-            <span className="text-[9px] text-text-secondary font-medium px-1.5 py-0.5 rounded border border-border">
-              {modelLabel}
+      <div className="px-3.5 py-3 border-b border-border">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-accent text-[11px] font-semibold tracking-wider">
+              CONTEXT
             </span>
-          )}
+            {modelLabel && (
+              <span className="text-[9px] text-text-secondary font-medium px-1.5 py-0.5 rounded border border-border">
+                {modelLabel}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {loaded.length > 0 && (
+              <span className="bg-accent-dim text-accent text-[10px] px-2 py-0.5 rounded-full">
+                {loaded.length} loaded
+              </span>
+            )}
+            <button
+              onClick={toggleCollapsed}
+              className="p-1 rounded hover:bg-bg-hover text-text-muted hover:text-text transition-colors"
+              title="Collapse sidebar"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="mt-2">
           <SyncControls />
-          {loaded.length > 0 && (
-            <span className="bg-accent-dim text-accent text-[10px] px-2 py-0.5 rounded-full">
-              {loaded.length} loaded
-            </span>
-          )}
-          <button
-            onClick={toggleCollapsed}
-            className="p-1 rounded hover:bg-bg-hover text-text-muted hover:text-text transition-colors"
-            title="Collapse sidebar"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
         </div>
       </div>
 
