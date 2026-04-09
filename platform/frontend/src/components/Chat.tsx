@@ -36,27 +36,21 @@ export function Chat() {
   const loaded = workspace?.modules.map((m) => m.name) || [];
   const allModules = modulesData?.modules || [];
 
-  const { runtime, clearMessages, hasMessages } = useContextChatRuntime({
+  const setActiveClaudeSessionId = useSessionStore((s) => s.setActiveClaudeSessionId);
+
+  const { runtime, hasMessages } = useContextChatRuntime({
     isDisabled: false,
     sessionId: activeClaudeSessionId,
   });
+
+  const startNewSession = () => {
+    setActiveClaudeSessionId(null);
+  };
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
       <div className="flex h-full">
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Clear button */}
-          {hasMessages && (
-            <div className="flex justify-end px-5 py-1.5">
-              <button
-                onClick={clearMessages}
-                className="text-xs text-text-muted hover:text-text-secondary"
-              >
-                Clear
-              </button>
-            </div>
-          )}
-
           {/* Thread */}
           <Thread
             emptyState={
@@ -65,6 +59,7 @@ export function Chat() {
                 loadedModules={loaded}
               />
             }
+            onNewSession={hasMessages ? startNewSession : undefined}
           />
         </div>
         <ContextPanel />

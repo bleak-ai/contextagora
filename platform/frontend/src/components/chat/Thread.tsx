@@ -18,9 +18,10 @@ import { ModulePreviewCard } from "./ModulePreviewCard";
 
 interface ThreadProps {
   emptyState?: ReactNode;
+  onNewSession?: () => void;
 }
 
-export const Thread: FC<ThreadProps> = ({ emptyState }) => {
+export const Thread: FC<ThreadProps> = ({ emptyState, onNewSession }) => {
   return (
     <ThreadPrimitive.Root className="flex flex-col flex-1 min-h-0">
       <ThreadPrimitive.Viewport className="flex-1 flex flex-col overflow-y-auto bg-bg">
@@ -49,7 +50,7 @@ export const Thread: FC<ThreadProps> = ({ emptyState }) => {
         {/* Bottom composer (only when messages exist) */}
         <AuiIf condition={(s) => !s.thread.isEmpty}>
           <ThreadPrimitive.ViewportFooter className="sticky bottom-0 mt-auto bg-bg">
-            <Composer />
+            <Composer onNewSession={onNewSession} />
           </ThreadPrimitive.ViewportFooter>
         </AuiIf>
       </ThreadPrimitive.Viewport>
@@ -121,7 +122,7 @@ const AssistantActions: FC = () => (
   </div>
 );
 
-const Composer: FC = () => {
+const Composer: FC<{ onNewSession?: () => void }> = ({ onNewSession }) => {
   const [inputText, setInputText] = useState("");
   const [dismissed, setDismissed] = useState(false);
   const composerRuntime = useComposerRuntime();
@@ -222,6 +223,22 @@ const Composer: FC = () => {
             }
             className="w-full resize-none bg-transparent px-4 py-3 pb-12 text-sm text-text placeholder:text-text-secondary placeholder:opacity-90 outline-none disabled:opacity-50"
           />
+          {onNewSession && (
+            <div className="absolute left-3 bottom-2.5">
+              <button
+                onClick={onNewSession}
+                aria-label="New session"
+                title="New session"
+                className="flex items-center gap-1.5 h-8 px-2 text-text-muted rounded-lg hover:bg-bg-hover hover:text-text-secondary transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <span className="text-[11px]">New session</span>
+              </button>
+            </div>
+          )}
           <div className="absolute right-3 bottom-2.5 flex gap-2">
             <AuiIf condition={(s: { thread: { isRunning: boolean } }) => !s.thread.isRunning}>
               <ComposerPrimitive.Send asChild>

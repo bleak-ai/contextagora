@@ -43,18 +43,24 @@ export function SyncControls() {
     <div className="flex items-center gap-2">
       <button
         type="button"
-        className="flex items-center gap-1 text-[10px] text-text-secondary bg-border border border-border-light px-1.5 py-0.5 rounded hover:text-text disabled:opacity-40"
-        disabled={!canPull || pull.isPending}
-        onClick={() => pull.mutate()}
+        className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
+          canPull && !pull.isPending
+            ? "text-text-secondary bg-border border-border-light hover:text-text hover:bg-bg-hover cursor-pointer"
+            : "text-text-muted bg-border/50 border-border-light/50 hover:bg-bg-hover cursor-default"
+        }`}
+        onClick={() => canPull && !pull.isPending && pull.mutate()}
         title={canPull ? "Pull latest from remote" : "Up to date"}
       >
         {pull.isPending ? "Pulling…" : "Pull"}
       </button>
       <button
         type="button"
-        className="flex items-center gap-1 text-[10px] text-text-secondary bg-border border border-border-light px-1.5 py-0.5 rounded hover:text-text disabled:opacity-40"
-        disabled={!canPush || push.isPending}
-        onClick={handlePush}
+        className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
+          canPush && !push.isPending
+            ? "text-text-secondary bg-border border-border-light hover:text-text hover:bg-bg-hover cursor-pointer"
+            : "text-text-muted bg-border/50 border-border-light/50 hover:bg-bg-hover cursor-default"
+        }`}
+        onClick={() => canPush && !push.isPending && handlePush()}
         title={canPush ? "Push local changes" : "Nothing to push"}
       >
         {push.isPending ? "Pushing…" : "Push"}
