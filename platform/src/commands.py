@@ -48,127 +48,144 @@ _ADD_MODULE_TEMPLATE = _load_prompt("add_module.md").replace("{{", "{").replace(
 _ADAPT_EXAMPLES_RULES = _load_prompt("adapt_examples.md").replace("{{", "{").replace("}}", "}")
 
 
-_ADD_INTEGRATION_PROMPT = f"""Add a new context module by walking the user through generation, validation, and save.
+_ADD_INTEGRATION_PROMPT = f"""Add a new context module by walking the user through a conversational intake flow.
 
-You are running inside the context-loader chat. The user invoked `/add-integration` to create a new module. The argument after the command is the module name (lowercase, e.g. `linear`, `stripe`). An optional second argument is the source type (`codebase` or `workspace`, default `codebase`).
+You are running inside the context-loader chat. The user invoked `/add-integration` to create a new module. The argument after the command is the module name (lowercase, e.g. `linear`, `stripe`, `gmail`).
 
-The module name and source type for THIS invocation are whatever the user typed after `/add-integration`. If the user typed only `/add-integration` with no name, ask them for a module name and stop until they answer.
+IMPORTANT: If the user typed only `/add-integration` with no arguments — no module name at all — you MUST ask the user which integration they want to add. Do NOT guess or infer a module name from conversation history or any other context. Just ask: "Which integration would you like to add? Give me a name (e.g. `stripe`, `linear`, `gmail`)." and STOP. Do not proceed until the user explicitly provides a name.
 
-You will perform a multi-turn flow inside this single chat thread. There is no backend state — everything you need is in the conversation history. Re-read the history at the start of each of your turns to know which step you are on.
+Normalize the module name to a lowercase-hyphenated slug (e.g. `Cloud Firestore` → `firestore`, `Personal Gmail` → `personal-gmail`).
+
+You will perform a multi-turn conversational flow inside this single chat thread. There is no backend state — everything you need is in the conversation history. Re-read the history at the start of each of your turns to know which step you are on.
 
 ═══════════════════════════════════════════════════════════════
-TURN 1 — Dispense the explainer + generation prompt
+PHASE 1 — Conversational intake
 ═══════════════════════════════════════════════════════════════
 
-This is what you do RIGHT NOW, on this very first turn.
+Your goal is to gather enough information to build a complete module. You do this by **asking the user questions conversationally**, not by dumping a form or a prompt to run elsewhere.
 
-Output (and only output) the following in this order:
+Start by asking the first batch of questions. Ask in natural language, grouping related questions together. Do NOT ask everything at once — keep it to 2-4 questions per turn, ordered by priority.
 
-1. A short explainer block:
+**Information you need to gather** (in rough priority order):
 
-    **Adding a context module**
+1. **Purpose** — What does this integration do for the user's project/business? Why do they need it?
+2. **Where it lives** — Is this tied to a codebase (which repo/path)? A SaaS account? A workspace? Or is it a standalone service the user accesses directly?
+3. **Auth & access** — How does one authenticate? API key? OAuth? Service account JSON? What are the env var names (no values)? What scopes/permissions are needed?
+4. **Key entities** — What are the important nouns? (e.g., for Gmail: messages, labels, threads, drafts). What fields/properties matter for the user's use case?
+5. **Operations** — What should an agent be able to do? What should it NEVER do? (e.g., "read emails: yes", "delete emails: never", "send on behalf of user: only drafts")
+6. **Examples** — Concrete runnable snippets. Gather these naturally from the conversation — the user might describe how they use the tool and you can turn that into code.
+7. **Python packages** — What packages are needed?
 
-    A module teaches future agents how *you* use a third-party tool or codebase integration. To be useful, it must capture the real, project-specific details — the business model, the customer model, the tables, the conventions — not generic API docs.
+**Adapt your questions to the integration type:**
 
-    **What we need from you (paste it all in one go):**
-    - **Purpose** — what this tool does for your app/business
-    - **Where it lives** — repo path, workspace URL, account
-    - **Auth & access** — env var names, scopes, how an agent authenticates (no values, just names)
-    - **Key entities** — the nouns that matter (customers, issues, pages…) and their shape
-    - **Operations** — what an agent should do, and what it should never touch
-    - **Examples** — concrete runnable snippets using `varlock run --path ./<module> -- sh -c '…'` and `uv run python -c "…"` (this is how modules execute here)
-    - **Python packages** — anything the examples need
+- For a **codebase integration** (e.g., Firestore, BigQuery, Stripe in a specific app): ask about repo paths, existing code patterns, which collections/tables/endpoints are used, and consider suggesting the user run a generation prompt in their codebase to extract real details. The generation prompt template is available below for this case.
+- For a **SaaS/workspace tool** (e.g., Linear, Notion, Slack): ask about the workspace, which projects/spaces/channels matter, what operations the agent should perform.
+- For a **personal service** (e.g., personal Gmail, personal calendar): ask about the account, what the agent should be able to read/write, what's off-limits, how they authenticate (app password, OAuth, etc.).
+- For a **database** (e.g., Postgres, Redis): ask about connection details (env var names), which schemas/tables matter, read vs write permissions.
 
-    **Recommended way to gather this:** open your real codebase or an agent connected to your workspace (Cursor, Claude Code, Claude Desktop with MCP, etc.) and run the prompt below. Then paste the result here and I'll review and save it.
+**When to suggest the generation prompt:**
 
-2. A fenced code block containing the generation prompt below, with `{{module_name}}` replaced by the actual module name the user gave you, and `{{{{source_phrase}}}}` replaced by `"in this codebase"` if source type is `codebase`, or `"in my workspace"` if source type is `workspace`. The literal `{{module_name}}` placeholder for inside the example varlock command should remain as `<module_name>` literal text — but the heading and prose substitutions should use the real name.
+ONLY suggest running a generation prompt in another tool (Cursor, Claude Code, etc.) when ALL of these are true:
+- The integration is tied to a specific codebase
+- The codebase contains significant existing usage of the service
+- Scanning that code would yield better details than asking the user
 
-    The generation prompt template is:
+If you suggest it, provide the prompt from the template below with `{{module_name}}` replaced. But frame it as ONE option, not the only path: "If you have this in a codebase, you could run this prompt there to extract the details. Otherwise, just answer my questions and I'll build the module from our conversation."
 
-    ```
+Generation prompt template (use ONLY when appropriate):
+```
 {_ADD_MODULE_TEMPLATE}
-    ```
+```
 
-3. End with: "When you have the generated markdown, paste it as your next message and I'll review and save it as the `<module_name>` module."
-
-Do NOT do anything else this turn. Do NOT use any tools. Just output the message.
+**Keep going until you have enough.** After each user response, assess what's still missing and ask follow-up questions. When you believe you have enough information for a solid module, move to Phase 2.
 
 ═══════════════════════════════════════════════════════════════
-TURN 2 — Review the user's paste
+PHASE 2 — Draft review
 ═══════════════════════════════════════════════════════════════
 
-When the user replies (next turn) with what looks like generated markdown content, you do the review. Do NOT do this on turn 1.
+When you have gathered enough information (either through conversation or from a pasted generation), assemble the full module content and present it to the user for review.
 
-Steps:
+1. **Build the module markdown** with these exact sections:
 
-1. **Parse the 6 required sections.** Look for these exact `## ` and `### ` headings:
-   - `## Purpose`
-   - `## Where it lives`
-   - `## Auth & access`
-   - `## Key entities`
-   - `## Operations`
-   - `## Examples`
-   - `### Python packages`
+   ```
+   # <module_name>
 
-   If any are missing or stub-like (under ~40 chars of content), tell the user which sections are missing and ask them to repaste. Stop until they do.
+   ## Purpose
+   ...
 
-2. **Extract secret variable names** from the bullet lines under `## Auth & access`. Look for `[A-Z_]+` tokens. Build a candidate `.env.schema` of the form:
+   ## Where it lives
+   ...
 
-       # @required @sensitive @type=string
-       LINEAR_API_KEY=
+   ## Auth & access
+   ...
 
-3. **Detect non-conforming examples** in the `## Examples` section. Flag any of:
-   - A code block that does NOT start with `varlock run --path`
-   - `load_dotenv` anywhere in the pasted content
-   - `os.getenv(` or `os.environ[` reads NOT inside a `varlock run … -- sh -c '…'` wrapper
-   - Bare `python <file>` or `python3 <file>` invocations
-   - `--with` flags on `uv`
+   ## Key entities
+   ...
 
-4. **If any non-conforming examples were detected, REWRITE them in place** by applying the transformation rules below. Show the old and new code blocks side by side in your review report so the user can see the diff. Do not invent new examples — only rewrite the ones the user pasted. If an example references a secret name not declared in `## Auth & access`, flag it inline.
+   ## Operations
+   ...
 
-   The transformation rules are:
+   ## Examples
+   ...
 
+   ### Python packages
+   ...
+   ```
+
+2. **Ensure examples conform to the varlock convention.** Every runnable Python snippet MUST be wrapped as:
+
+       varlock run -- sh -c 'uv run python -c "
+       <python code that reads secrets from os.environ>
+       "'
+
+   For shell-only examples: `varlock run -- sh -c '<command using $VAR>'`
+
+   Apply the example adaptation rules:
    ```
 {_ADAPT_EXAMPLES_RULES}
    ```
 
-5. **Post a review report** that looks like:
+   Do NOT use `python` directly. Do NOT use `load_dotenv()`. Do NOT hardcode secrets. Do NOT use `--with` flags on `uv`.
+
+3. **Auth & access rules:**
+   - List ENVIRONMENT VARIABLE NAMES ONLY — never paste values, tokens, or secrets.
+   - File-based credentials (Google service account JSON, PEM keys, etc.) must be reshaped into a single string secret. Convention: `<SERVICE>_SA_JSON` for JSON blobs, `<SERVICE>_KEY_PEM` for PEM blobs.
+   - Do NOT declare file-path variables like `GOOGLE_APPLICATION_CREDENTIALS`.
+   - Code must parse inline: `json.loads(os.environ["GCP_SA_JSON"])`.
+
+4. **Extract secrets and packages** from the content.
+
+5. **Present the draft** to the user with a review summary:
 
        ✅ Purpose
        ✅ Where it lives
-       ✅ Auth & access — found N secrets: VAR_A, VAR_B
+       ✅ Auth & access — N secrets: VAR_A, VAR_B
        ✅ Key entities
        ✅ Operations
-       ⚠️ Examples — adapted N snippets to varlock convention (see diff below)
+       ✅ Examples — N snippets (varlock-conforming)
        ✅ Python packages — pkg-a, pkg-b
 
-       [diff blocks for any rewritten examples]
+       [full module markdown]
 
-       I'll save this as module `<module_name>` with the env schema above.
-       Reply `save` to confirm, `keep original` to skip the example
-       adaptation, or paste a corrected version.
-
-   Use ✅ for sections that look fine, ⚠️ for sections you adapted or have warnings about, ❌ for sections that are missing or unusable.
+       Reply **save** to confirm, or tell me what to change.
 
 ═══════════════════════════════════════════════════════════════
-TURN 3 — Save on confirmation
+PHASE 3 — Save on confirmation
 ═══════════════════════════════════════════════════════════════
 
-When the user replies with `save` (or `save anyway` after a warning):
+When the user replies with `save`:
 
-1. Build the final `info.md` content. If you rewrote example blocks, the saved content uses the rewritten versions. If the user said `keep original`, use the user's original paste verbatim.
-
-2. Build the request body for `POST /api/modules`. The schema is:
+1. Build the request body for `POST /api/modules`:
 
        {{
          "name": "<module_name>",
-         "content": "<final info.md content>",
+         "content": "<final module markdown>",
          "summary": "",
          "secrets": ["VAR_A", "VAR_B"],
          "requirements": ["pkg-a", "pkg-b"]
        }}
 
-3. Call the endpoint via the `Bash` tool. Use `curl` against the local server. Write the JSON body to a temporary file first to avoid shell-escaping nightmares with multi-line markdown:
+2. Call the endpoint via `Bash` + `curl`. Write the JSON body to a temp file first:
 
        cat > /tmp/add_integration_body.json <<'JSON_EOF'
        {{ ...the JSON above... }}
@@ -177,20 +194,22 @@ When the user replies with `save` (or `save anyway` after a warning):
          -H 'Content-Type: application/json' \\
          --data-binary @/tmp/add_integration_body.json
 
-4. Report the result:
-   - On 201: confirm the module was created and tell the user they can browse it under `/modules/<module_name>` in the web UI.
-   - On 409 (already exists): tell the user the module already exists and ask whether they want to update it via `PUT /api/modules/<name>` instead.
-   - On any other error: show the error response and offer to retry with `save`.
+3. Report the result:
+   - On success: confirm the module was created, mention `/modules/<module_name>` in the web UI.
+   - On 409: tell the user it already exists and offer `PUT /api/modules/<name>` to update.
+   - On error: show the error and offer to retry.
 
 ═══════════════════════════════════════════════════════════════
 GENERAL RULES
 ═══════════════════════════════════════════════════════════════
 
-- Stay in this flow only as long as the user is engaged with it. If the user clearly changes topic, drop the flow and respond normally.
-- Never invent module content. Everything saved must come from the user's paste (with example rewrites being the only allowed transformation).
-- Never paste secret values anywhere. The `.env.schema` only contains variable names.
-- Always use `varlock run --path ./<module_name> -- sh -c '...'` shape in adapted examples — never bare `python`, never `load_dotenv`, never hardcoded secrets.
-- If a step in this flow is impossible (e.g. the user pastes garbage), explain what went wrong and ask the user to retry. Do not proceed past a failed step.
+- Be conversational and adaptive. Ask smart questions based on what the user tells you. Don't be rigid.
+- Stay in this flow only as long as the user is engaged. If they change topic, drop the flow.
+- Never invent module content — everything must come from the user.
+- Never paste secret values. Only variable names.
+- Always use `varlock run -- sh -c '...'` in examples — never bare `python`, never `load_dotenv`, never hardcoded secrets.
+- If a user pastes a large block of pre-generated markdown, accept it — parse, validate, adapt examples, and go to Phase 2.
+- If the user gives short answers, that's fine — synthesize what they give you into good module content.
 """
 
 

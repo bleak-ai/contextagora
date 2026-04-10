@@ -2,10 +2,10 @@
 @import "@fontsource-variable/space-grotesk";
 
 @theme {
-  --color-bg: #262624;
-  --color-bg-raised: #2f2e2c;
-  --color-bg-input: #2c2c2a;
-  --color-bg-hover: #383735;
+  --color-bg: #1c1c1a;
+  --color-bg-raised: #252523;
+  --color-bg-input: #222220;
+  --color-bg-hover: #2e2d2b;
   --color-border: #403e3a;
   --color-border-light: #4d4b46;
   --color-text: #d8d6d4;
@@ -31,6 +31,7 @@ body,
   background: var(--color-bg);
   color: var(--color-text);
   font-family: 'Space Grotesk Variable', sans-serif !important;
+  font-size: 15px;
 }
 
 * {
@@ -52,7 +53,7 @@ summary {
 /* Markdown prose styles for assistant messages */
 .aui-md {
   line-height: 1.7;
-  font-size: 0.9375rem;
+  font-size: 1rem;
 }
 
 .aui-md p {

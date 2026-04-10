@@ -112,7 +112,7 @@ async def get_secrets_status(
     try:
         previews = await asyncio.to_thread(load_and_mask_secrets, directory)
     except SecretsValidationError as e:
-        log.warning("global varlock failed (missing=%s)", e.missing)
+        log.warning("global varlock failed (missing=%s)\n%s", e.missing, e.raw)
         result: dict[str, dict[str, str | None]] = {m: {} for m in modules_with_secrets}
         for var, mod in var_to_module.items():
             result[mod][var] = None
