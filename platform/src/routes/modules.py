@@ -16,7 +16,7 @@ from src.models import (
     GenerateModuleResponse,
     UpdateModuleRequest,
 )
-from src.server import MANAGED_FILES
+from src.config import settings
 from src.services import git_repo
 from src.services.schemas import (
     generate_env_schema,
@@ -128,7 +128,7 @@ async def api_update_module(name: str, body: UpdateModuleRequest):
         except FileNotFoundError:
             pass
 
-    regenerate_module_llms_txt(name, MANAGED_FILES, summary=body.summary)
+    regenerate_module_llms_txt(name, settings.MANAGED_FILES, summary=body.summary)
 
     return {"name": name}
 
@@ -271,7 +271,7 @@ def api_detect_packages(name: str, body: GenerateModuleRequest):
 @router.get("/{name}/files")
 async def api_list_module_files(name: str):
     try:
-        files = git_repo.list_module_files(name, MANAGED_FILES)
+        files = git_repo.list_module_files(name, settings.MANAGED_FILES)
     except FileNotFoundError:
         return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
     return {"files": files}
@@ -280,7 +280,7 @@ async def api_list_module_files(name: str):
 @router.get("/{name}/files/{file_path:path}")
 async def api_get_module_file(name: str, file_path: str):
     try:
-        file_path = validate_module_file_path(file_path, MANAGED_FILES)
+        file_path = validate_module_file_path(file_path, settings.MANAGED_FILES)
     except ValueError as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
     try:
@@ -296,18 +296,18 @@ async def api_get_module_file(name: str, file_path: str):
 @router.put("/{name}/files/{file_path:path}")
 async def api_save_module_file(name: str, file_path: str, body: FileContentRequest):
     try:
-        file_path = validate_module_file_path(file_path, MANAGED_FILES)
+        file_path = validate_module_file_path(file_path, settings.MANAGED_FILES)
     except ValueError as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
     git_repo.write_file(name, file_path, body.content)
-    regenerate_module_llms_txt(name, MANAGED_FILES)
+    regenerate_module_llms_txt(name, settings.MANAGED_FILES)
     return {"path": file_path}
 
 
 @router.delete("/{name}/files/{file_path:path}")
 async def api_delete_module_file(name: str, file_path: str):
     try:
-        file_path = validate_module_file_path(file_path, MANAGED_FILES)
+        file_path = validate_module_file_path(file_path, settings.MANAGED_FILES)
     except ValueError as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
     if file_path == "info.md":
@@ -316,5 +316,5 @@ async def api_delete_module_file(name: str, file_path: str):
         git_repo.delete_file(name, file_path)
     except FileNotFoundError:
         return JSONResponse({"error": f"File '{file_path}' not found"}, status_code=404)
-    regenerate_module_llms_txt(name, MANAGED_FILES)
+    regenerate_module_llms_txt(name, settings.MANAGED_FILES)
     return {"status": "ok"}

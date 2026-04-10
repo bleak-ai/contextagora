@@ -5,7 +5,7 @@ from fastapi import APIRouter
 
 from src.llms import generate_root_llms_txt
 from src.models import WorkspaceLoadRequest
-from src.server import CONTEXT_DIR, MANAGED_FILES, PRESERVED_FILES, list_modules
+from src.config import settings
 from src.services.workspace_inspect import (
     inspect_module_packages,
     list_workspace_files,
@@ -19,6 +19,14 @@ log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/workspace", tags=["workspace"])
 
+
+def _list_modules(directory):
+    """Return sorted names of subdirectories (each subdir = one module)."""
+    return sorted(
+        p.name for p in directory.iterdir()
+        if p.is_dir() and not p.name.startswith(".")
+    )
+
 PRESERVED_DIRS = [".claude"]
 
 # Cache for secrets status (only refreshed on /load or explicit refresh)
@@ -29,10 +37,10 @@ _secrets_cache: dict[str, dict[str, str | None]] = {}
 async def api_workspace():
     """Return loaded modules with per-module files, secrets, and packages."""
     modules = []
-    for name in list_modules(CONTEXT_DIR):
-        module_dir = CONTEXT_DIR / name
+    for name in _list_modules(settings.CONTEXT_DIR):
+        module_dir = settings.CONTEXT_DIR / name
         try:
-            files = list_workspace_files(module_dir, MANAGED_FILES)
+            files = list_workspace_files(module_dir, settings.MANAGED_FILES)
         except FileNotFoundError:
             files = []
         modules.append({
@@ -52,10 +60,10 @@ async def api_workspace_files():
     `<module>/<relative_path>` string the agent can resolve via Read.
     """
     out: list[dict] = []
-    for name in list_modules(CONTEXT_DIR):
-        module_dir = CONTEXT_DIR / name
+    for name in _list_modules(settings.CONTEXT_DIR):
+        module_dir = settings.CONTEXT_DIR / name
         try:
-            for path in list_workspace_files(module_dir, MANAGED_FILES):
+            for path in list_workspace_files(module_dir, settings.MANAGED_FILES):
                 out.append({
                     "module": name,
                     "path": path,
@@ -75,21 +83,21 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
     modules so varlock resolves secrets directly from the workspace root.
     """
     # 1. Clear context/: unlink symlinks, delete real subdirs (legacy copies),
-    #    delete loose files except PRESERVED_FILES.
-    for p in CONTEXT_DIR.iterdir():
+    #    delete loose files except settings.PRESERVED_FILES.
+    for p in settings.CONTEXT_DIR.iterdir():
         if p.is_symlink():
             p.unlink()
         elif p.is_dir():
             shutil.rmtree(p)
-        elif p.is_file() and p.name not in PRESERVED_FILES:
+        elif p.is_file() and p.name not in settings.PRESERVED_FILES:
             p.unlink()
 
     # 2. Link preserved dirs (e.g. .claude) from the local clone if they exist.
     for dirname in PRESERVED_DIRS:
         if git_repo.module_exists(dirname):
             try:
-                src = git_repo.MODULES_REPO_DIR / dirname
-                (CONTEXT_DIR / dirname).symlink_to(src, target_is_directory=True)
+                src = settings.MODULES_REPO_DIR / dirname
+                (settings.CONTEXT_DIR / dirname).symlink_to(src, target_is_directory=True)
             except (OSError, ValueError) as exc:
                 log.warning("Failed to link preserved dir '%s': %s", dirname, exc)
 
@@ -102,17 +110,17 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
             errors.append({"module": name, "reason": "not_available"})
             continue
 
-        link_path = CONTEXT_DIR / name
+        link_path = settings.CONTEXT_DIR / name
 
-        # Defensive: never let a bad name escape CONTEXT_DIR.
+        # Defensive: never let a bad name escape settings.CONTEXT_DIR.
         try:
-            link_path.resolve().relative_to(CONTEXT_DIR.resolve())
+            link_path.resolve().relative_to(settings.CONTEXT_DIR.resolve())
         except ValueError:
             errors.append({"module": name, "reason": "invalid_path"})
             continue
 
         try:
-            target = git_repo.MODULES_REPO_DIR / name
+            target = settings.MODULES_REPO_DIR / name
             if not target.is_dir():
                 raise FileNotFoundError(f"Module '{name}' not found in clone")
 
@@ -140,20 +148,20 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
                 "details": str(exc),
             })
 
-    generate_root_llms_txt(CONTEXT_DIR)
+    generate_root_llms_txt(settings.CONTEXT_DIR)
 
     # Generate global .env.schema for varlock at workspace root.
     modules_with_schemas: dict[str, str] = {}
     for name in loaded:
-        schema_path = CONTEXT_DIR / name / ".env.schema"
+        schema_path = settings.CONTEXT_DIR / name / ".env.schema"
         if schema_path.exists():
             modules_with_schemas[name] = schema_path.read_text()
     if modules_with_schemas:
-        (CONTEXT_DIR / ".env.schema").write_text(
+        (settings.CONTEXT_DIR / ".env.schema").write_text(
             generate_global_schema(modules_with_schemas)
         )
     else:
-        schema_file = CONTEXT_DIR / ".env.schema"
+        schema_file = settings.CONTEXT_DIR / ".env.schema"
         if schema_file.exists():
             schema_file.unlink()
 
@@ -167,5 +175,5 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
 async def api_workspace_secrets():
     """Re-check secrets status from Infisical."""
     global _secrets_cache
-    _secrets_cache = await get_secrets_status(CONTEXT_DIR, list_modules)
+    _secrets_cache = await get_secrets_status(settings.CONTEXT_DIR, _list_modules)
     return {"secrets": _secrets_cache}

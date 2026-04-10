@@ -1,9 +1,9 @@
-import os
 import re
 from pathlib import Path
 
+from src.config import settings
+
 INFISICAL_PLUGIN = "@varlock/infisical-plugin@0.0.6"
-INFISICAL_SITE_URL = os.environ.get("INFISICAL_SITE_URL", "https://app.infisical.com")
 
 INFISICAL_BOOTSTRAP_VARS = {
     "INFISICAL_PROJECT_ID",
@@ -23,7 +23,7 @@ def validate_module_name(name: str) -> str:
     return name
 
 
-def validate_module_file_path(file_path: str, managed_files: set[str]) -> str:
+def validate_module_file_path(file_path: str, managed_files: frozenset[str]) -> str:
     """Validate a file path within a module. Returns cleaned path or raises ValueError."""
     file_path = file_path.strip().strip("/")
     if not file_path:
@@ -100,7 +100,7 @@ def generate_global_schema(modules_with_schemas: dict[str, str]) -> str:
             "#   clientId=$INFISICAL_CLIENT_ID,",
             "#   clientSecret=$INFISICAL_CLIENT_SECRET,",
             f"#   secretPath=/{module_name},",
-            f"#   siteUrl={INFISICAL_SITE_URL}",
+            f"#   siteUrl={settings.INFISICAL_SITE_URL}",
             "# )",
         ])
 

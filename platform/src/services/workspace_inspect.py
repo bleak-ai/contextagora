@@ -10,7 +10,7 @@ from importlib.metadata import PackageNotFoundError, version as _version
 
 def list_workspace_files(
     module_dir: Path,
-    managed_files: set[str],
+    managed_files: frozenset[str],
 ) -> list[str]:
     """Return relative paths of user-visible files inside a workspace module.
 

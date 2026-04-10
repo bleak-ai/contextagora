@@ -9,7 +9,7 @@ from fastapi.responses import StreamingResponse
 
 from src.commands import COMMANDS
 from src.models import ChatRequest
-from src.server import CONTEXT_DIR
+from src.config import settings
 from src.services.claude_sessions import list_sessions
 
 log = logging.getLogger(__name__)
@@ -38,12 +38,12 @@ def _expand_slash_command(prompt: str) -> str:
 
 @router.get("/sessions")
 async def api_list_sessions():
-    """List all Claude sessions for CONTEXT_DIR, newest first.
+    """List all Claude sessions for settings.CONTEXT_DIR, newest first.
 
     Sessions are read directly from ~/.claude/projects/<encoded-cwd>/*.jsonl.
     There is no server-side session state; this is a pure projection of disk.
     """
-    return {"sessions": list_sessions(CONTEXT_DIR)}
+    return {"sessions": list_sessions(settings.CONTEXT_DIR)}
 
 
 @router.post("/chat")
@@ -76,7 +76,7 @@ async def api_chat(body: ChatRequest):
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                cwd=str(CONTEXT_DIR),
+                cwd=str(settings.CONTEXT_DIR),
                 env=env,
                 text=True,
             )
@@ -147,7 +147,7 @@ async def api_chat(body: ChatRequest):
                             if tool_name == "Read":
                                 file_path = tool_input.get("file_path", "") or tool_input.get("path", "")
                                 try:
-                                    relative_path = Path(file_path).relative_to(CONTEXT_DIR)
+                                    relative_path = Path(file_path).relative_to(settings.CONTEXT_DIR)
                                 except ValueError:
                                     relative_path = None
                                 if relative_path is not None:

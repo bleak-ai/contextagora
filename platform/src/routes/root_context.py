@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from src.server import CONTEXT_DIR
+from src.config import settings
 
 router = APIRouter(prefix="/api/root-context", tags=["root-context"])
 
@@ -20,7 +20,7 @@ class RootContextResponse(BaseModel):
 
 
 def _read_root_file(name: str) -> RootFile:
-    target = CONTEXT_DIR / name
+    target = settings.CONTEXT_DIR / name
     if not target.is_file():
         return RootFile(path=str(target), exists=False, content=None)
     raw = target.read_bytes()[:MAX_BYTES]

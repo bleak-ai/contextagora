@@ -9,6 +9,7 @@ dependencies = [
     "uvicorn",
     "httpx",
     "pyyaml>=6.0.3",
+    "pydantic-settings",
 ]
 
 [project.scripts]

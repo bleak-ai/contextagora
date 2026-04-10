@@ -3,7 +3,7 @@
 Wraps every git operation used by the platform so that module CRUD reads
 and writes from a local checkout instead of the GitHub API.
 
-Config is read from env vars at import time but every public function
+Config is read from src.config.settings; every public function
 accepts overrides for testability.
 """
 import logging
@@ -13,16 +13,9 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from src.config import settings
+
 log = logging.getLogger(__name__)
-
-# --- Config (env) ---
-GH_OWNER = os.environ.get("GH_OWNER", "")
-GH_REPO = os.environ.get("GH_REPO", "")
-GH_TOKEN = os.environ.get("GH_TOKEN", "")
-GH_BRANCH = os.environ.get("GH_BRANCH", "main")
-
-_DEFAULT_CLONE_DIR = Path(__file__).resolve().parent.parent / "modules-repo"
-MODULES_REPO_DIR = Path(os.environ.get("MODULES_REPO_DIR") or _DEFAULT_CLONE_DIR)
 
 # Regex to strip "x-access-token:XXXX@" from URLs before logging
 _TOKEN_IN_URL = re.compile(r"(https://)x-access-token:[^@]*@")
@@ -53,15 +46,15 @@ def _run(args: list[str], cwd: Path | None = None) -> subprocess.CompletedProces
 
 
 def _default_remote_url() -> str:
-    if not (GH_OWNER and GH_REPO):
+    if not (settings.GH_OWNER and settings.GH_REPO):
         raise GitRepoError("GH_OWNER and GH_REPO must be set")
-    if GH_TOKEN:
-        return f"https://x-access-token:{GH_TOKEN}@github.com/{GH_OWNER}/{GH_REPO}.git"
-    return f"https://github.com/{GH_OWNER}/{GH_REPO}.git"
+    if settings.GH_TOKEN:
+        return f"https://x-access-token:{settings.GH_TOKEN}@github.com/{settings.GH_OWNER}/{settings.GH_REPO}.git"
+    return f"https://github.com/{settings.GH_OWNER}/{settings.GH_REPO}.git"
 
 
 def _resolve_clone(clone_dir: Path | None) -> Path:
-    return Path(clone_dir) if clone_dir else MODULES_REPO_DIR
+    return Path(clone_dir) if clone_dir else settings.MODULES_REPO_DIR
 
 
 # --- Lifecycle ---
@@ -74,16 +67,17 @@ def init_repo(
 ) -> None:
     """Delete any existing clone and perform a fresh single-branch clone."""
     url = remote_url or _default_remote_url()
-    br = branch or GH_BRANCH
-    target = Path(clone_dir) if clone_dir else MODULES_REPO_DIR
+    br = branch or settings.GH_BRANCH
+    target = Path(clone_dir) if clone_dir else settings.MODULES_REPO_DIR
 
     # rmtree safety guard: only remove `target` if it looks like a previous
     # clone (contains a .git subdir) OR it's the default path. Protects
     # against wiping unrelated directories if MODULES_REPO_DIR is misconfigured
     # (e.g. typo, stale env var, bad Docker mount).
+    default_dir = (Path(__file__).resolve().parent.parent / "modules-repo").resolve()
     if target.exists():
         resolved = target.resolve()
-        is_default = resolved == _DEFAULT_CLONE_DIR.resolve()
+        is_default = resolved == default_dir
         looks_like_clone = (resolved / ".git").is_dir()
         if not (is_default or looks_like_clone):
             raise GitRepoError(
@@ -130,7 +124,7 @@ def read_file(module: str, rel_path: str, *, clone_dir: Path | None = None) -> s
 
 def list_module_files(
     module: str,
-    managed_files: set[str],
+    managed_files: frozenset[str],
     *,
     clone_dir: Path | None = None,
 ) -> list[dict]:

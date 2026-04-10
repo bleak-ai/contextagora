@@ -3,6 +3,7 @@
 > System for selecting and loading context modules into a coding agent's workspace.
 
 ## Platform Backend
+- [platform/src/config.py](platform/src/config.py) — Centralized Pydantic Settings class; all env vars and derived paths; import `settings` from here, never read os.environ directly
 - [platform/src/server.py](platform/src/server.py) — FastAPI app factory, constants, SPA fallback, entry point
 - [platform/src/models.py](platform/src/models.py) — Pydantic request/response models
 - [platform/src/llms.py](platform/src/llms.py) — llms.txt generation and parsing helpers
@@ -44,18 +45,21 @@
 - [.env.example](.env.example) — Environment variable template for self-hosted deployment
 - [.github/workflows/publish.yml](.github/workflows/publish.yml) — CI workflow to build and push image to GHCR
 
-## Docs
-- [docs/plans/01-filebrowser-quantum.md](docs/plans/01-filebrowser-quantum.md) — Plan: FileBrowser Quantum
-- [docs/plans/04-cli-cmux.md](docs/plans/04-cli-cmux.md) — Plan: CLI with cmux
-- [docs/plans/09-module-management-react.md](docs/plans/09-module-management-react.md) — Plan: Module management UI with React SPA
-- [docs/plans/10-module-llms-txt.md](docs/plans/10-module-llms-txt.md) — Plan: Multi-file module structure with llms.txt navigation
-- [docs/plans/11-registry-ux.md](docs/plans/11-registry-ux.md) — Plan: Module registry UX improvements (detail panel, multi-file, secrets)
-- [docs/plans/12-local-first-modules.md](docs/plans/12-local-first-modules.md) — Plan: Local-first module architecture (git clone replaces GitHub API)
+## Active Plans
+- [docs/plans/active/17-agent-backend-abstraction.md](docs/plans/active/17-agent-backend-abstraction.md) — Plan: Agent backend abstraction (Claude Code vs opencode)
+- [docs/plans/active/18-REFACTOR_PLAN.md](docs/plans/active/18-REFACTOR_PLAN.md) — Plan: Refactoring roadmap (config, manifest, SQLite, SDK)
+
+## Archived Plans
+- [docs/plans/archive/](docs/plans/archive/) — Historical plans (filebrowser, CLI, module management, MCP server, commercialization)
 
 ## Guides
 - [docs/guides/deployment.md](docs/guides/deployment.md) — End-user deployment guide (Docker, env vars, HTTPS, troubleshooting)
-- [docs/guides/infisical-setup.md](docs/guides/infisical-setup.md) — Step-by-step Infisical setup for module secrets
-- [docs/guides/git-module-loading-test.md](docs/guides/git-module-loading-test.md) — Testing GitHub API module loading with a private repo and token
+- [docs/guides/varlock.md](docs/guides/varlock.md) — Varlock secret management system explained
+- [docs/guides/writing-efficient-scripts.md](docs/guides/writing-efficient-scripts.md) — Guidelines for writing network-efficient scripts
+- [docs/guides/debugging-claude-timing.md](docs/guides/debugging-claude-timing.md) — Methodology for measuring Claude Code chat timing
+
+## Ideas
+- [docs/ideas/info.md](docs/ideas/info.md) — Foundational concept: modular context for AI agents
 
 ## Reference
 - [STATUS.md](STATUS.md) — What the system is, how it's built, current state (load every conversation)

@@ -7,6 +7,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+from src.config import settings
 from src.services.claude_sessions import claude_project_dir
 
 from .judge import judge
@@ -48,8 +49,6 @@ def run_task_stream(task: Task, run_timeout_s: int = 1800):
     Yields dicts: {type: started|progress|judging|done|error, ...}.
     The final event is always either `done` (with run_id) or `error`.
     The run file is written before `done` is yielded."""
-    from src.server import CONTEXT_DIR
-
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%SZ")
     yield {"type": "started", "task_id": task.id, "timestamp": timestamp}
 
@@ -66,7 +65,7 @@ def run_task_stream(task: Task, run_timeout_s: int = 1800):
     try:
         proc = subprocess.Popen(
             cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            cwd=str(CONTEXT_DIR), text=True,
+            cwd=str(settings.CONTEXT_DIR), text=True,
         )
     except FileNotFoundError:
         yield {"type": "error", "error": "claude CLI not found"}
@@ -109,7 +108,7 @@ def run_task_stream(task: Task, run_timeout_s: int = 1800):
         yield {"type": "error", "error": "no session id captured from claude stream"}
         return
 
-    project_dir = claude_project_dir(CONTEXT_DIR)
+    project_dir = claude_project_dir(settings.CONTEXT_DIR)
     jsonl = _wait_for_jsonl(session_id, project_dir)
     if jsonl is None:
         yield {"type": "error", "error": f"session jsonl not found: {project_dir}/{session_id}.jsonl"}
@@ -126,8 +125,8 @@ def run_task_stream(task: Task, run_timeout_s: int = 1800):
         parsed=parsed,
         judge_verdict=verdict,
         judge_reason=reason,
-        context_fingerprint=_fingerprint(CONTEXT_DIR),
-        loaded_modules=_loaded_modules(CONTEXT_DIR),
+        context_fingerprint=_fingerprint(settings.CONTEXT_DIR),
+        loaded_modules=_loaded_modules(settings.CONTEXT_DIR),
     )
     path = write_run(task.id, timestamp, md)
     yield {

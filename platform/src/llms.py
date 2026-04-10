@@ -41,7 +41,7 @@ def generate_root_llms_txt(context_dir: Path) -> None:
 
 
 def regenerate_module_llms_txt(
-    name: str, managed_files: set[str], summary: str | None = None
+    name: str, managed_files: frozenset[str], summary: str | None = None
 ) -> None:
     """Regenerate a module's llms.txt from its current files and summary.
 
