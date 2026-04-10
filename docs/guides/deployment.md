@@ -1,4 +1,4 @@
-# Deploying Project Semmelweis
+# Deploying Project Semelweis
 
 ## Quick start
 
@@ -9,7 +9,7 @@ Already have your GitHub PAT, Infisical credentials, and LLM API key? Here's the
 curl -fsSL https://semelweis.com/install.sh | REGISTRY_TOKEN=ghp_... bash
 
 # 2. Configure
-cd semmelweis && nano .env   # fill in your credentials
+cd semelweis && nano .env   # fill in your credentials
 
 # 3. Start
 docker compose up -d
@@ -26,10 +26,10 @@ Open [http://localhost:8080](http://localhost:8080) and you're ready to go. If y
 
 ### GitHub Personal Access Token
 
-Semmelweis needs a fine-grained PAT to access the modules repo.
+Semelweis needs a fine-grained PAT to access the modules repo.
 
 1. Go to [GitHub > Settings > Developer settings > Fine-grained tokens](https://github.com/settings/personal-access-tokens/new)
-2. Set a descriptive name (e.g. `semmelweis-modules`)
+2. Set a descriptive name (e.g. `semelweis-modules`)
 3. Under **Repository access**, select **Only select repositories** and pick your modules repo
 4. Under **Permissions > Repository permissions**, set:
    - `Contents`: **Read and write** (read to fetch modules, write to create/edit from the UI)
@@ -37,7 +37,7 @@ Semmelweis needs a fine-grained PAT to access the modules repo.
 
 ### Infisical
 
-Semmelweis uses [Infisical](https://infisical.com) as a secrets vault. Module secrets are never stored on disk — they are resolved at runtime via Varlock + Infisical.
+Semelweis uses [Infisical](https://infisical.com) as a secrets vault. Module secrets are never stored on disk — they are resolved at runtime via Varlock + Infisical.
 
 1. Create an account at [app.infisical.com](https://app.infisical.com) (or your self-hosted instance)
 2. Create a **project** for your modules' secrets
@@ -60,11 +60,11 @@ You'll need these values for your `.env`:
 
 ### LLM API key
 
-Semmelweis has a built-in chat feature that needs access to an LLM. You can use any OpenAI-compatible provider:
+Semelweis has a built-in chat feature that needs access to an LLM. You can use any OpenAI-compatible provider:
 
 - **Anthropic** — `ANTHROPIC_AUTH_TOKEN=sk-ant-...` with `ANTHROPIC_BASE_URL=https://api.anthropic.com`
 - **OpenAI** — `ANTHROPIC_AUTH_TOKEN=sk-...` with `ANTHROPIC_BASE_URL=https://api.openai.com/v1`
-- **Ollama** (free, local) — `ANTHROPIC_AUTH_TOKEN=unused` with `ANTHROPIC_BASE_URL=http://host.docker.internal:11434/v1`
+- **Ollama Cloud** — `ANTHROPIC_AUTH_TOKEN=your-ollama-cloud-key` with `ANTHROPIC_BASE_URL=https://api.ollama.com/v1`
 
 When using a non-Anthropic provider, set the model overrides to match your provider's model names:
 
@@ -74,7 +74,7 @@ ANTHROPIC_DEFAULT_OPUS_MODEL=gpt-4o
 ANTHROPIC_DEFAULT_SONNET_MODEL=gpt-4o-mini
 ANTHROPIC_DEFAULT_HAIKU_MODEL=gpt-4o-mini
 
-# Example: Ollama
+# Example: Ollama Cloud
 ANTHROPIC_DEFAULT_OPUS_MODEL=llama3.1
 ANTHROPIC_DEFAULT_SONNET_MODEL=llama3.1
 ANTHROPIC_DEFAULT_HAIKU_MODEL=llama3.1
@@ -98,32 +98,52 @@ curl -fsSL https://semelweis.com/install.sh | REGISTRY_TOKEN=ghp_... bash
 
 This will:
 - Authenticate with the container registry
-- Create a `semmelweis/` directory with `docker-compose.yml` and `.env`
+- Create a `semelweis/` directory with `docker-compose.yml` and `.env`
 - Pull the latest image
 
 You can specify a custom install directory:
 
 ```bash
-curl -fsSL https://semelweis.com/install.sh | REGISTRY_TOKEN=ghp_... bash -s -- /opt/semmelweis
+curl -fsSL https://semelweis.com/install.sh | REGISTRY_TOKEN=ghp_... bash -s -- /opt/semelweis
 ```
 
 ## 2. Configure
 
-Edit the `.env` file with your credentials:
+Edit the `.env` file with your credentials (see full reference below):
 
-```
+```bash
+# ── GitHub Module Source ─────────────────────────────────────────
 GH_OWNER=your-github-org
 GH_REPO=your-modules-repo
 GH_TOKEN=github_pat_...
 GH_BRANCH=main
+
+# ── LLM Provider ────────────────────────────────────────────────
+# Anthropic (default)
 ANTHROPIC_AUTH_TOKEN=sk-ant-...
 ANTHROPIC_BASE_URL=https://api.anthropic.com
 ANTHROPIC_DEFAULT_OPUS_MODEL=claude-sonnet-4-20250514
 ANTHROPIC_DEFAULT_SONNET_MODEL=claude-sonnet-4-20250514
 ANTHROPIC_DEFAULT_HAIKU_MODEL=claude-haiku-4-5-20251001
-INFISICAL_CLIENT_ID=...
-INFISICAL_CLIENT_SECRET=...
-INFISICAL_PROJECT_ID=...
+
+# OpenAI (uncomment and replace the above)
+# ANTHROPIC_AUTH_TOKEN=sk-...
+# ANTHROPIC_BASE_URL=https://api.openai.com/v1
+# ANTHROPIC_DEFAULT_OPUS_MODEL=gpt-4o
+# ANTHROPIC_DEFAULT_SONNET_MODEL=gpt-4o-mini
+# ANTHROPIC_DEFAULT_HAIKU_MODEL=gpt-4o-mini
+
+# Ollama Cloud (uncomment and replace the above)
+# ANTHROPIC_AUTH_TOKEN=your-ollama-cloud-key
+# ANTHROPIC_BASE_URL=https://api.ollama.com/v1
+# ANTHROPIC_DEFAULT_OPUS_MODEL=llama3.1
+# ANTHROPIC_DEFAULT_SONNET_MODEL=llama3.1
+# ANTHROPIC_DEFAULT_HAIKU_MODEL=llama3.1
+
+# ── Infisical (Secret Management) ───────────────────────────────
+INFISICAL_CLIENT_ID=
+INFISICAL_CLIENT_SECRET=
+INFISICAL_PROJECT_ID=
 INFISICAL_ENVIRONMENT=dev
 INFISICAL_SITE_URL=https://app.infisical.com
 ```
@@ -164,7 +184,7 @@ docker compose up -d
 
 ## Reverse Proxy / HTTPS
 
-For production deployments, put Semmelweis behind a reverse proxy with TLS. Below are minimal examples for common options.
+For production deployments, put Semelweis behind a reverse proxy with TLS. Below are minimal examples for common options.
 
 ### Caddy (automatic HTTPS)
 
