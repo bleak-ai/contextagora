@@ -1,124 +1,207 @@
-# Deploying Context Loader
+# Deploying Project Semmelweis
+
+## Quick start
+
+Already have your GitHub PAT, Infisical credentials, and LLM API key? Here's the short version:
+
+```bash
+# 1. Install
+curl -fsSL https://semelweis.com/install.sh | REGISTRY_TOKEN=ghp_... bash
+
+# 2. Configure
+cd semmelweis && nano .env   # fill in your credentials
+
+# 3. Start
+docker compose up -d
+
+# 4. Verify
+curl http://localhost:8080/health   # should return 200
+```
+
+Open [http://localhost:8080](http://localhost:8080) and you're ready to go. If you need help setting up the prerequisites, read on.
+
+---
+
+## Before you start
+
+### GitHub Personal Access Token
+
+Semmelweis needs a fine-grained PAT to access the modules repo.
+
+1. Go to [GitHub > Settings > Developer settings > Fine-grained tokens](https://github.com/settings/personal-access-tokens/new)
+2. Set a descriptive name (e.g. `semmelweis-modules`)
+3. Under **Repository access**, select **Only select repositories** and pick your modules repo
+4. Under **Permissions > Repository permissions**, set:
+   - `Contents`: **Read and write** (read to fetch modules, write to create/edit from the UI)
+5. Click **Generate token** and save the value — this is your `GH_TOKEN`
+
+### Infisical
+
+Semmelweis uses [Infisical](https://infisical.com) as a secrets vault. Module secrets are never stored on disk — they are resolved at runtime via Varlock + Infisical.
+
+1. Create an account at [app.infisical.com](https://app.infisical.com) (or your self-hosted instance)
+2. Create a **project** for your modules' secrets
+3. Create an **environment** within that project (e.g. `dev`, `production`)
+4. For each module that needs secrets, create a **folder** named after the module (e.g. `/linear`, `/supabase`) and add the secret key-value pairs there
+5. Create a **machine identity**:
+   - Go to **Organization Settings > Machine Identities**
+   - Create a new identity and attach it to your project with read access
+   - Under **Authentication**, create a **Universal Auth** client — this gives you a `Client ID` and `Client Secret`
+
+You'll need these values for your `.env`:
+
+| Infisical value | `.env` variable |
+|-----------------|-----------------|
+| Client ID | `INFISICAL_CLIENT_ID` |
+| Client Secret | `INFISICAL_CLIENT_SECRET` |
+| Project ID (from project settings) | `INFISICAL_PROJECT_ID` |
+| Environment slug | `INFISICAL_ENVIRONMENT` |
+| Instance URL | `INFISICAL_SITE_URL` |
+
+### LLM API key
+
+Semmelweis has a built-in chat feature that needs access to an LLM. You can use any OpenAI-compatible provider:
+
+- **Anthropic** — `ANTHROPIC_AUTH_TOKEN=sk-ant-...` with `ANTHROPIC_BASE_URL=https://api.anthropic.com`
+- **OpenAI** — `ANTHROPIC_AUTH_TOKEN=sk-...` with `ANTHROPIC_BASE_URL=https://api.openai.com/v1`
+- **Ollama** (free, local) — `ANTHROPIC_AUTH_TOKEN=unused` with `ANTHROPIC_BASE_URL=http://host.docker.internal:11434/v1`
+
+When using a non-Anthropic provider, set the model overrides to match your provider's model names:
+
+```
+# Example: OpenAI
+ANTHROPIC_DEFAULT_OPUS_MODEL=gpt-4o
+ANTHROPIC_DEFAULT_SONNET_MODEL=gpt-4o-mini
+ANTHROPIC_DEFAULT_HAIKU_MODEL=gpt-4o-mini
+
+# Example: Ollama
+ANTHROPIC_DEFAULT_OPUS_MODEL=llama3.1
+ANTHROPIC_DEFAULT_SONNET_MODEL=llama3.1
+ANTHROPIC_DEFAULT_HAIKU_MODEL=llama3.1
+```
 
 ## Prerequisites
 
 - **Docker Engine ≥ 24.0** and **Docker Compose V2** ([install guide](https://docs.docker.com/engine/install/))
-- A **GitHub Personal Access Token** (fine-grained) with `Contents: read` permission on the repo that holds your context modules. Add `Contents: write` if you want to create/edit modules from the UI.
-- An **Anthropic API key** for the chat feature
+- A **GitHub modules repo** — an empty private repo is fine, modules are added through the UI over time
+- A **GitHub PAT**, **Infisical account**, and **LLM API key** (see above)
 
-## Quick Start
+## 1. Install
 
-1. Download the two files you need:
+You'll receive a **registry token** from the project maintainer — this is needed to pull the private container image.
 
-   ```bash
-   curl -O https://raw.githubusercontent.com/bleak-ai/context-loader/master/docker-compose.yml
-   curl -O https://raw.githubusercontent.com/bleak-ai/context-loader/master/.env.example
-   ```
+Run the install script:
 
-   Or clone the repo: `git clone https://github.com/bleak-ai/context-loader.git && cd context-loader`
+```bash
+curl -fsSL https://semelweis.com/install.sh | REGISTRY_TOKEN=ghp_... bash
+```
 
-2. Create your environment file:
+This will:
+- Authenticate with the container registry
+- Create a `semmelweis/` directory with `docker-compose.yml` and `.env`
+- Pull the latest image
 
-   ```bash
-   cp .env.example .env
-   ```
+You can specify a custom install directory:
 
-3. Edit `.env` and fill in the required values:
+```bash
+curl -fsSL https://semelweis.com/install.sh | REGISTRY_TOKEN=ghp_... bash -s -- /opt/semmelweis
+```
 
-   ```
-   GH_OWNER=your-github-org
-   GH_REPO=your-modules-repo
-   GH_TOKEN=github_pat_...
-   ANTHROPIC_AUTH_TOKEN=sk-ant-...
-   ```
+## 2. Configure
 
-4. Start the service:
+Edit the `.env` file with your credentials:
 
-   ```bash
-   docker compose up -d
-   ```
+```
+GH_OWNER=your-github-org
+GH_REPO=your-modules-repo
+GH_TOKEN=github_pat_...
+GH_BRANCH=main
+ANTHROPIC_AUTH_TOKEN=sk-ant-...
+ANTHROPIC_BASE_URL=https://api.anthropic.com
+ANTHROPIC_DEFAULT_OPUS_MODEL=claude-sonnet-4-20250514
+ANTHROPIC_DEFAULT_SONNET_MODEL=claude-sonnet-4-20250514
+ANTHROPIC_DEFAULT_HAIKU_MODEL=claude-haiku-4-5-20251001
+INFISICAL_CLIENT_ID=...
+INFISICAL_CLIENT_SECRET=...
+INFISICAL_PROJECT_ID=...
+INFISICAL_ENVIRONMENT=dev
+INFISICAL_SITE_URL=https://app.infisical.com
+```
 
-5. Open [http://localhost:8080](http://localhost:8080)
+## 3. Start
+
+```bash
+docker compose up -d
+```
+
+Open [http://localhost:8080](http://localhost:8080).
 
 ## Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `GH_OWNER` | Yes | GitHub org or user that owns the modules repo |
-| `GH_REPO` | Yes | Repository name containing your context modules |
-| `GH_TOKEN` | Yes | Fine-grained PAT with Contents read (+ write for editing modules) |
-| `ANTHROPIC_AUTH_TOKEN` | Yes | Anthropic API key for the chat feature |
-| `ANTHROPIC_BASE_URL` | No | Custom API endpoint (for proxies) |
-| `ANTHROPIC_DEFAULT_OPUS_MODEL` | No | Override the default Opus model ID |
-| `ANTHROPIC_DEFAULT_SONNET_MODEL` | No | Override the default Sonnet model ID |
-| `ANTHROPIC_DEFAULT_HAIKU_MODEL` | No | Override the default Haiku model ID |
-| `INFISICAL_CLIENT_ID` | No | Infisical machine identity client ID |
-| `INFISICAL_CLIENT_SECRET` | No | Infisical machine identity client secret |
-| `INFISICAL_PROJECT_ID` | No | Infisical project to read secrets from |
-| `INFISICAL_ENVIRONMENT` | No | Infisical environment slug (default: `dev`) |
-| `INFISICAL_SITE_URL` | No | Infisical instance URL (default: `https://app.infisical.com`) |
-
-The Infisical variables are only needed if your modules use secrets. See [Infisical setup guide](infisical-setup.md) for details.
+| Variable | Description |
+|----------|-------------|
+| `GH_OWNER` | GitHub org or user that owns the modules repo |
+| `GH_REPO` | Repository name containing your context modules |
+| `GH_TOKEN` | Fine-grained PAT with Contents read + write |
+| `GH_BRANCH` | Branch of the module repo to track |
+| `ANTHROPIC_AUTH_TOKEN` | API key for your LLM provider |
+| `ANTHROPIC_BASE_URL` | LLM API endpoint |
+| `ANTHROPIC_DEFAULT_OPUS_MODEL` | Model ID for the "Opus" tier |
+| `ANTHROPIC_DEFAULT_SONNET_MODEL` | Model ID for the "Sonnet" tier |
+| `ANTHROPIC_DEFAULT_HAIKU_MODEL` | Model ID for the "Haiku" tier |
+| `INFISICAL_CLIENT_ID` | Infisical machine identity client ID |
+| `INFISICAL_CLIENT_SECRET` | Infisical machine identity client secret |
+| `INFISICAL_PROJECT_ID` | Infisical project to read secrets from |
+| `INFISICAL_ENVIRONMENT` | Infisical environment slug |
+| `INFISICAL_SITE_URL` | Infisical instance URL |
 
 ## Updating
-
-The image is published to `ghcr.io/bleak-ai/context-loader:latest` on every push to master.
 
 ```bash
 docker compose pull
 docker compose up -d
 ```
 
-## HTTPS with Caddy
+## Reverse Proxy / HTTPS
 
-For production deployments, put a reverse proxy in front of the app. [Caddy](https://caddyserver.com/) handles HTTPS automatically via Let's Encrypt.
+For production deployments, put Semmelweis behind a reverse proxy with TLS. Below are minimal examples for common options.
 
-1. Create a `Caddyfile` next to your `docker-compose.yml`:
+### Caddy (automatic HTTPS)
 
-   ```
-   your-domain.com {
-       reverse_proxy context-loader:8080
-   }
-   ```
+```
+semelweis.example.com {
+    reverse_proxy localhost:8080
+}
+```
 
-2. Create a `docker-compose.override.yml`:
+Run with `caddy run --config Caddyfile`. Caddy handles certificate provisioning automatically via Let's Encrypt.
 
-   ```yaml
-   services:
-     caddy:
-       image: caddy:2
-       restart: unless-stopped
-       ports:
-         - "80:80"
-         - "443:443"
-       volumes:
-         - ./Caddyfile:/etc/caddy/Caddyfile
-         - caddy_data:/data
-         - caddy_config:/config
-       depends_on:
-         - context-loader
+### Nginx
 
-   volumes:
-     caddy_data:
-     caddy_config:
-   ```
+```nginx
+server {
+    listen 443 ssl;
+    server_name semelweis.example.com;
 
-3. Comment out the `ports` mapping for `context-loader` in `docker-compose.yml` so only Caddy is exposed:
+    ssl_certificate     /etc/letsencrypt/live/semelweis.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/semelweis.example.com/privkey.pem;
 
-   ```yaml
-   services:
-     context-loader:
-       # ports:
-       #   - "8080:8080"
-   ```
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
 
-4. Start both services:
+Use [certbot](https://certbot.eff.org/) to obtain and renew certificates.
 
-   ```bash
-   docker compose up -d
-   ```
+### Notes
 
-   Caddy will automatically obtain a TLS certificate for your domain.
+- Bind the container to `127.0.0.1` instead of `0.0.0.0` so it's only reachable through the proxy: change `"8080:8080"` to `"127.0.0.1:8080:8080"` in `docker-compose.yml`.
+- If you use WebSocket features, ensure your proxy passes `Upgrade` and `Connection` headers.
 
 ## Troubleshooting
 
@@ -145,13 +228,6 @@ Verify `ANTHROPIC_AUTH_TOKEN` is set and the key is valid.
 curl http://localhost:8080/health
 ```
 Should return HTTP 200. If not, check the container logs.
-
-**Cannot pull image**
-If the GHCR package is private, authenticate first:
-```bash
-docker login ghcr.io
-```
-Use a GitHub PAT with `read:packages` scope as the password.
 
 ## Notes
 

@@ -19,7 +19,8 @@
 - [platform/src/routes/sync.py](platform/src/routes/sync.py) — Sync API endpoints (GET /api/sync/status, POST /api/sync/pull, POST /api/sync/push)
 - [platform/frontend/src/api/sync.ts](platform/frontend/src/api/sync.ts) — Sync API client (fetchSyncStatus, pullSync, pushSync)
 - [platform/frontend/src/components/SyncControls.tsx](platform/frontend/src/components/SyncControls.tsx) — Pull/Push buttons driven by sync status
-- [platform/src/services/schemas.py](platform/src/services/schemas.py) — Env schema generation, parsing, Infisical augmentation
+- [platform/src/services/manifest.py](platform/src/services/manifest.py) — ModuleManifest Pydantic model + read_manifest/write_manifest I/O; replaces per-module .env.schema and requirements.txt with a single module.yaml
+- [platform/src/services/schemas.py](platform/src/services/schemas.py) — generate_global_schema(dict[str,list[str]]) builds workspace .env.schema from manifest secret lists; validate_module_name/validate_module_file_path for input sanitization
 - [platform/src/services/secrets.py](platform/src/services/secrets.py) — Varlock secret status and loading
 - [platform/frontend/](platform/frontend/) — React SPA (Vite + TanStack Router + TanStack Query)
 - [platform/frontend/src/api/](platform/frontend/src/api/) — API client layer (fetch wrapper, modules, workspace, chat, sessions, commands)

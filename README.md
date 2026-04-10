@@ -3,7 +3,7 @@
 ## Self-host with Docker
 
 ```bash
-cp .env.example .env   # fill in your credentials
+cp .env.example platform/.env   # fill in your credentials
 docker compose up -d
 ```
 
