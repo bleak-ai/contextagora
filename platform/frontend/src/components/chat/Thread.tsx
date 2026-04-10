@@ -30,7 +30,7 @@ export const Thread: FC<ThreadProps> = ({ emptyState, onNewSession }) => {
           <AuiIf condition={(s) => s.thread.isEmpty}>
             <div className="flex-1 flex flex-col items-center justify-center">
               {emptyState}
-              <div className="w-full max-w-[700px] px-5 mt-6">
+              <div className="w-full max-w-[900px] px-8 sm:px-16 mt-8">
                 <Composer />
               </div>
             </div>
@@ -38,7 +38,7 @@ export const Thread: FC<ThreadProps> = ({ emptyState, onNewSession }) => {
         )}
 
         {/* Messages */}
-        <div className="mx-auto w-full px-5 py-4 space-y-6">
+        <div className="mx-auto w-full max-w-[900px] px-8 sm:px-16 py-8 space-y-8">
           <ThreadPrimitive.Messages
             components={{
               UserMessage,
@@ -60,11 +60,11 @@ export const Thread: FC<ThreadProps> = ({ emptyState, onNewSession }) => {
 
 const UserMessage: FC = () => (
   <MessagePrimitive.Root className="flex justify-end">
-    <div className="ml-auto max-w-[70%] bg-[var(--color-user-bubble)] rounded-2xl px-4 py-2.5 text-sm text-text">
+    <div className="ml-auto max-w-[80%] bg-[var(--color-user-bubble)] border border-white/[0.04] rounded-3xl px-5 py-3 text-sm text-text shadow-sm">
       <MessagePrimitive.Content
         components={{
           Text: ({ text }) => (
-            <span className="whitespace-pre-wrap">{text}</span>
+            <span className="whitespace-pre-wrap leading-relaxed">{text}</span>
           ),
         }}
       />
@@ -89,8 +89,8 @@ const AssistantText: FC<TextMessagePartProps> = (props) => {
 
 const AssistantMessage: FC = () => (
   <MessagePrimitive.Root className="relative flex items-stretch gap-0 w-full group">
-    <div className="flex-1 min-w-0 max-w-[85%]">
-      <div className="space-y-1.5">
+    <div className="flex-1 min-w-0">
+      <div className="space-y-2">
         <MessagePrimitive.Content
           components={{
             Text: AssistantText,
@@ -188,8 +188,8 @@ const Composer: FC<{ onNewSession?: () => void }> = ({ onNewSession }) => {
   });
 
   return (
-    <div className="border-t border-border bg-bg px-5 py-3">
-      <div className="relative max-w-[700px] mx-auto">
+    <div className="border-t border-border bg-bg px-8 sm:px-16 py-4">
+      <div className="relative max-w-[900px] mx-auto">
         {showSelector && filtered.length > 0 && (
           <SlashCommandSelector
             filtered={filtered}
@@ -208,7 +208,7 @@ const Composer: FC<{ onNewSession?: () => void }> = ({ onNewSession }) => {
             onSelect={handleMentionSelect}
           />
         )}
-        <ComposerPrimitive.Root className="relative bg-bg-input border border-border rounded-xl focus-within:border-accent/40 transition-colors">
+        <ComposerPrimitive.Root className="relative bg-bg-input border border-border rounded-2xl focus-within:border-accent/40 focus-within:shadow-[0_0_0_1px_rgba(196,163,90,0.1)] transition-all">
           <ComposerPrimitive.Input
             autoFocus
             placeholder="Ask anything..."
@@ -221,7 +221,7 @@ const Composer: FC<{ onNewSession?: () => void }> = ({ onNewSession }) => {
                   ? mentionPicker.handleKeyDown
                   : undefined
             }
-            className="w-full resize-none bg-transparent px-4 py-3 pb-12 text-sm text-text placeholder:text-text-secondary placeholder:opacity-90 outline-none disabled:opacity-50"
+            className="w-full resize-none bg-transparent px-5 py-3.5 pb-13 text-sm text-text placeholder:text-text-secondary/70 outline-none disabled:opacity-50"
           />
           {onNewSession && (
             <div className="absolute left-3 bottom-2.5">
