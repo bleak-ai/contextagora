@@ -90,40 +90,36 @@ async def get_secrets_status(
 
     The global schema at directory/.env.schema resolves all module secrets
     in one varlock call. Results are split back to per-module dicts by
-    reading each module's dumb .env.schema for its declared var names.
+    reading each module's manifest for its declared secret names.
     """
     if not (directory / ".env.schema").exists():
         return {}
 
-    # Build var_name -> module_name mapping from each module's dumb schema
+    # Build var_name -> module_name mapping from each module's manifest
+    from src.services.manifest import read_manifest
+
     var_to_module: dict[str, str] = {}
-    modules = [
-        m for m in list_modules_fn(directory)
-        if (directory / m / ".env.schema").exists()
-    ]
+    modules = list_modules_fn(directory)
+    modules_with_secrets: list[str] = []
     for name in modules:
-        schema = (directory / name / ".env.schema").read_text()
-        for line in schema.splitlines():
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            if "=" in line:
-                key = line.split("=", 1)[0]
-                if key not in INFISICAL_VARS:
-                    var_to_module[key] = name
+        manifest = read_manifest(directory / name)
+        if manifest.secrets:
+            modules_with_secrets.append(name)
+            for var in manifest.secrets:
+                var_to_module[var] = name
 
     # Run varlock once at workspace root
     try:
         previews = await asyncio.to_thread(load_and_mask_secrets, directory)
     except SecretsValidationError as e:
         log.warning("global varlock failed (missing=%s)", e.missing)
-        result: dict[str, dict[str, str | None]] = {m: {} for m in modules}
+        result: dict[str, dict[str, str | None]] = {m: {} for m in modules_with_secrets}
         for var, mod in var_to_module.items():
             result[mod][var] = None
         return result
 
     # Split resolved vars by module
-    result = {m: {} for m in modules}
+    result = {m: {} for m in modules_with_secrets}
     for var, value in previews.items():
         mod = var_to_module.get(var)
         if mod and mod in result:

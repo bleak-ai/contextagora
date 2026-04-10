@@ -59,6 +59,7 @@
 - [docs/guides/varlock.md](docs/guides/varlock.md) — Varlock secret management system explained
 - [docs/guides/writing-efficient-scripts.md](docs/guides/writing-efficient-scripts.md) — Guidelines for writing network-efficient scripts
 - [docs/guides/debugging-claude-timing.md](docs/guides/debugging-claude-timing.md) — Methodology for measuring Claude Code chat timing
+- [docs/guides/module-manifest-migration.md](docs/guides/module-manifest-migration.md) — Migrate modules from .env.schema + requirements.txt to module.yaml
 
 ## Ideas
 - [docs/ideas/info.md](docs/ideas/info.md) — Foundational concept: modular context for AI agents

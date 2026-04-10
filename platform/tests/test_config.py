@@ -65,7 +65,7 @@ class TestConstants:
 
     def test_managed_files(self):
         s = _make_settings()
-        assert s.MANAGED_FILES == {"llms.txt", ".env.schema", "requirements.txt"}
+        assert s.MANAGED_FILES == {"llms.txt", "module.yaml"}
 
 
 class TestEnvOverrides:

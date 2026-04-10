@@ -35,39 +35,21 @@ def list_workspace_files(
     return paths
 
 
-def _parse_requirement(line: str) -> str | None:
-    """Extract just the package name from a requirements.txt line.
-
-    Strips inline comments, version specifiers, and extras. Returns None
-    for blank/comment-only lines.
-    """
-    line = line.split("#", 1)[0].strip()
-    if not line:
-        return None
-    # Cut off version specifiers and extras: `pkg[extra]>=1.0` -> `pkg`
-    for sep in ("[", "=", ">", "<", "~", "!", ";", " "):
-        idx = line.find(sep)
-        if idx != -1:
-            line = line[:idx]
-    return line.strip() or None
-
-
 def inspect_module_packages(module_dir: Path) -> list[dict]:
     """Return [{name, version, installed}] for each package declared in
-    the module's requirements.txt. Empty list if no requirements.txt.
+    the module's module.yaml. Empty list if no dependencies.
 
     Uses importlib.metadata to look up the currently-installed version
     of each package in the platform's shared venv.
     """
-    req = module_dir / "requirements.txt"
-    if not req.exists():
+    from src.services.manifest import read_manifest
+
+    manifest = read_manifest(module_dir)
+    if not manifest.dependencies:
         return []
 
     out: list[dict] = []
-    for raw in req.read_text().splitlines():
-        name = _parse_requirement(raw)
-        if name is None:
-            continue
+    for name in manifest.dependencies:
         try:
             v = _version(name)
             out.append({"name": name, "version": v, "installed": True})

@@ -18,12 +18,8 @@ from src.models import (
 )
 from src.config import settings
 from src.services import git_repo
-from src.services.schemas import (
-    generate_env_schema,
-    parse_env_schema,
-    validate_module_file_path,
-    validate_module_name,
-)
+from src.services.manifest import ModuleManifest, read_manifest, write_manifest
+from src.services.schemas import validate_module_file_path, validate_module_name
 
 router = APIRouter(prefix="/api/modules", tags=["modules"])
 
@@ -36,45 +32,34 @@ async def api_list_modules():
 
 @router.get("/{name}")
 async def api_get_module(name: str):
-    """Get module detail: info.md content, summary, secrets, requirements."""
+    """Get module detail: info.md content, summary, secrets, dependencies."""
     try:
         content = git_repo.read_file(name, "info.md")
     except FileNotFoundError:
         return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
 
-    summary = ""
-    try:
-        llms_text = git_repo.read_file(name, "llms.txt")
-        summary = extract_module_summary(llms_text)
-    except FileNotFoundError:
-        pass
+    manifest = read_manifest(git_repo.module_dir(name))
 
-    secrets: list[str] = []
-    try:
-        schema_text = git_repo.read_file(name, ".env.schema")
-        secrets = parse_env_schema(schema_text)
-    except FileNotFoundError:
-        pass
-
-    requirements: list[str] = []
-    try:
-        req_text = git_repo.read_file(name, "requirements.txt")
-        requirements = [line.strip() for line in req_text.splitlines() if line.strip()]
-    except FileNotFoundError:
-        pass
+    summary = manifest.summary
+    if not summary:
+        try:
+            llms_text = git_repo.read_file(name, "llms.txt")
+            summary = extract_module_summary(llms_text)
+        except FileNotFoundError:
+            pass
 
     return {
         "name": name,
         "content": content,
         "summary": summary,
-        "secrets": secrets,
-        "requirements": requirements,
+        "secrets": manifest.secrets,
+        "requirements": manifest.dependencies,
     }
 
 
 @router.post("", status_code=201)
 async def api_create_module(body: CreateModuleRequest):
-    """Create a new module with info.md, llms.txt, and optional .env.schema."""
+    """Create a new module with info.md, llms.txt, and module.yaml."""
     name = validate_module_name(body.name)
 
     try:
@@ -87,15 +72,13 @@ async def api_create_module(body: CreateModuleRequest):
     git_repo.write_file(name, "info.md", body.content)
     files = ["info.md"]
 
-    if body.secrets:
-        schema = generate_env_schema(body.secrets)
-        git_repo.write_file(name, ".env.schema", schema)
-        files.append(".env.schema")
-
-    if body.requirements:
-        req_content = "\n".join(body.requirements) + "\n"
-        git_repo.write_file(name, "requirements.txt", req_content)
-        files.append("requirements.txt")
+    manifest = ModuleManifest(
+        name=name,
+        summary=body.summary,
+        secrets=body.secrets,
+        dependencies=body.requirements,
+    )
+    write_manifest(git_repo.module_dir(name), manifest)
 
     llms_txt = generate_module_llms_txt(name, body.summary, files)
     git_repo.write_file(name, "llms.txt", llms_txt)
@@ -105,28 +88,19 @@ async def api_create_module(body: CreateModuleRequest):
 
 @router.put("/{name}")
 async def api_update_module(name: str, body: UpdateModuleRequest):
-    """Update a module's info.md, .env.schema, requirements, llms.txt."""
+    """Update a module's info.md, module.yaml, and llms.txt."""
     if not git_repo.module_exists(name):
         return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
 
     git_repo.write_file(name, "info.md", body.content)
 
-    if body.secrets:
-        git_repo.write_file(name, ".env.schema", generate_env_schema(body.secrets))
-    else:
-        try:
-            git_repo.delete_file(name, ".env.schema")
-        except FileNotFoundError:
-            pass
-
-    if body.requirements:
-        req_content = "\n".join(body.requirements) + "\n"
-        git_repo.write_file(name, "requirements.txt", req_content)
-    else:
-        try:
-            git_repo.delete_file(name, "requirements.txt")
-        except FileNotFoundError:
-            pass
+    manifest = ModuleManifest(
+        name=name,
+        summary=body.summary,
+        secrets=body.secrets,
+        dependencies=body.requirements,
+    )
+    write_manifest(git_repo.module_dir(name), manifest)
 
     regenerate_module_llms_txt(name, settings.MANAGED_FILES, summary=body.summary)
 

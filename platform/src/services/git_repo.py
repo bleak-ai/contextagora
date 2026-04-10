@@ -117,6 +117,11 @@ def module_exists(name: str, *, clone_dir: Path | None = None) -> bool:
     return (_resolve_clone(clone_dir) / name).is_dir()
 
 
+def module_dir(name: str, *, clone_dir: Path | None = None) -> Path:
+    """Return the Path to a module's directory in the local clone."""
+    return _resolve_clone(clone_dir) / name
+
+
 def read_file(module: str, rel_path: str, *, clone_dir: Path | None = None) -> str:
     path = _resolve_clone(clone_dir) / module / rel_path
     return path.read_text()

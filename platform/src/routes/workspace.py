@@ -12,6 +12,7 @@ from src.services.workspace_inspect import (
 )
 from src.services import git_repo
 from src.services.deps import install_module_deps
+from src.services.manifest import read_manifest
 from src.services.schemas import generate_global_schema
 from src.services.secrets import get_secrets_status
 
@@ -126,7 +127,7 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
 
             link_path.symlink_to(target, target_is_directory=True)
 
-            # install_module_deps reads requirements.txt via the symlink — fine.
+            # install_module_deps reads module.yaml via the symlink — fine.
             dep_result = install_module_deps(link_path)
             if dep_result is not None and dep_result.returncode != 0:
                 raise RuntimeError(
@@ -151,14 +152,14 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
     generate_root_llms_txt(settings.CONTEXT_DIR)
 
     # Generate global .env.schema for varlock at workspace root.
-    modules_with_schemas: dict[str, str] = {}
+    modules_with_secrets: dict[str, list[str]] = {}
     for name in loaded:
-        schema_path = settings.CONTEXT_DIR / name / ".env.schema"
-        if schema_path.exists():
-            modules_with_schemas[name] = schema_path.read_text()
-    if modules_with_schemas:
+        manifest = read_manifest(settings.CONTEXT_DIR / name)
+        if manifest.secrets:
+            modules_with_secrets[name] = manifest.secrets
+    if modules_with_secrets:
         (settings.CONTEXT_DIR / ".env.schema").write_text(
-            generate_global_schema(modules_with_schemas)
+            generate_global_schema(modules_with_secrets)
         )
     else:
         schema_file = settings.CONTEXT_DIR / ".env.schema"

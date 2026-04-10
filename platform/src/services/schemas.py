@@ -1,16 +1,8 @@
 import re
-from pathlib import Path
 
 from src.config import settings
 
 INFISICAL_PLUGIN = "@varlock/infisical-plugin@0.0.6"
-
-INFISICAL_BOOTSTRAP_VARS = {
-    "INFISICAL_PROJECT_ID",
-    "INFISICAL_ENVIRONMENT",
-    "INFISICAL_CLIENT_ID",
-    "INFISICAL_CLIENT_SECRET",
-}
 
 _VALID_MODULE_NAME = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]*$")
 
@@ -39,45 +31,12 @@ def validate_module_file_path(file_path: str, managed_files: frozenset[str]) -> 
     raise ValueError("Only info.md and .md files under docs/ are allowed")
 
 
-def generate_env_schema(var_names: list[str]) -> str:
-    """Generate a dumb .env.schema for a single module (stored in git)."""
-    lines = ["# ---"]
-    for var in var_names:
-        lines.append("# @required @sensitive @type=string")
-        lines.append(f"{var}=")
-    return "\n".join(lines) + "\n"
-
-
-def parse_env_schema(schema_text: str) -> list[str]:
-    """Extract variable names from a .env.schema, filtering out bootstrap vars."""
-    return [
-        line.split("=", 1)[0]
-        for line in schema_text.splitlines()
-        if line.strip()
-        and not line.strip().startswith("#")
-        and "=" in line
-        and line.split("=", 1)[0] not in INFISICAL_BOOTSTRAP_VARS
-    ]
-
-
-def _extract_module_vars(schema_text: str) -> list[str]:
-    """Extract module-specific variable names from a dumb .env.schema."""
-    return [
-        line.split("=", 1)[0]
-        for line in schema_text.splitlines()
-        if line.strip()
-        and not line.strip().startswith("#")
-        and "=" in line
-        and line.split("=", 1)[0] not in INFISICAL_BOOTSTRAP_VARS
-    ]
-
-
-def generate_global_schema(modules_with_schemas: dict[str, str]) -> str:
+def generate_global_schema(modules_with_secrets: dict[str, list[str]]) -> str:
     """Generate a single .env.schema for the workspace root.
 
     Args:
-        modules_with_schemas: {module_name: raw_schema_text} for each
-            loaded module that has a .env.schema.
+        modules_with_secrets: {module_name: [secret_var_names]} for each
+            loaded module that has secrets.
 
     Returns:
         Complete schema text with one @initInfisical block per module,
@@ -90,8 +49,7 @@ def generate_global_schema(modules_with_schemas: dict[str, str]) -> str:
         f"# @plugin({INFISICAL_PLUGIN})",
     ]
 
-    # One @initInfisical block per module
-    for module_name in sorted(modules_with_schemas):
+    for module_name in sorted(modules_with_secrets):
         lines.extend([
             "# @initInfisical(",
             f"#   id={module_name},",
@@ -106,7 +64,6 @@ def generate_global_schema(modules_with_schemas: dict[str, str]) -> str:
 
     lines.append("# ---")
 
-    # Bootstrap vars (shared across all modules)
     lines.extend([
         "# @type=string @required",
         "INFISICAL_PROJECT_ID=",
@@ -118,10 +75,8 @@ def generate_global_schema(modules_with_schemas: dict[str, str]) -> str:
         "INFISICAL_CLIENT_SECRET=",
     ])
 
-    # Module-specific vars
-    for module_name in sorted(modules_with_schemas):
-        var_names = _extract_module_vars(modules_with_schemas[module_name])
-        for var in var_names:
+    for module_name in sorted(modules_with_secrets):
+        for var in modules_with_secrets[module_name]:
             lines.append("# @required @sensitive @type=string")
             lines.append(f"{var}=infisical({module_name}, {var})")
 
