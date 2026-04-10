@@ -48,6 +48,7 @@
 ## Active Plans
 - [docs/plans/active/17-agent-backend-abstraction.md](docs/plans/active/17-agent-backend-abstraction.md) — Plan: Agent backend abstraction (Claude Code vs opencode)
 - [docs/plans/active/18-REFACTOR_PLAN.md](docs/plans/active/18-REFACTOR_PLAN.md) — Plan: Refactoring roadmap (config, manifest, SQLite, SDK)
+- [docs/plans/active/19-module-manifest.md](docs/plans/active/19-module-manifest.md) — Plan: Replace .env.schema + requirements.txt with module.yaml manifest
 
 ## Archived Plans
 - [docs/plans/archive/](docs/plans/archive/) — Historical plans (filebrowser, CLI, module management, MCP server, commercialization)
