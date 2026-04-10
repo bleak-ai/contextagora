@@ -58,4 +58,5 @@
 - [docs/guides/git-module-loading-test.md](docs/guides/git-module-loading-test.md) — Testing GitHub API module loading with a private repo and token
 
 ## Reference
-- [STATUS.md](STATUS.md) — Project overview, architecture, and current state
+- [STATUS.md](STATUS.md) — What the system is, how it's built, current state (load every conversation)
+- [DECISIONS.md](DECISIONS.md) — Architectural decisions and rationale (load when planning or changing things)
