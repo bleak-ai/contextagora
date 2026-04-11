@@ -9,3 +9,4 @@ __pycache__/
 **/node_modules/
 src/context/*
 !src/context/CLAUDE.md
+src/modules-repo/

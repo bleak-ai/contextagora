@@ -68,12 +68,12 @@ Edit the `.env` file with your credentials:
 
 ```bash
 # ── GitHub Module Source ─────────────────────────────────────────
-GH_OWNER=your-github-org          # org or user that owns the modules repo
-GH_REPO=your-modules-repo         # repo name
-GH_TOKEN=github_pat_...           # fine-grained PAT with Contents read+write
+GH_OWNER=your-github-org
+GH_REPO=your-modules-repo
+GH_TOKEN=github_pat_...
 
 # ── LLM Provider ────────────────────────────────────────────────
-LLM_API_KEY=your-api-key          # any OpenAI-compatible provider works
+LLM_API_KEY=your-api-key
 LLM_BASE_URL=https://api.anthropic.com
 LLM_MODEL=claude-sonnet-4-20250514
 
