@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: bleak-ai/context-loader
+  IMAGE_NAME: bleak-ai/contextagora
 
 jobs:
   build-and-push:
