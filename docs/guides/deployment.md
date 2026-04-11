@@ -1,4 +1,4 @@
-# Deploying Project Semelweis
+# Deploying Project Notcontext
 
 ## Quick start
 
@@ -6,10 +6,10 @@ Already have your GitHub PAT, Infisical credentials, and LLM API key? Here's the
 
 ```bash
 # 1. Install
-curl -fsSL https://semelweis.com/install.sh | bash
+curl -fsSL https://notcontext.com/install.sh | bash
 
 # 2. Configure
-cd semelweis && nano .env   # fill in your credentials
+cd notcontext && nano .env   # fill in your credentials
 
 # 3. Start
 docker compose up -d
@@ -26,10 +26,10 @@ Open [http://localhost:8080](http://localhost:8080) and you're ready to go. If y
 
 ### GitHub Personal Access Token
 
-Semelweis needs a fine-grained PAT to access the modules repo.
+Notcontext needs a fine-grained PAT to access the modules repo.
 
 1. Go to [GitHub > Settings > Developer settings > Fine-grained tokens](https://github.com/settings/personal-access-tokens/new)
-2. Set a descriptive name (e.g. `semelweis-modules`)
+2. Set a descriptive name (e.g. `notcontext-modules`)
 3. Under **Repository access**, select **Only select repositories** and pick your modules repo
 4. Under **Permissions > Repository permissions**, set:
    - `Contents`: **Read and write** (read to fetch modules, write to create/edit from the UI)
@@ -37,7 +37,7 @@ Semelweis needs a fine-grained PAT to access the modules repo.
 
 ### Infisical
 
-Semelweis uses [Infisical](https://infisical.com) as a secrets vault. Module secrets are never stored on disk — they are resolved at runtime via Varlock + Infisical.
+Notcontext uses [Infisical](https://infisical.com) as a secrets vault. Module secrets are never stored on disk — they are resolved at runtime via Varlock + Infisical.
 
 1. Create an account at [app.infisical.com](https://app.infisical.com) (or your self-hosted instance)
 2. Create a **project** for your modules' secrets
@@ -60,7 +60,7 @@ You'll need these values for your `.env`:
 
 ### LLM API key
 
-Semelweis has a built-in chat feature that needs access to an LLM. You can use any OpenAI-compatible provider:
+Notcontext has a built-in chat feature that needs access to an LLM. You can use any OpenAI-compatible provider:
 
 - **Anthropic** — `ANTHROPIC_AUTH_TOKEN=sk-ant-...` with `ANTHROPIC_BASE_URL=https://api.anthropic.com`
 - **OpenAI** — `ANTHROPIC_AUTH_TOKEN=sk-...` with `ANTHROPIC_BASE_URL=https://api.openai.com/v1`
@@ -91,17 +91,17 @@ ANTHROPIC_DEFAULT_HAIKU_MODEL=llama3.1
 Run the install script:
 
 ```bash
-curl -fsSL https://semelweis.com/install.sh | bash
+curl -fsSL https://notcontext.com/install.sh | bash
 ```
 
 This will:
-- Create a `semelweis/` directory with `docker-compose.yml` and `.env`
+- Create a `notcontext/` directory with `docker-compose.yml` and `.env`
 - Pull the latest image
 
 You can specify a custom install directory:
 
 ```bash
-curl -fsSL https://semelweis.com/install.sh | bash -s -- /opt/semelweis
+curl -fsSL https://notcontext.com/install.sh | bash -s -- /opt/notcontext
 ```
 
 ## 2. Configure
@@ -181,12 +181,12 @@ docker compose up -d
 
 ## Reverse Proxy / HTTPS
 
-For production deployments, put Semelweis behind a reverse proxy with TLS. Below are minimal examples for common options.
+For production deployments, put Notcontext behind a reverse proxy with TLS. Below are minimal examples for common options.
 
 ### Caddy (automatic HTTPS)
 
 ```
-semelweis.example.com {
+notcontext.example.com {
     reverse_proxy localhost:8080
 }
 ```
@@ -198,10 +198,10 @@ Run with `caddy run --config Caddyfile`. Caddy handles certificate provisioning 
 ```nginx
 server {
     listen 443 ssl;
-    server_name semelweis.example.com;
+    server_name notcontext.example.com;
 
-    ssl_certificate     /etc/letsencrypt/live/semelweis.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/semelweis.example.com/privkey.pem;
+    ssl_certificate     /etc/letsencrypt/live/notcontext.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/notcontext.example.com/privkey.pem;
 
     location / {
         proxy_pass http://127.0.0.1:8080;
