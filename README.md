@@ -30,7 +30,7 @@ To build from source with Docker:
 ```bash
 cd platform 
 docker build -t context-loader:local .  
-docker run --rm -p 8080:8080 --env-file .env.local  context-loader:local
+docker run --rm -p 8080:8080 --env-file .env.demo  context-loader:local
 ```
 
 ## Test with Claude Code

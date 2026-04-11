@@ -84,7 +84,6 @@ Edit the `.env` file with your credentials:
 GH_OWNER=your-github-org
 GH_REPO=your-modules-repo
 GH_TOKEN=github_pat_...
-GH_BRANCH=main
 
 # ── LLM Provider ────────────────────────────────────────────────
 LLM_API_KEY=your-api-key
@@ -116,7 +115,7 @@ Open [http://localhost:8080](http://localhost:8080).
 | `GH_OWNER` | GitHub org or user that owns the modules repo |
 | `GH_REPO` | Repository name containing your context modules |
 | `GH_TOKEN` | Fine-grained PAT with Contents read + write |
-| `GH_BRANCH` | Branch of the module repo to track |
+| `GH_BRANCH` | Branch of the module repo to track (defaults to `main`) |
 | `LLM_API_KEY` | API key for your LLM provider |
 | `LLM_BASE_URL` | LLM API endpoint — any OpenAI-compatible URL works |
 | `LLM_MODEL` | Model ID to use for chat |
