@@ -1,4 +1,4 @@
-# Deploying Project Notcontext
+# Deploying ContextAgora
 
 ## Quick start
 
@@ -6,10 +6,10 @@ If you already have your credentials ready:
 
 ```bash
 # 1. Install
-curl -fsSL https://notcontext.com/install.sh | bash
+curl -fsSL https://contextagora.com/install.sh | bash
 
 # 2. Configure
-cd notcontext && nano .env   # fill in your credentials
+cd contextagora && nano .env   # fill in your credentials
 
 # 3. Start
 docker compose up -d
@@ -26,10 +26,10 @@ Open [http://localhost:8080](http://localhost:8080) and you're ready to go.
 
 ### GitHub Personal Access Token
 
-Notcontext needs a fine-grained PAT to access the modules repo.
+ContextAgora needs a fine-grained PAT to access the modules repo.
 
 1. Go to [GitHub > Settings > Developer settings > Fine-grained tokens](https://github.com/settings/personal-access-tokens/new)
-2. Set a descriptive name (e.g. `notcontext-modules`)
+2. Set a descriptive name (e.g. `contextagora-modules`)
 3. Under **Repository access**, select **Only select repositories** and pick your modules repo
 4. Under **Permissions > Repository permissions**, set:
    - `Contents`: **Read and write** (read to fetch modules, write to create/edit from the UI)
@@ -37,7 +37,7 @@ Notcontext needs a fine-grained PAT to access the modules repo.
 
 ### LLM API key
 
-Notcontext has a built-in chat feature that needs access to an LLM. Any OpenAI-compatible provider works (Anthropic, OpenAI, Google Gemini, Ollama, etc.). Set `LLM_API_KEY`, `LLM_BASE_URL`, and `LLM_MODEL` in your `.env`.
+ContextAgora has a built-in chat feature that needs access to an LLM. Any OpenAI-compatible provider works (Anthropic, OpenAI, Google Gemini, Ollama, etc.). Set `LLM_API_KEY`, `LLM_BASE_URL`, and `LLM_MODEL` in your `.env`.
 
 ## Prerequisites
 
@@ -47,10 +47,10 @@ Notcontext has a built-in chat feature that needs access to an LLM. Any OpenAI-c
 ## 1. Install
 
 ```bash
-curl -fsSL https://notcontext.com/install.sh | bash
+curl -fsSL https://contextagora.com/install.sh | bash
 ```
 
-This creates a `notcontext/` directory with `docker-compose.yml` and `.env`, and pulls the latest image.
+This creates a `contextagora/` directory with `docker-compose.yml` and `.env`, and pulls the latest image.
 
 ## 2. Configure
 
@@ -92,7 +92,7 @@ docker compose up -d
 
 ## Setting up secrets (optional)
 
-If your modules need secrets (API keys, tokens, etc.), Notcontext resolves them at runtime via Varlock + [Infisical](https://infisical.com). You can set this up later — modules without secrets work fine without it.
+If your modules need secrets (API keys, tokens, etc.), ContextAgora resolves them at runtime via Varlock + [Infisical](https://infisical.com). You can set this up later — modules without secrets work fine without it.
 
 1. Create an account at [app.infisical.com](https://app.infisical.com)
 2. Create a project and environment for your modules
@@ -110,11 +110,11 @@ INFISICAL_SITE_URL=https://app.infisical.com
 
 ## Reverse Proxy / HTTPS
 
-For production, put Notcontext behind a reverse proxy (Caddy, Nginx, etc.) that terminates TLS and forwards to `localhost:8080`. Bind the container to `127.0.0.1` so it's only reachable through the proxy — change `"8080:8080"` to `"127.0.0.1:8080:8080"` in `docker-compose.yml`.
+For production, put ContextAgora behind a reverse proxy (Caddy, Nginx, etc.) that terminates TLS and forwards to `localhost:8080`. Bind the container to `127.0.0.1` so it's only reachable through the proxy — change `"8080:8080"` to `"127.0.0.1:8080:8080"` in `docker-compose.yml`.
 
 ## Troubleshooting
 
-If something isn't working, check the logs: `docker compose logs context-loader`
+If something isn't working, check the logs: `docker compose logs contextagora`
 
 ## Notes
 

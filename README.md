@@ -1,4 +1,4 @@
-# Context Loader
+# ContextAgora
 
 ## Self-host with Docker
 
@@ -29,8 +29,8 @@ To build from source with Docker:
 
 ```bash
 cd platform 
-docker build -t context-loader:local .  
-docker run --rm -p 8080:8080 --env-file .env.demo  context-loader:local
+docker build -t contextagora:local .  
+docker run --rm -p 8080:8080 --env-file .env.demo contextagora:local
 ```
 
 ## Test with Claude Code

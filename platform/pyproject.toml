@@ -1,7 +1,7 @@
 [project]
-name = "context-loader-poc"
+name = "contextagora"
 version = "0.1.0"
-description = "Minimal POC for the context module loader system"
+description = "ContextAgora — context management for AI agents"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi",

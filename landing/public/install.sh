@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ── Project Semelweis Installer ─────────────────────────────────
-# This script sets up a Semelweis instance on a new machine.
+# ── ContextAgora Installer ───────────────────────────────────────
+# This script sets up a ContextAgora instance on a new machine.
 # It writes the required files and pulls the latest image.
 # ─────────────────────────────────────────────────────────────────
 
-IMAGE="ghcr.io/bleak-ai/context-loader:latest"
+IMAGE="ghcr.io/bleak-ai/contextagora:latest"
 
-INSTALL_DIR="${1:-./semelweis}"
+INSTALL_DIR="${1:-./contextagora}"
 
-echo "==> Installing Project Semelweis into ${INSTALL_DIR}"
+echo "==> Installing ContextAgora into ${INSTALL_DIR}"
 
 # ── Check prerequisites ──────────────────────────────────────────
 if ! command -v docker &> /dev/null; then
@@ -30,8 +30,8 @@ cd "${INSTALL_DIR}"
 # ── Write docker-compose.yml ─────────────────────────────────────
 cat > docker-compose.yml << 'COMPOSE'
 services:
-  context-loader:
-    image: ghcr.io/bleak-ai/context-loader:latest
+  contextagora:
+    image: ghcr.io/bleak-ai/contextagora:latest
     ports:
       - "8080:8080"
     env_file:
@@ -41,11 +41,9 @@ services:
       - GH_REPO=${GH_REPO}
       - GH_TOKEN=${GH_TOKEN}
       - GH_BRANCH=${GH_BRANCH:-main}
-      - ANTHROPIC_AUTH_TOKEN=${ANTHROPIC_AUTH_TOKEN}
-      - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL}
-      - ANTHROPIC_DEFAULT_OPUS_MODEL=${ANTHROPIC_DEFAULT_OPUS_MODEL:-}
-      - ANTHROPIC_DEFAULT_SONNET_MODEL=${ANTHROPIC_DEFAULT_SONNET_MODEL:-}
-      - ANTHROPIC_DEFAULT_HAIKU_MODEL=${ANTHROPIC_DEFAULT_HAIKU_MODEL:-}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_BASE_URL=${LLM_BASE_URL}
+      - LLM_MODEL=${LLM_MODEL}
       - INFISICAL_CLIENT_ID=${INFISICAL_CLIENT_ID:-}
       - INFISICAL_CLIENT_SECRET=${INFISICAL_CLIENT_SECRET:-}
       - INFISICAL_PROJECT_ID=${INFISICAL_PROJECT_ID:-}

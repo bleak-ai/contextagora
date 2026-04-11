@@ -4,7 +4,7 @@ from fastapi import APIRouter
 
 router = APIRouter(tags=["health"])
 
-APP_VERSION = pkg_version("context-loader-poc")
+APP_VERSION = pkg_version("contextagora")
 
 
 @router.get("/api/health")

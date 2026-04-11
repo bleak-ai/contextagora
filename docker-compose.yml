@@ -1,4 +1,4 @@
-# Context Loader
+# ContextAgora
 # Usage:
 #   1. Copy .env.example to .env and fill in your credentials
 #   2. docker compose up -d
@@ -9,8 +9,8 @@
 #   docker compose up -d --build
 
 services:
-  context-loader:
-    image: ghcr.io/bleak-ai/context-loader:latest
+  contextagora:
+    image: ghcr.io/bleak-ai/contextagora:latest
     build: platform/
     ports:
       - "8080:8080"
@@ -22,12 +22,9 @@ services:
       - GH_REPO=${GH_REPO}
       - GH_TOKEN=${GH_TOKEN}
       - GH_BRANCH=${GH_BRANCH:-main}
-      - ANTHROPIC_AUTH_TOKEN=${ANTHROPIC_AUTH_TOKEN}
-      - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL}
-      # ── Optional: model overrides ──
-      - ANTHROPIC_DEFAULT_OPUS_MODEL=${ANTHROPIC_DEFAULT_OPUS_MODEL:-}
-      - ANTHROPIC_DEFAULT_SONNET_MODEL=${ANTHROPIC_DEFAULT_SONNET_MODEL:-}
-      - ANTHROPIC_DEFAULT_HAIKU_MODEL=${ANTHROPIC_DEFAULT_HAIKU_MODEL:-}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_BASE_URL=${LLM_BASE_URL}
+      - LLM_MODEL=${LLM_MODEL}
       # ── Optional: Infisical (only if modules use secrets) ──
       - INFISICAL_CLIENT_ID=${INFISICAL_CLIENT_ID:-}
       - INFISICAL_CLIENT_SECRET=${INFISICAL_CLIENT_SECRET:-}
