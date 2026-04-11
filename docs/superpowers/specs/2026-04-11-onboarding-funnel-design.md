@@ -64,7 +64,7 @@ Multi-turn scripted state machine in the same backend pattern as `/add-integrati
 
 3. **Explain how integration works** (general — secrets, packages, what gets created). One canned message, no LLM call. Ends with: *"Ready to build the {chosen} integration? I'll launch the wizard."*
 
-4. **Hand off to `/add-integration`.** On the user's confirmation, the `/introduction` state machine ends and the backend programmatically invokes `/add-integration`, pre-seeding it with the chosen service name. From the user's POV, the conversation continues seamlessly.
+4. **Hand off to `/add-integration`.** On the user's confirmation, the `/introduction` state machine ends and the backend programmatically invokes `/add-integration`, pre-seeding it with the chosen service name. The handoff is silent — no synthetic user-style "build the {chosen} integration" message is injected into history. The transition is purely state-internal so the chat history reflects only what the user actually typed. From the user's POV, the conversation continues seamlessly.
 
 5. **(Implicit, owned by `/add-integration`.)** When `/add-integration` finishes, its tail step (Section 3 below) suggests the first prompt — closing the funnel.
 
@@ -83,10 +83,10 @@ A one-shot command. No state machine, no multi-turn — the backend handler runs
 **Flow:**
 
 1. User runs `/guide` (either by clicking the Warm-state card button or typing it).
-2. Backend handler reads the contents of `context/`. For each loaded module (each top-level symlinked directory), it reads `info.md` and the module's `.env.schema` (so the orientation knows what secrets the module has access to).
+2. Backend handler reads the contents of `context/`. For each loaded module (each top-level symlinked directory), it reads `info.md` and the module's `.env.schema`. The schema tells the prompt builder which secrets are wired up so the suggested prompts only exercise capabilities the module can actually deliver right now (e.g., don't suggest "post a Slack message" if the Slack module is loaded but its `SLACK_BOT_TOKEN` slot is unresolved).
 3. Backend builds a prompt for a single `claude -p` call (one-shot, no session, no tool use):
 
-   > *"The user has these context modules currently loaded: {module list with info.md contents}. Write a brief orientation: (1) one-sentence summary per module of what it can do, (2) 2-3 concrete sample prompts they could try right now that exercise these specific modules. Be concise. Format as markdown."*
+   > *"The user has these context modules currently loaded: {for each module: info.md contents + list of declared secrets}. Write a brief orientation: (1) one-sentence summary per module of what it can do, (2) 2-3 concrete sample prompts they could try right now that exercise these specific modules. Be concise. Format as markdown."*
 
 4. The result is emitted into the chat stream as a normal assistant message.
 5. The 2-3 sample prompts in the response are emitted as `suggestion` SSE events (see Section 4 mechanism below) and rendered as clickable pills below the message.
@@ -114,6 +114,8 @@ The result is appended to the final assistant message of `/add-integration` as a
 **Why a new event type, not in-message parsing**: the existing event types (`text`, `tool_use`, `thinking`, `result`) already follow this structured pattern — adding `suggestion` is consistent. Asking Claude to wrap suggestions in a sentinel block in the message body would be cheaper but format drift will eventually break it, and the failure mode (suggestion rendered as a code block instead of a button) is worse than the small extra plumbing.
 
 **Click behavior.** Same as the empty-state card buttons: clicking pre-fills the composer **and submits**. No "review before sending" beat.
+
+**Persistence and re-render.** Once a `suggestion` event has been received and attached to its assistant message, it stays attached for the lifetime of the message in component state. When chat history is re-rendered (e.g., switching back to a session), suggestions previously attached to historical messages are NOT re-shown — suggestions are a real-time onboarding affordance, not part of the persisted message record. Clicking a suggestion is therefore only possible on the most recent in-session response that contains one. This matches the project's existing pattern for non-persisted streaming UI (e.g., the live decision tree).
 
 **Scope decision**: `/introduction` does NOT emit a suggestion of its own. Its step-4 handoff to `/add-integration` triggers `/add-integration`'s tail, which produces the suggestion automatically. Adding a separate one in `/introduction` would double up.
 
