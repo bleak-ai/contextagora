@@ -64,7 +64,8 @@ Notcontext has a built-in chat feature that needs access to an LLM. You can use 
 
 - **Anthropic** — `ANTHROPIC_AUTH_TOKEN=sk-ant-...` with `ANTHROPIC_BASE_URL=https://api.anthropic.com`
 - **OpenAI** — `ANTHROPIC_AUTH_TOKEN=sk-...` with `ANTHROPIC_BASE_URL=https://api.openai.com/v1`
-- **Ollama Cloud** — `ANTHROPIC_AUTH_TOKEN=your-ollama-cloud-key` with `ANTHROPIC_BASE_URL=https://api.ollama.com/v1`
+- **Google (Gemini)** — `ANTHROPIC_AUTH_TOKEN=your-gcp-api-key` with `ANTHROPIC_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai`
+- **Ollama Cloud** — `ANTHROPIC_AUTH_TOKEN=your-ollama-cloud-key` with `ANTHROPIC_BASE_URL=https://ollama.com/v1`
 
 When using a non-Anthropic provider, set the model overrides to match your provider's model names:
 
@@ -130,9 +131,16 @@ ANTHROPIC_DEFAULT_HAIKU_MODEL=claude-haiku-4-5-20251001
 # ANTHROPIC_DEFAULT_SONNET_MODEL=gpt-4o-mini
 # ANTHROPIC_DEFAULT_HAIKU_MODEL=gpt-4o-mini
 
+# Google (Gemini) (uncomment and replace the above)
+# ANTHROPIC_AUTH_TOKEN=your-gcp-api-key
+# ANTHROPIC_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
+# ANTHROPIC_DEFAULT_OPUS_MODEL=gemini-2.5-pro
+# ANTHROPIC_DEFAULT_SONNET_MODEL=gemini-2.5-flash
+# ANTHROPIC_DEFAULT_HAIKU_MODEL=gemini-2.5-flash
+
 # Ollama Cloud (uncomment and replace the above)
 # ANTHROPIC_AUTH_TOKEN=your-ollama-cloud-key
-# ANTHROPIC_BASE_URL=https://api.ollama.com/v1
+# ANTHROPIC_BASE_URL=https://ollama.com/v1
 # ANTHROPIC_DEFAULT_OPUS_MODEL=llama3.1
 # ANTHROPIC_DEFAULT_SONNET_MODEL=llama3.1
 # ANTHROPIC_DEFAULT_HAIKU_MODEL=llama3.1

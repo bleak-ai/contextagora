@@ -1,6 +1,10 @@
 ---
 import { marked } from 'marked';
 import Base from '../layouts/Base.astro';
+// @docs is a Vite alias defined in astro.config.mjs that points to the
+// monorepo's docs/ directory (../docs relative to landing/). This lets us
+// import the deployment guide as raw text at build time — single source of
+// truth shared between the platform and the landing page.
 import deploymentMd from '@docs/guides/deployment.md?raw';
 
 const rawHtml = await marked(deploymentMd);
