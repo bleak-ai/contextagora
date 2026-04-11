@@ -197,6 +197,8 @@ def sync_status(*, clone_dir: Path | None = None) -> dict:
     Runs `git fetch` first so `behind` reflects the latest remote state.
     """
     clone = _resolve_clone(clone_dir)
+    if not clone.exists():
+        return {"dirty": False, "ahead": 0, "behind": 0, "can_pull": False, "can_push": False}
     branch = _current_branch(clone)
 
     _run(["git", "fetch", "origin", branch], cwd=clone)

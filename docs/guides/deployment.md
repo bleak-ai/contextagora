@@ -31,7 +31,7 @@ ContextAgora stores all your modules in a GitHub repository that you own. You ne
 1. Go to [github.com/new](https://github.com/new)
 2. Give it any name (e.g. `my-contextagora-modules`)
 3. Set visibility to **Private** (recommended) or Public
-4. Leave it empty — no README, no `.gitignore` — modules are added through the UI
+4. Check **Add a README file** — this creates the `main` branch (required)
 5. Note the **owner** (your GitHub username or org) and **repo name** — you'll need both for `.env`
 
 ### 2. Create a GitHub Personal Access Token
@@ -52,7 +52,7 @@ ContextAgora has a built-in chat feature that needs access to an LLM. Any OpenAI
 ## Prerequisites
 
 - [Docker Engine ≥ 24.0](https://docs.docker.com/engine/install/) with Docker Compose V2
-- A **new, empty GitHub repo** for your modules — create one at [github.com/new](https://github.com/new) before proceeding (modules are added through the UI, not by pushing code)
+- A **GitHub repo for your modules** — create one at [github.com/new](https://github.com/new) with a README (modules are added through the UI)
 
 ## 1. Install
 
@@ -92,7 +92,7 @@ Provider reference:
 | Anthropic | `https://api.anthropic.com` | `claude-sonnet-4` |
 | OpenAI | `https://api.openai.com/v1` | `gpt-4o` |
 | Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-2.5-pro` |
-| Ollama (local) | `http://localhost:11434/v1` | `glm-5.1` |
+| Ollama Cloud | `https://ollama.com/v1` | `glm-5.1` |
 
 ## 3. Start
 
