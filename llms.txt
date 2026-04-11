@@ -40,7 +40,12 @@
 - [platform/frontend/src/components/context/CardsLayout.tsx](platform/frontend/src/components/context/CardsLayout.tsx) — Card-based layout with module card (inline manage expand), file access card, and compact session card
 - [platform/frontend/src/routes/](platform/frontend/src/routes/) — TanStack Router file-based routes
 - [platform/frontend/src/utils/humanizeToolCall.ts](platform/frontend/src/utils/humanizeToolCall.ts) — Utility to translate raw tool call names/args into human-readable labels with module resolution
-- [Dockerfile](Dockerfile) — Multi-stage container image (Node build + Python runtime)
+- [platform/Dockerfile](platform/Dockerfile) — Multi-stage container image (Node build + Python runtime)
+## Landing Page
+- [landing/](landing/) — Astro-based landing site and deploy guide
+- [landing/src/pages/index.astro](landing/src/pages/index.astro) — Landing page home
+- [landing/src/pages/deploy.astro](landing/src/pages/deploy.astro) — Deploy guide page (imports docs/guides/deployment.md)
+
 ## Self-Hosting
 - [docker-compose.yml](docker-compose.yml) — Docker Compose for deployment (pulls image) and dev (--build)
 - [.env.example](.env.example) — Environment variable template for self-hosted deployment

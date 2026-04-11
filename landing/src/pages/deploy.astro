@@ -1,0 +1,36 @@
+---
+import { marked } from 'marked';
+import Base from '../layouts/Base.astro';
+import deploymentMd from '../../../docs/guides/deployment.md?raw';
+
+const rawHtml = await marked(deploymentMd);
+
+// Wrap each line of every code block in a <span class="code-line"> so we can
+// apply per-line hanging indent on mobile (CSS text-indent only works on the
+// first formatted line of a block, so we need real per-line elements).
+const deploymentHtml = rawHtml.replace(
+	/<pre><code([^>]*)>([\s\S]*?)<\/code><\/pre>/g,
+	(_match, attrs, content) => {
+		// `content` is already HTML-escaped by marked. Split on newlines and
+		// re-wrap each line; preserve empty lines with a non-breaking space so
+		// they keep their height.
+		const lines = content
+			.split('\n')
+			.map((line: string) => `<span class="code-line">${line || '\u00a0'}</span>`)
+			.join('');
+		return `<pre><code${attrs}>${lines}</code></pre>`;
+	},
+);
+---
+
+<Base title="Deploy — Project Semelweis">
+
+	<a href="/" class="inline-flex items-center text-sm text-text-muted hover:text-text-secondary transition-colors mb-8 sm:mb-12">
+		&larr; Back to overview
+	</a>
+
+	<section class="prose prose-sm sm:prose-base prose-invert max-w-none prose-headings:text-text prose-headings:font-semibold prose-p:text-text prose-a:text-accent hover:prose-a:text-accent-hover prose-a:no-underline prose-a:break-words prose-strong:text-text prose-code:text-accent prose-code:text-sm prose-code:bg-bg-raised prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:break-words prose-code:before:content-none prose-code:after:content-none prose-pre:bg-bg-raised prose-pre:border prose-pre:border-border prose-pre:rounded-lg prose-pre:text-text prose-pre:overflow-x-auto prose-li:text-text prose-th:text-text-muted prose-th:text-xs prose-th:uppercase prose-th:tracking-wider prose-td:text-text prose-hr:border-border prose-table:text-sm prose-table:block prose-table:overflow-x-auto">
+		<Fragment set:html={deploymentHtml} />
+	</section>
+
+</Base>

@@ -1,0 +1,64 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/inter/v18/UcCo3FwrK3iLTcviYwYZ90OmSqYp.woff2') format('woff2');
+}
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --color-bg: #1c1c1a;
+  --color-bg-raised: #252523;
+  --color-bg-hover: #2e2d2b;
+  --color-text: #d8d6d4;
+  --color-text-secondary: #908e8c;
+  --color-text-muted: #5a5856;
+  --color-accent: #c4a35a;
+  --color-accent-hover: #d4b36a;
+  --color-border: #403e3a;
+  --color-border-light: #4d4b46;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background-color: rgba(196, 163, 90, 0.3);
+}
+
+/* Per-line wrappers inside <pre><code> — added by deploy.astro so we can
+   give wrapped continuation lines a hanging indent on mobile. */
+.code-line {
+  display: block;
+}
+
+@media (max-width: 640px) {
+  /* Edge-to-edge code blocks on mobile: cancel the page's px-5 (1.25rem)
+     gutter so wide commands have the full viewport width to wrap into. */
+  .prose pre {
+    margin-left: -1.25rem;
+    margin-right: -1.25rem;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    padding: 0.75rem 1rem;
+    font-size: 11px;
+    line-height: 1.6;
+  }
+
+  /* Hanging indent: a wrapped continuation of a logical line is offset so
+     it visually flows from the line above instead of looking like a new
+     command. */
+  .prose pre .code-line {
+    padding-left: 1.5em;
+    text-indent: -1.5em;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+}

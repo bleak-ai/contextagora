@@ -1,9 +1,9 @@
 # Stage 1: Build React frontend
 FROM node:20-slim AS frontend
 WORKDIR /app/frontend
-COPY platform/frontend/package*.json .
+COPY frontend/package*.json .
 RUN npm ci
-COPY platform/frontend/ .
+COPY frontend/ .
 RUN npm run build
 
 # Stage 2: Python backend + built frontend
@@ -21,10 +21,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 
 WORKDIR /app
 
-COPY platform/pyproject.toml platform/uv.lock ./
+COPY pyproject.toml uv.lock ./
 RUN uv sync --no-dev --frozen --no-install-project
 
-COPY platform/src/ src/
+COPY src/ src/
 RUN uv sync --no-dev --frozen
 
 # Copy built frontend into static directory
