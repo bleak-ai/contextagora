@@ -74,8 +74,8 @@ GH_TOKEN=github_pat_...
 
 # ── LLM Provider ────────────────────────────────────────────────
 LLM_API_KEY=your-api-key
-LLM_BASE_URL=https://api.anthropic.com
-LLM_MODEL=claude-sonnet-4-20250514
+LLM_BASE_URL=https://...
+LLM_MODEL=...
 
 # ── Infisical (only if modules use secrets) ─────────────────────
 # INFISICAL_CLIENT_ID=
@@ -84,6 +84,15 @@ LLM_MODEL=claude-sonnet-4-20250514
 # INFISICAL_ENVIRONMENT=dev
 # INFISICAL_SITE_URL=https://app.infisical.com
 ```
+
+Provider reference:
+
+| Provider | `LLM_BASE_URL` | `LLM_MODEL` example |
+|----------|----------------|---------------------|
+| Anthropic | `https://api.anthropic.com` | `claude-sonnet-4` |
+| OpenAI | `https://api.openai.com/v1` | `gpt-4o` |
+| Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-2.5-pro` |
+| Ollama (local) | `http://localhost:11434/v1` | `glm-5.1` |
 
 ## 3. Start
 
