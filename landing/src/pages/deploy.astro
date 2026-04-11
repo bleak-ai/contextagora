@@ -1,7 +1,7 @@
 ---
 import { marked } from 'marked';
 import Base from '../layouts/Base.astro';
-import deploymentMd from '../../../docs/guides/deployment.md?raw';
+import deploymentMd from '../content/deployment.md?raw';
 
 const rawHtml = await marked(deploymentMd);
 
