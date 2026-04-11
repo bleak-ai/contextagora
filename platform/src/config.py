@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     GH_TOKEN: str = ""
     GH_BRANCH: str = "main"
 
+    # ── LLM ──
+    LLM_API_KEY: str = ""
+    LLM_BASE_URL: str = ""
+    LLM_MODEL: str = ""
+
     # ── Server ──
     PORT: int = 8080
 

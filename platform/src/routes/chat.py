@@ -60,6 +60,16 @@ async def api_chat(body: ChatRequest):
       try:
         env = {**os.environ}
 
+        # Map simplified LLM config to Claude CLI env vars
+        if settings.LLM_API_KEY:
+            env.setdefault("ANTHROPIC_AUTH_TOKEN", settings.LLM_API_KEY)
+        if settings.LLM_BASE_URL:
+            env.setdefault("ANTHROPIC_BASE_URL", settings.LLM_BASE_URL)
+        if settings.LLM_MODEL:
+            env.setdefault("ANTHROPIC_DEFAULT_OPUS_MODEL", settings.LLM_MODEL)
+            env.setdefault("ANTHROPIC_DEFAULT_SONNET_MODEL", settings.LLM_MODEL)
+            env.setdefault("ANTHROPIC_DEFAULT_HAIKU_MODEL", settings.LLM_MODEL)
+
         cmd = [
             "claude", "-p", _expand_slash_command(body.prompt),
             "--verbose",

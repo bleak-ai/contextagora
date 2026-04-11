@@ -60,7 +60,7 @@ You'll need these values for your `.env`:
 
 ### LLM API key
 
-Notcontext has a built-in chat feature that needs access to an LLM. Any OpenAI-compatible provider works (Anthropic, OpenAI, Google Gemini, Ollama, etc.). You'll need an API key and the provider's base URL — set these as `ANTHROPIC_AUTH_TOKEN` and `ANTHROPIC_BASE_URL` in your `.env`. If you're not using Anthropic, update the model names to match your provider.
+Notcontext has a built-in chat feature that needs access to an LLM. Any OpenAI-compatible provider works (Anthropic, OpenAI, Google Gemini, Ollama, etc.). Set `LLM_API_KEY`, `LLM_BASE_URL`, and `LLM_MODEL` in your `.env`.
 
 ## Prerequisites
 
@@ -87,11 +87,9 @@ GH_TOKEN=github_pat_...
 GH_BRANCH=main
 
 # ── LLM Provider ────────────────────────────────────────────────
-ANTHROPIC_AUTH_TOKEN=your-api-key
-ANTHROPIC_BASE_URL=https://api.anthropic.com
-ANTHROPIC_DEFAULT_OPUS_MODEL=claude-sonnet-4-20250514
-ANTHROPIC_DEFAULT_SONNET_MODEL=claude-sonnet-4-20250514
-ANTHROPIC_DEFAULT_HAIKU_MODEL=claude-haiku-4-5-20251001
+LLM_API_KEY=your-api-key
+LLM_BASE_URL=https://api.anthropic.com
+LLM_MODEL=claude-sonnet-4-20250514
 
 # ── Infisical (Secret Management) ───────────────────────────────
 INFISICAL_CLIENT_ID=
@@ -101,7 +99,7 @@ INFISICAL_ENVIRONMENT=dev
 INFISICAL_SITE_URL=https://app.infisical.com
 ```
 
-Any OpenAI-compatible provider works (OpenAI, Google Gemini, Ollama, etc.) — just set `ANTHROPIC_BASE_URL` to your provider's endpoint and update the model names to match.
+Any OpenAI-compatible provider works (OpenAI, Google Gemini, Ollama, etc.) — just set `LLM_BASE_URL` to your provider's endpoint and `LLM_MODEL` to match.
 
 ## 3. Start
 
@@ -119,11 +117,9 @@ Open [http://localhost:8080](http://localhost:8080).
 | `GH_REPO` | Repository name containing your context modules |
 | `GH_TOKEN` | Fine-grained PAT with Contents read + write |
 | `GH_BRANCH` | Branch of the module repo to track |
-| `ANTHROPIC_AUTH_TOKEN` | API key for your LLM provider |
-| `ANTHROPIC_BASE_URL` | LLM API endpoint — any OpenAI-compatible URL works |
-| `ANTHROPIC_DEFAULT_OPUS_MODEL` | Model ID for the "Opus" tier |
-| `ANTHROPIC_DEFAULT_SONNET_MODEL` | Model ID for the "Sonnet" tier |
-| `ANTHROPIC_DEFAULT_HAIKU_MODEL` | Model ID for the "Haiku" tier |
+| `LLM_API_KEY` | API key for your LLM provider |
+| `LLM_BASE_URL` | LLM API endpoint — any OpenAI-compatible URL works |
+| `LLM_MODEL` | Model ID to use for chat |
 | `INFISICAL_CLIENT_ID` | Infisical machine identity client ID |
 | `INFISICAL_CLIENT_SECRET` | Infisical machine identity client secret |
 | `INFISICAL_PROJECT_ID` | Infisical project to read secrets from |
