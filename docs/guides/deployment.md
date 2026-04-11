@@ -24,13 +24,23 @@ Open [http://localhost:8080](http://localhost:8080) and you're ready to go.
 
 ## Before you start
 
-### GitHub Personal Access Token
+### 1. Create a GitHub repository for your modules
+
+ContextAgora stores all your modules in a GitHub repository that you own. You need to create this repo before configuring ContextAgora.
+
+1. Go to [github.com/new](https://github.com/new)
+2. Give it any name (e.g. `my-contextagora-modules`)
+3. Set visibility to **Private** (recommended) or Public
+4. Leave it empty — no README, no `.gitignore` — modules are added through the UI
+5. Note the **owner** (your GitHub username or org) and **repo name** — you'll need both for `.env`
+
+### 2. Create a GitHub Personal Access Token
 
 ContextAgora needs a fine-grained PAT to access the modules repo.
 
 1. Go to [GitHub > Settings > Developer settings > Fine-grained tokens](https://github.com/settings/personal-access-tokens/new)
 2. Set a descriptive name (e.g. `contextagora-modules`)
-3. Under **Repository access**, select **Only select repositories** and pick your modules repo
+3. Under **Repository access**, select **Only select repositories** and pick the repo you just created
 4. Under **Permissions > Repository permissions**, set:
    - `Contents`: **Read and write** (read to fetch modules, write to create/edit from the UI)
 5. Click **Generate token** and save the value — this is your `GH_TOKEN`
@@ -42,7 +52,7 @@ ContextAgora has a built-in chat feature that needs access to an LLM. Any OpenAI
 ## Prerequisites
 
 - [Docker Engine ≥ 24.0](https://docs.docker.com/engine/install/) with Docker Compose V2
-- A GitHub repo for your modules (can be empty — modules are added through the UI)
+- A **new, empty GitHub repo** for your modules — create one at [github.com/new](https://github.com/new) before proceeding (modules are added through the UI, not by pushing code)
 
 ## 1. Install
 
