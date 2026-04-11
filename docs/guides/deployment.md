@@ -35,29 +35,6 @@ Notcontext needs a fine-grained PAT to access the modules repo.
    - `Contents`: **Read and write** (read to fetch modules, write to create/edit from the UI)
 5. Click **Generate token** and save the value — this is your `GH_TOKEN`
 
-### Infisical
-
-Notcontext uses [Infisical](https://infisical.com) as a secrets vault. Module secrets are never stored on disk — they are resolved at runtime via Varlock + Infisical.
-
-1. Create an account at [app.infisical.com](https://app.infisical.com) (or your self-hosted instance)
-2. Create a **project** for your modules' secrets
-3. Create an **environment** within that project (e.g. `dev`, `production`)
-4. For each module that needs secrets, create a **folder** named after the module (e.g. `/linear`, `/supabase`) and add the secret key-value pairs there
-5. Create a **machine identity**:
-   - Go to **Organization Settings > Machine Identities**
-   - Create a new identity and attach it to your project with read access
-   - Under **Authentication**, create a **Universal Auth** client — this gives you a `Client ID` and `Client Secret`
-
-You'll need these values for your `.env`:
-
-| Infisical value | `.env` variable |
-|-----------------|-----------------|
-| Client ID | `INFISICAL_CLIENT_ID` |
-| Client Secret | `INFISICAL_CLIENT_SECRET` |
-| Project ID (from project settings) | `INFISICAL_PROJECT_ID` |
-| Environment slug | `INFISICAL_ENVIRONMENT` |
-| Instance URL | `INFISICAL_SITE_URL` |
-
 ### LLM API key
 
 Notcontext has a built-in chat feature that needs access to an LLM. Any OpenAI-compatible provider works (Anthropic, OpenAI, Google Gemini, Ollama, etc.). Set `LLM_API_KEY`, `LLM_BASE_URL`, and `LLM_MODEL` in your `.env`.
@@ -81,24 +58,22 @@ Edit the `.env` file with your credentials:
 
 ```bash
 # ── GitHub Module Source ─────────────────────────────────────────
-GH_OWNER=your-github-org
-GH_REPO=your-modules-repo
-GH_TOKEN=github_pat_...
+GH_OWNER=your-github-org          # org or user that owns the modules repo
+GH_REPO=your-modules-repo         # repo name
+GH_TOKEN=github_pat_...           # fine-grained PAT with Contents read+write
 
 # ── LLM Provider ────────────────────────────────────────────────
-LLM_API_KEY=your-api-key
+LLM_API_KEY=your-api-key          # any OpenAI-compatible provider works
 LLM_BASE_URL=https://api.anthropic.com
 LLM_MODEL=claude-sonnet-4-20250514
 
-# ── Infisical (Secret Management) ───────────────────────────────
-INFISICAL_CLIENT_ID=
-INFISICAL_CLIENT_SECRET=
-INFISICAL_PROJECT_ID=
-INFISICAL_ENVIRONMENT=dev
-INFISICAL_SITE_URL=https://app.infisical.com
+# ── Infisical (only if modules use secrets) ─────────────────────
+# INFISICAL_CLIENT_ID=
+# INFISICAL_CLIENT_SECRET=
+# INFISICAL_PROJECT_ID=
+# INFISICAL_ENVIRONMENT=dev
+# INFISICAL_SITE_URL=https://app.infisical.com
 ```
-
-Any OpenAI-compatible provider works (OpenAI, Google Gemini, Ollama, etc.) — just set `LLM_BASE_URL` to your provider's endpoint and `LLM_MODEL` to match.
 
 ## 3. Start
 
@@ -108,28 +83,29 @@ docker compose up -d
 
 Open [http://localhost:8080](http://localhost:8080).
 
-## Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `GH_OWNER` | GitHub org or user that owns the modules repo |
-| `GH_REPO` | Repository name containing your context modules |
-| `GH_TOKEN` | Fine-grained PAT with Contents read + write |
-| `GH_BRANCH` | Branch of the module repo to track (defaults to `main`) |
-| `LLM_API_KEY` | API key for your LLM provider |
-| `LLM_BASE_URL` | LLM API endpoint — any OpenAI-compatible URL works |
-| `LLM_MODEL` | Model ID to use for chat |
-| `INFISICAL_CLIENT_ID` | Infisical machine identity client ID |
-| `INFISICAL_CLIENT_SECRET` | Infisical machine identity client secret |
-| `INFISICAL_PROJECT_ID` | Infisical project to read secrets from |
-| `INFISICAL_ENVIRONMENT` | Infisical environment slug |
-| `INFISICAL_SITE_URL` | Infisical instance URL |
-
 ## Updating
 
 ```bash
 docker compose pull
 docker compose up -d
+```
+
+## Setting up secrets (optional)
+
+If your modules need secrets (API keys, tokens, etc.), Notcontext resolves them at runtime via Varlock + [Infisical](https://infisical.com). You can set this up later — modules without secrets work fine without it.
+
+1. Create an account at [app.infisical.com](https://app.infisical.com)
+2. Create a project and environment for your modules
+3. For each module that needs secrets, create a folder named after the module (e.g. `/linear`) and add the key-value pairs there
+4. Create a machine identity with Universal Auth (gives you a Client ID and Client Secret)
+5. Add the credentials to your `.env`:
+
+```bash
+INFISICAL_CLIENT_ID=your-client-id
+INFISICAL_CLIENT_SECRET=your-client-secret
+INFISICAL_PROJECT_ID=your-project-id
+INFISICAL_ENVIRONMENT=dev
+INFISICAL_SITE_URL=https://app.infisical.com
 ```
 
 ## Reverse Proxy / HTTPS
