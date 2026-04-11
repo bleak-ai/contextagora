@@ -11,6 +11,7 @@ from src.commands import COMMANDS
 from src.models import ChatRequest
 from src.config import settings
 from src.services.claude_sessions import list_sessions
+from src.services.suggestion_parser import SuggestionBuffer
 
 log = logging.getLogger(__name__)
 
@@ -108,6 +109,8 @@ async def api_chat(body: ChatRequest):
         tree_accessed: set[str] = set()
         tree_module_counts: dict[str, int] = {}
 
+        suggestion_buf = SuggestionBuffer()
+
         for line in proc.stdout:
             line = line.strip()
             if not line:
@@ -138,7 +141,12 @@ async def api_chat(body: ChatRequest):
                     if delta_type == "thinking_delta":
                         yield f"event: thinking\ndata: {json.dumps({'text': delta.get('thinking', '')})}\n\n"
                     elif delta_type == "text_delta":
-                        yield f"event: text\ndata: {json.dumps({'text': delta.get('text', '')})}\n\n"
+                        raw = delta.get("text", "")
+                        visible, suggestions = suggestion_buf.feed(raw)
+                        if visible:
+                            yield f"event: text\ndata: {json.dumps({'text': visible})}\n\n"
+                        for sug in suggestions:
+                            yield f"event: suggestion\ndata: {json.dumps({'prompt': sug})}\n\n"
                     elif delta_type == "input_json_delta":
                         yield f"event: tool_input\ndata: {json.dumps({'partial_json': delta.get('partial_json', '')})}\n\n"
 
@@ -188,6 +196,10 @@ async def api_chat(body: ChatRequest):
 
             elif event_type == "result":
                 yield f"event: done\ndata: {{}}\n\n"
+
+        tail = suggestion_buf.finalize()
+        if tail:
+            yield f"event: text\ndata: {json.dumps({'text': tail})}\n\n"
 
         proc.wait()
         if proc.returncode != 0:

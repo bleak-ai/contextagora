@@ -8,6 +8,7 @@ import { useChatStore } from "../hooks/useChatStore";
 import { useContextChatRuntime } from "../hooks/useContextChatRuntime";
 import { Thread } from "./chat/Thread";
 import { ContextPanel } from "./ContextPanel";
+import { EmptyStateCard } from "./chat/EmptyStateCard";
 
 export function Chat() {
   const activeClaudeSessionId = useSessionStore((s) => s.activeClaudeSessionId);
@@ -54,10 +55,15 @@ export function Chat() {
           {/* Thread */}
           <Thread
             emptyState={
-              <WelcomeScreen
-                modules={allModules}
-                loadedModules={loaded}
-              />
+              <>
+                <WelcomeScreen
+                  modules={allModules}
+                  loadedModules={loaded}
+                />
+                <div className="w-full max-w-[420px] mt-4">
+                  <EmptyStateCard />
+                </div>
+              </>
             }
             onNewSession={hasMessages ? startNewSession : undefined}
           />

@@ -26,6 +26,7 @@ export interface ChatMessage {
   parts: ContentPart[];
   streaming: boolean;
   error?: string;
+  suggestions?: string[]; // ephemeral, never persisted
 }
 
 export interface TreeState {
@@ -219,6 +220,12 @@ export const useChatStore = create<ChatState>()(
                 }
                 break;
               }
+              case "suggestion":
+                updateAssistant((m) => ({
+                  ...m,
+                  suggestions: [...(m.suggestions ?? []), event.prompt],
+                }));
+                break;
               case "tree_navigation":
                 set({
                   currentTreeState: {
@@ -293,7 +300,10 @@ export const useChatStore = create<ChatState>()(
         messagesBySession: Object.fromEntries(
           Object.entries(state.messagesBySession).map(([sid, msgs]) => [
             sid,
-            msgs.map((m) => ({ ...m, streaming: false })),
+            msgs.map((m) => {
+              const { suggestions: _drop, ...rest } = m;
+              return { ...rest, streaming: false };
+            }),
           ]),
         ),
       }),

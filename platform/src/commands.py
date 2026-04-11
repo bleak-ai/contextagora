@@ -46,6 +46,8 @@ Do not explain your reasoning. Just output the link(s).
 
 _ADD_MODULE_TEMPLATE = _load_prompt("add_module.md").replace("{{", "{").replace("}}", "}")
 _ADAPT_EXAMPLES_RULES = _load_prompt("adapt_examples.md").replace("{{", "{").replace("}}", "}")
+_INTRODUCTION_PROMPT = _load_prompt("introduction.md")
+_GUIDE_PROMPT = _load_prompt("guide.md")
 
 
 _ADD_INTEGRATION_PROMPT = f"""You are a conversational assistant helping the user create a context module.
@@ -146,6 +148,17 @@ When the user says `save`:
    - **Push** via Sync to persist it
    - **Load** it in the Workspace page
    - Add secret values to the vault if needed
+
+   Then emit ONE concrete starter prompt the user could try right now to
+   exercise this integration. Output it on its own line with this exact syntax:
+
+       <<TRY: Show me the 5 most recent issues from Linear>>
+
+   Replace the example with a real operation specific to the integration just
+   created. The angle brackets, `TRY:`, and closing `>>` are mandatory and must
+   appear EXACTLY as shown. The marker line has no surrounding code fence and no
+   quotes. Emit it EXACTLY ONCE, only after a successful save. Do not explain
+   the marker to the user — they will see it as a clickable button.
 4. On 409: offer to update via PUT instead.
 5. On error: show the error.
 
@@ -172,5 +185,15 @@ COMMANDS: list[CommandDef] = [
         name="add-integration",
         description="Create a new context module from a generated info.md",
         prompt=_ADD_INTEGRATION_PROMPT,
+    ),
+    CommandDef(
+        name="introduction",
+        description="First-time setup: discover, add, and try your first integration",
+        prompt=_INTRODUCTION_PROMPT,
+    ),
+    CommandDef(
+        name="guide",
+        description="Show what's loaded right now and prompts to try",
+        prompt=_GUIDE_PROMPT,
     ),
 ]

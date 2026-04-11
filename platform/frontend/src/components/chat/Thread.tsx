@@ -10,11 +10,14 @@ import {
 } from "@assistant-ui/react";
 import { SlashCommandSelector, useSlashCommands } from "./SlashCommandSelector";
 import { MentionSelector, useMentionPicker } from "./MentionSelector";
+import { SuggestionPill } from "./SuggestionPill";
 import type { WorkspaceFile } from "../../api/workspace";
 import { MarkdownText } from "./MarkdownText";
 import { ToolCallDisplay } from "./ToolCallDisplay";
 import { ThinkingDisplay } from "./ThinkingDisplay";
 import { ModulePreviewCard } from "./ModulePreviewCard";
+import { useChatStore, NEW_CHAT_KEY } from "../../hooks/useChatStore";
+import { useSessionStore } from "../../hooks/useSessionStore";
 
 interface ThreadProps {
   emptyState?: ReactNode;
@@ -45,6 +48,7 @@ export const Thread: FC<ThreadProps> = ({ emptyState, onNewSession }) => {
               AssistantMessage,
             }}
           />
+          <StreamSuggestions />
         </div>
 
         {/* Bottom composer (only when messages exist) */}
@@ -109,6 +113,42 @@ const AssistantMessage: FC = () => (
     </div>
   </MessagePrimitive.Root>
 );
+
+/**
+ * Renders the suggestion pills from the last assistant message that has them.
+ * Suggestions are ephemeral — they live only for the duration of the active
+ * stream and are dropped from localStorage when the page reloads.
+ */
+const StreamSuggestions: FC = () => {
+  const activeSessionId = useSessionStore((s) => s.activeClaudeSessionId);
+  const key = activeSessionId ?? NEW_CHAT_KEY;
+  const sendMessage = useChatStore((s) => s.sendMessage);
+  const suggestions = useChatStore((s) => {
+    const msgs = s.messagesBySession[key] ?? [];
+    // Walk backwards to find the last assistant message with suggestions.
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i];
+      if (m.role === "assistant" && m.suggestions && m.suggestions.length > 0) {
+        return m.suggestions;
+      }
+    }
+    return null;
+  });
+
+  if (!suggestions) return null;
+
+  return (
+    <div className="flex flex-wrap pt-1">
+      {suggestions.map((s, i) => (
+        <SuggestionPill
+          key={i}
+          prompt={s}
+          onClick={(prompt) => sendMessage(activeSessionId, prompt)}
+        />
+      ))}
+    </div>
+  );
+};
 
 const AssistantActions: FC = () => (
   <div className="h-0 overflow-visible">

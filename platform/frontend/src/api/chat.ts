@@ -8,7 +8,8 @@ export type ChatEvent =
   | { type: "session_name"; name: string }
   | { type: "error"; message: string }
   | { type: "done" }
-  | { type: "tree_navigation"; active_path: string[]; accessed_files: string[]; module_counts: Record<string, number> };
+  | { type: "tree_navigation"; active_path: string[]; accessed_files: string[]; module_counts: Record<string, number> }
+  | { type: "suggestion"; prompt: string };
 
 export async function streamChat(
   prompt: string,
