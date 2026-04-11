@@ -104,11 +104,56 @@ docker compose up -d
 
 If your modules need secrets (API keys, tokens, etc.), ContextAgora resolves them at runtime via Varlock + [Infisical](https://infisical.com). You can set this up later — modules without secrets work fine without it.
 
-1. Create an account at [app.infisical.com](https://app.infisical.com)
-2. Create a project and environment for your modules
-3. For each module that needs secrets, create a folder named after the module (e.g. `/linear`) and add the key-value pairs there
-4. Create a machine identity with Universal Auth (gives you a Client ID and Client Secret)
-5. Add the credentials to your `.env`:
+### Step 1 — Create an Infisical account and project
+
+1. Sign up at [app.infisical.com](https://app.infisical.com)
+2. Click **Create a new project** and give it a name (e.g. `contextagora`)
+3. After the project is created, open **Project Settings** (gear icon in the left sidebar)
+4. Copy the **Project ID** shown at the top of the page — this is your `INFISICAL_PROJECT_ID`
+
+### Step 2 — Choose (or create) an environment
+
+Infisical creates `development`, `staging`, and `production` environments by default. Pick one to use — `development` is fine to start.
+
+The short slug for each environment is what goes in `INFISICAL_ENVIRONMENT`:
+
+| Display name | Slug to use |
+|---|---|
+| Development | `dev` |
+| Staging | `staging` |
+| Production | `prod` |
+
+> You can create a custom environment under **Project Settings > Environments** and use its slug.
+
+### Step 3 — Add secrets for each module
+
+Secrets are organized by folder. Each module must have its own folder named exactly after the module slug.
+
+1. In your project, go to **Secrets** and select the environment you chose
+2. Click **Add Folder** and name it after the module (e.g. `linear`, `openweather`)
+3. Open the folder and click **Add Secret** to add each key-value pair the module needs
+
+Repeat for every module that requires secrets.
+
+### Step 4 — Create a Machine Identity (get Client ID + Client Secret)
+
+1. In the left sidebar, click **Access Control > Machine Identities**
+2. Click **Create identity**, give it a name (e.g. `contextagora-runtime`), and assign the **Member** role
+3. After creating the identity, click on it and open the **Authentication** tab
+4. Click **Add Auth Method**, select **Universal Auth**, and save with the defaults
+5. Under the Universal Auth section, click **Create Client Secret**
+6. Copy both values that appear:
+   - **Client ID** → `INFISICAL_CLIENT_ID`
+   - **Client Secret** → `INFISICAL_CLIENT_SECRET` *(shown only once — save it immediately)*
+
+### Step 5 — Grant the identity access to your project
+
+1. In your project, go to **Access Control > Members**
+2. Switch to the **Machine Identities** tab and click **Add identity**
+3. Select the identity you just created and assign the **Member** role
+4. Click **Add**
+
+### Step 6 — Add the credentials to your `.env`
 
 ```bash
 INFISICAL_CLIENT_ID=your-client-id
@@ -117,6 +162,8 @@ INFISICAL_PROJECT_ID=your-project-id
 INFISICAL_ENVIRONMENT=dev
 INFISICAL_SITE_URL=https://app.infisical.com
 ```
+
+> `INFISICAL_SITE_URL` only needs to change if you are self-hosting Infisical.
 
 ## Reverse Proxy / HTTPS
 
