@@ -3,14 +3,14 @@ section so they conform to this project's execution convention.
 
 The convention is:
 
-  varlock run --path ./<module_name> -- sh -c 'uv run python -c "
+  varlock run -- sh -c 'uv run python -c "
   <python code>
   "'
 
 Apply ALL of these rules:
 
 1. Wrap every Python snippet in:
-       varlock run --path ./<module_name> -- sh -c 'uv run python -c "..."'
+       varlock run -- sh -c 'uv run python -c "..."'
    `<module_name>` is the module being created.
 
 2. Inside the python, read every secret from `os.environ["VAR_NAME"]`.
@@ -55,14 +55,14 @@ Apply ALL of these rules:
     diff you present to the user.
 
 4. For shell-only examples (curl, psql, etc.), wrap as:
-       varlock run --path ./<module_name> -- sh -c '<command using $VAR>'
+       varlock run -- sh -c '<command using $VAR>'
    Do NOT use `varlock run -- echo $VAR` directly — the parent shell
    would expand `$VAR` before varlock injects. Always wrap in
    `sh -c '...'`.
 
 5. If the original example uses a different language (Node, Go, Bash),
    keep the language but still wrap it in
-   `varlock run --path ./<module_name> -- sh -c '...'`.
+   `varlock run -- sh -c '...'`.
 
 6. Never invent new examples. Only transform what's there. If an example
    references a secret that isn't in the module's "## Auth & access"
@@ -86,7 +86,7 @@ diff:
 
     After:
     ```bash
-    varlock run --path ./<module_name> -- sh -c 'uv run python -c "
+    varlock run -- sh -c 'uv run python -c "
     import os
     ...
     "'

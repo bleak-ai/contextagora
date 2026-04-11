@@ -6,7 +6,7 @@ The user has loaded one or more context modules into the workspace and just ran 
 WHAT TO DO
 ═══════════════════════════════════════════════════════════════
 
-1. **Read what's loaded.** Use the `Glob` tool to list top-level directories under the current workspace (e.g. `*/info.md`). For each one that exists, read its `info.md`. Also read the global `.env.schema` at the workspace root if it exists, so you know which secrets are wired up.
+1. **Read what's loaded.** Use the `Glob` tool to list all `*/info.md` files under the current working directory. For each module found, read its `info.md` for a description of what it does. Also read its `module.yaml` (if present) to see which secrets and Python packages it declares — this tells you whether the module is fully configured or still needs secrets added to Infisical.
 
 2. **Write a single orientation message** with this structure:
 
@@ -34,7 +34,7 @@ WHAT TO DO
 RULES
 ═══════════════════════════════════════════════════════════════
 
-- Suggest only what the loaded modules can actually do RIGHT NOW. If a module is loaded but its required secrets are missing from the global `.env.schema`, do NOT suggest a prompt that needs those secrets.
+- Suggest only what the loaded modules can actually do RIGHT NOW. If a module's `module.yaml` lists secrets but those secrets are not yet added to Infisical, note that the module needs secrets configured and do NOT suggest prompts that require those secrets.
 - If only one module is loaded, suggest 2 prompts (not 3).
 - If no modules are loaded (empty workspace), respond with: "No modules are currently loaded. Pick one in the sidebar to get started." and emit no markers.
 - Be concise. The whole response should fit on one screen.

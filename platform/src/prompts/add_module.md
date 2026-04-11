@@ -66,7 +66,7 @@ Rules:
 4. "Examples" must use the project's execution convention. Every
    runnable Python snippet MUST be wrapped as:
 
-       varlock run --path ./{{module_name}} -- sh -c 'uv run python -c "
+       varlock run -- sh -c 'uv run python -c "
        <python code that reads secrets from os.environ>
        "'
 
@@ -78,7 +78,7 @@ Rules:
 
    For shell-only examples (curl, psql, etc.), wrap as:
 
-       varlock run --path ./{{module_name}} -- sh -c '<command using $VAR>'
+       varlock run -- sh -c '<command using $VAR>'
 
    Always use `sh -c '...'` so that `$VAR` is expanded AFTER varlock
    injects the values. Never `varlock run -- echo $VAR` directly.
