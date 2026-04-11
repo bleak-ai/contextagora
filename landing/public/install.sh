@@ -36,19 +36,6 @@ services:
       - "8080:8080"
     env_file:
       - .env
-    environment:
-      - GH_OWNER=${GH_OWNER}
-      - GH_REPO=${GH_REPO}
-      - GH_TOKEN=${GH_TOKEN}
-      - GH_BRANCH=${GH_BRANCH:-main}
-      - LLM_API_KEY=${LLM_API_KEY}
-      - LLM_BASE_URL=${LLM_BASE_URL}
-      - LLM_MODEL=${LLM_MODEL}
-      - INFISICAL_CLIENT_ID=${INFISICAL_CLIENT_ID:-}
-      - INFISICAL_CLIENT_SECRET=${INFISICAL_CLIENT_SECRET:-}
-      - INFISICAL_PROJECT_ID=${INFISICAL_PROJECT_ID:-}
-      - INFISICAL_ENVIRONMENT=${INFISICAL_ENVIRONMENT:-}
-      - INFISICAL_SITE_URL=${INFISICAL_SITE_URL:-}
     restart: unless-stopped
 COMPOSE
 

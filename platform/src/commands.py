@@ -125,15 +125,23 @@ SAVING
 
 When the user says `save`:
 
-1. Build the JSON body:
+1. Build the JSON body — extract each field directly from the draft you showed the user:
+
+   - `"name"`: the normalized module slug
+   - `"content"`: the full markdown draft
+   - `"summary"`: the one-sentence description from the Purpose section
+   - `"secrets"`: ALL env var names from the "Auth & access" section (e.g. `["LINEAR_API_KEY"]`). NEVER leave this empty if the integration uses secrets.
+   - `"requirements"`: ALL package names from the "Python packages" section (e.g. `["linear-sdk"]`). NEVER leave this empty if the integration has packages.
 
        {{
          "name": "<module_name>",
          "content": "<the markdown you built>",
-         "summary": "",
+         "summary": "<one-sentence description>",
          "secrets": ["VAR_A", "VAR_B"],
          "requirements": ["pkg-a", "pkg-b"]
        }}
+
+   The API writes BOTH `info.md` (your markdown) AND `module.yaml` (with the secrets and requirements lists). The `module.yaml` is what varlock uses to inject secrets at runtime — if secrets or requirements are missing from the JSON, the module will not work correctly.
 
 2. Write to temp file and POST:
 
@@ -144,10 +152,10 @@ When the user says `save`:
          -H 'Content-Type: application/json' \\
          --data-binary @/tmp/add_integration_body.json
 
-3. On success: tell the user the module was created, and remind them to:
+3. On success: tell the user the module was created (both `info.md` and `module.yaml`), and remind them to:
    - **Push** via Sync to persist it
    - **Load** it in the Workspace page
-   - Add secret values to the vault if needed
+   - Add each secret to **Infisical** at path `/<module_name>` (e.g. `/linear`), one secret per key — that is where varlock fetches them at runtime. Do NOT suggest `varlock set` or any local vault command.
 
    Then emit ONE concrete starter prompt the user could try right now to
    exercise this integration. Output it on its own line with this exact syntax:
