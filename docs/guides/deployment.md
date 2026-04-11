@@ -6,7 +6,7 @@ Already have your GitHub PAT, Infisical credentials, and LLM API key? Here's the
 
 ```bash
 # 1. Install
-curl -fsSL https://semelweis.com/install.sh | REGISTRY_TOKEN=ghp_... bash
+curl -fsSL https://semelweis.com/install.sh | bash
 
 # 2. Configure
 cd semelweis && nano .env   # fill in your credentials
@@ -88,23 +88,20 @@ ANTHROPIC_DEFAULT_HAIKU_MODEL=llama3.1
 
 ## 1. Install
 
-You'll receive a **registry token** from the project maintainer — this is needed to pull the private container image.
-
 Run the install script:
 
 ```bash
-curl -fsSL https://semelweis.com/install.sh | REGISTRY_TOKEN=ghp_... bash
+curl -fsSL https://semelweis.com/install.sh | bash
 ```
 
 This will:
-- Authenticate with the container registry
 - Create a `semelweis/` directory with `docker-compose.yml` and `.env`
 - Pull the latest image
 
 You can specify a custom install directory:
 
 ```bash
-curl -fsSL https://semelweis.com/install.sh | REGISTRY_TOKEN=ghp_... bash -s -- /opt/semelweis
+curl -fsSL https://semelweis.com/install.sh | bash -s -- /opt/semelweis
 ```
 
 ## 2. Configure

@@ -3,21 +3,12 @@ set -euo pipefail
 
 # ── Project Semelweis Installer ─────────────────────────────────
 # This script sets up a Semelweis instance on a new machine.
-# It authenticates with the container registry, writes the required
-# files, and pulls the latest image.
+# It writes the required files and pulls the latest image.
 # ─────────────────────────────────────────────────────────────────
 
-REGISTRY="ghcr.io"
 IMAGE="ghcr.io/bleak-ai/context-loader:latest"
-REGISTRY_USER="bleak-ai"
 
 INSTALL_DIR="${1:-./semelweis}"
-
-if [ -z "${REGISTRY_TOKEN:-}" ]; then
-  echo "Error: REGISTRY_TOKEN is required."
-  echo "Usage: REGISTRY_TOKEN=ghp_... bash install.sh [install-dir]"
-  exit 1
-fi
 
 echo "==> Installing Project Semelweis into ${INSTALL_DIR}"
 
@@ -31,10 +22,6 @@ if ! docker compose version &> /dev/null; then
   echo "Error: Docker Compose V2 is required. See https://docs.docker.com/compose/install/"
   exit 1
 fi
-
-# ── Authenticate with container registry ─────────────────────────
-echo "==> Authenticating with container registry..."
-echo "${REGISTRY_TOKEN}" | docker login "${REGISTRY}" -u "${REGISTRY_USER}" --password-stdin
 
 # ── Create install directory ─────────────────────────────────────
 mkdir -p "${INSTALL_DIR}"
