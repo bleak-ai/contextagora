@@ -1,7 +1,7 @@
 # Shared Conventions
 
 > **Single source of truth.** All execution, formatting, and structural conventions live here.
-> When a convention changes, update THIS file — individual prompts pull it in via `{conventions}`.
+> When a convention changes, update THIS file — individual prompts reference it automatically.
 
 ---
 

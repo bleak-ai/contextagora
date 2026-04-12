@@ -2,21 +2,18 @@
 
 ## Prompt / Architecture Coupling
 
-The files in `platform/src/prompts/` and the inline prompts in `platform/src/commands.py` contain
-instructions that are tightly coupled to the project's runtime conventions. **When any of the
-following change, update the prompts too:**
+The files in `platform/src/prompts/` are tightly coupled to the project's runtime conventions.
+Shared conventions are centralised in `_conventions.md` and auto-injected into all prompts.
+**When any of the following change, update the prompts too:**
 
 | What changed | Prompts to update |
 |---|---|
-| `varlock run` invocation pattern (flags, path, shell wrapping) | `add_module.md`, `adapt_examples.md`, `commands.py` (`_ADD_INTEGRATION_PROMPT`) |
-| Secret storage location (Infisical path schema, vault tool) | `commands.py` (`_ADD_INTEGRATION_PROMPT` step 3), `guide.md` |
-| Module manifest format (`module.yaml` fields, filename) | `commands.py` (`_ADD_INTEGRATION_PROMPT` SAVING section), `guide.md` |
-| Module directory structure (`info.md`, `llms.txt`, `module.yaml`) | `add_module.md`, `guide.md`, `introduction.md` |
-| Python execution convention (`uv run`, `--with` flags) | `add_module.md`, `adapt_examples.md`, `commands.py` |
+| `varlock run` invocation, secret storage, execution convention | `_conventions.md` (single source — auto-injected into all prompts) |
+| Module manifest format (`module.yaml` fields) | `_conventions.md` (module structure section), `add_integration.md` (SAVING section) |
+| Module directory structure (`info.md`, `llms.txt`, `module.yaml`) | `_conventions.md` (module structure section) |
+| Slash command flow logic (turns, phases) | The specific command's `.md` file in `prompts/` |
+| Python execution convention (`uv run`, flags) | `_conventions.md` (varlock execution section) |
 
-### Current conventions (as of 2026-04-11)
+### Current conventions
 
-- **Run scripts:** `varlock run -- sh -c 'uv run python -c "..."'` — no `--path` flag, always from context root
-- **Secrets vault:** Infisical, path `/<module_name>`, one key per secret variable
-- **Module manifest:** `module.yaml` (not `.env.schema` or `requirements.txt`) declares `secrets:` and `dependencies:`
-- **Do not read:** `.env.schema` at workspace root is auto-generated; prompts and agents must not instruct users to interact with it directly
+All execution conventions now live in `platform/src/prompts/_conventions.md` — see that file for the authoritative reference.

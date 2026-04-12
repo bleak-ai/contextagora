@@ -13,11 +13,9 @@
 - [platform/src/routes/health.py](platform/src/routes/health.py) — Health check endpoint
 - [platform/src/routes/files.py](platform/src/routes/files.py) — File download endpoint (GET /api/files/download) with path validation against CONTEXT_DIR and /tmp
 - [platform/src/routes/commands.py](platform/src/routes/commands.py) — Slash commands listing endpoint (GET /api/commands) from static COMMANDS registry
-- [platform/src/commands.py](platform/src/commands.py) — Static slash-command registry (CommandDef + COMMANDS list); contains inline prompt for /add-integration and /download
-- [platform/src/prompts/guide.md](platform/src/prompts/guide.md) — Prompt for /guide: orients user to loaded modules, reads */info.md + */module.yaml
-- [platform/src/prompts/introduction.md](platform/src/prompts/introduction.md) — Prompt for /introduction: first-time onboarding flow (5 turns)
-- [platform/src/prompts/add_module.md](platform/src/prompts/add_module.md) — Prompt template for generating a module info.md from a codebase; defines varlock run convention and module structure rules
-- [platform/src/prompts/adapt_examples.md](platform/src/prompts/adapt_examples.md) — Prompt for rewriting code examples in info.md to conform to varlock run convention
+- [platform/src/commands.py](platform/src/commands.py) — Thin slash-command registry (CommandDef + COMMANDS list); loads prompts from .md files, no inline prompts
+- [platform/src/prompts/llms.txt](platform/src/prompts/llms.txt) — Full listing of prompt templates and conventions
+- [platform/src/prompts/_conventions.md](platform/src/prompts/_conventions.md) — Single source of truth for varlock, TRY markers, secret naming, and execution conventions; auto-injected into all prompts
 - [platform/src/services/claude_sessions.py](platform/src/services/claude_sessions.py) — Reads Claude Code's on-disk session transcripts (~/.claude/projects/<encoded-cwd>/*.jsonl); pure functions claude_project_dir, first_user_message, list_sessions; no state
 - [platform/src/services/git_repo.py](platform/src/services/git_repo.py) — Local git clone wrapper (clone, read/write, sync_status/pull/push)
 - [platform/src/routes/sync.py](platform/src/routes/sync.py) — Sync API endpoints (GET /api/sync/status, POST /api/sync/pull, POST /api/sync/push)

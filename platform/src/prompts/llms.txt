@@ -1,0 +1,13 @@
+# Prompts Directory
+
+Prompt templates for chat slash commands and module-building flows.
+
+## Files
+
+- [_conventions.md](_conventions.md) — Single source of truth for varlock, TRY markers, secret naming, and execution conventions. Injected into other prompts automatically.
+- [add_integration.md](add_integration.md) — /add-integration slash command: multi-turn wizard to create a new context module from chat
+- [add_module.md](add_module.md) — Template prompt for generating a module's info.md from codebase analysis
+- [adapt_examples.md](adapt_examples.md) — Rules for rewriting code examples to match varlock execution conventions
+- [download.md](download.md) — /download slash command: generates download links for files written in the session
+- [guide.md](guide.md) — /guide slash command: shows loaded modules and suggests prompts to try
+- [introduction.md](introduction.md) — /introduction slash command: 4-turn onboarding flow that delegates to /add-integration
