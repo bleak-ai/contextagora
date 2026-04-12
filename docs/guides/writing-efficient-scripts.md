@@ -1,7 +1,7 @@
 # Writing Efficient Scripts
 
 > Cross-cutting tips for the agent when generating scripts that talk to
-> external systems (Firestore, Linear, Stripe, Postgres, anything else
+> external systems (Firestore, Linear, Stripe, Supabase, anything else
 > behind a network call). These are not module-specific — they apply to any
 > script the agent writes inside a `varlock run` invocation.
 
