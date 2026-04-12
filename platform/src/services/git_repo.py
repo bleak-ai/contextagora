@@ -253,7 +253,7 @@ def push(message: str, *, clone_dir: Path | None = None) -> str:
     if status["dirty"]:
         _run(["git", "add", "-A"], cwd=clone)
         _run(["git", "config", "user.email", "context-loader@local"], cwd=clone)
-        _run(["git", "config", "user.name", "Context Loader"], cwd=clone)
+        _run(["git", "config", "user.name", "Context Agora"], cwd=clone)
         _run(["git", "commit", "-m", message], cwd=clone)
 
     _run(["git", "push", "origin", branch], cwd=clone)

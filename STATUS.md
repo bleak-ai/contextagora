@@ -1,4 +1,4 @@
-# Context Loader — Status
+# Context Agora — Status
 
 ## What it is
 

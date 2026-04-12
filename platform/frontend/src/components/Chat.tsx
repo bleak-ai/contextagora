@@ -101,7 +101,7 @@ function WelcomeScreen({
           </svg>
         </div>
         <h2 className="text-text text-base font-medium mb-1">
-          Context Loader
+          Context Agora
         </h2>
         <p className="text-text-muted text-sm max-w-[320px]">
           Your context-aware assistant. Ask me anything or pick a module to get started.

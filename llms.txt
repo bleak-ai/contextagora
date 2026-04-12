@@ -1,4 +1,4 @@
-# Context Loader
+# Context Agora
 
 > System for selecting and loading context modules into a coding agent's workspace.
 

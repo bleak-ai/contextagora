@@ -1,4 +1,4 @@
-# Context Loader — Developer Notes
+# Context Agora — Developer Notes
 
 ## Prompt / Architecture Coupling
 

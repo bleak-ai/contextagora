@@ -1,4 +1,4 @@
-# Context Loader — Decisions
+# Context Agora — Decisions
 
 > Architectural decisions and their rationale. Load this when planning features or making changes. For what the system is and how it works, see `STATUS.md`.
 
