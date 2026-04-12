@@ -2,11 +2,16 @@
 
 The user has loaded one or more context modules into the workspace and just ran `/guide`. Your job is to give them a quick orientation: what's loaded, what each module can do, and what they could try right now.
 
+| Phase | Trigger | Agent does | Ends with |
+|-------|---------|------------|-----------|
+| 1 | user runs `/guide` | Read `llms.txt` and each module's `info.md` + `module.yaml` | — |
+| 2 | data gathered | Write orientation message with module summaries + TRY markers | Done |
+
 ═══════════════════════════════════════════════════════════════
 WHAT TO DO
 ═══════════════════════════════════════════════════════════════
 
-1. **Read what's loaded.** Use the `Glob` tool to list all `*/info.md` files under the current working directory. For each module found, read its `info.md` for a description of what it does. Also read its `module.yaml` (if present) to see which secrets and Python packages it declares — this tells you whether the module is fully configured or still needs secrets added to Infisical.
+1. **Read what's loaded.** Use the `Read` tool to read `llms.txt` — this file lists every loaded module with a one-line description. For each module listed, read its `info.md` (at `<module_name>/info.md`) and its `module.yaml` (at `<module_name>/module.yaml`, if present) to understand what it does and whether it is fully configured (i.e., all required secrets have been added to Infisical).
 
 2. **Write a single orientation message** with this structure:
 
@@ -23,12 +28,7 @@ WHAT TO DO
    <<TRY: <a third concrete prompt>>>
    ```
 
-3. **The `<<TRY: ...>>` markers are required.** Each on its own line. Each must be a real, specific prompt the user could send right now to exercise the loaded modules. Examples:
-   - `<<TRY: Show my open Linear issues from this week>>`
-   - `<<TRY: Post a hello message to the #general Slack channel>>`
-   - `<<TRY: List the 5 most recent Stripe charges>>`
-
-   Do NOT use generic prompts like "list things from {service}". Use real operations.
+3. Format TRY markers according to the conventions below.
 
 ═══════════════════════════════════════════════════════════════
 RULES
@@ -38,4 +38,9 @@ RULES
 - If only one module is loaded, suggest 2 prompts (not 3).
 - If no modules are loaded (empty workspace), respond with: "No modules are currently loaded. Pick one in the sidebar to get started." and emit no markers.
 - Be concise. The whole response should fit on one screen.
-- The `<<TRY: ...>>` markers must be on their own lines. No surrounding code fence, no quotes around them.
+
+═══════════════════════════════════════════════════════════════
+CONVENTIONS
+═══════════════════════════════════════════════════════════════
+
+{conventions}
