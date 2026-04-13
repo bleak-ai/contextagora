@@ -33,7 +33,7 @@ class CommandDef:
     prompt: str
 
 
-# Load add_integration first (used both standalone and composed into introduction)
+# Load add_integration first so the standalone command is registered once.
 _ADD_INTEGRATION_PROMPT = _load_prompt("add_integration.md", inject_conventions=True)
 
 COMMANDS: list[CommandDef] = [
@@ -49,9 +49,8 @@ COMMANDS: list[CommandDef] = [
     ),
     CommandDef(
         name="introduction",
-        description="First-time setup: discover, add, and try your first integration",
-        prompt=_load_prompt("introduction.md", inject_conventions=True,
-                           extra_replacements={"{add_integration_prompt}": _ADD_INTEGRATION_PROMPT}),
+        description="First-time setup: explain Context Agora and choose your first integration",
+        prompt=_load_prompt("introduction.md", inject_conventions=True),
     ),
     CommandDef(
         name="guide",

@@ -4,6 +4,7 @@ Each module can have a module.yaml declaring its name, summary, secrets,
 and dependencies.  This replaces the previous per-module .env.schema and
 requirements.txt files.
 """
+import re
 from pathlib import Path
 
 import yaml
@@ -15,6 +16,35 @@ class ModuleManifest(BaseModel):
     summary: str = ""
     secrets: list[str] = []
     dependencies: list[str] = []
+
+
+def _extract_section(content: str, heading: str) -> str:
+    """Extract the text under a markdown heading (## or ###), stopping at the next heading."""
+    pattern = rf"^#{{2,3}}\s+{re.escape(heading)}\s*$"
+    match = re.search(pattern, content, re.MULTILINE | re.IGNORECASE)
+    if not match:
+        return ""
+    start = match.end()
+    next_heading = re.search(r"^#{1,3}\s+", content[start:], re.MULTILINE)
+    end = start + next_heading.start() if next_heading else len(content)
+    return content[start:end].strip()
+
+
+def extract_secrets(content: str) -> list[str]:
+    """Extract env var names from the 'Auth & access' section."""
+    section = _extract_section(content, "Auth & access")
+    if not section:
+        return []
+    return re.findall(r"`([A-Z][A-Z0-9_]+)`", section)
+
+
+def extract_packages(content: str) -> list[str]:
+    """Extract package names from the 'Python packages' section."""
+    section = _extract_section(content, "Python packages")
+    if not section:
+        return []
+    return [line.strip() for line in section.splitlines()
+            if line.strip() and not line.strip().startswith("#")]
 
 
 def read_manifest(module_dir: Path) -> ModuleManifest:

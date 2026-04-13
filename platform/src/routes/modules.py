@@ -18,7 +18,13 @@ from src.models import (
 )
 from src.config import settings
 from src.services import git_repo
-from src.services.manifest import ModuleManifest, read_manifest, write_manifest
+from src.services.manifest import (
+    ModuleManifest,
+    extract_packages,
+    extract_secrets,
+    read_manifest,
+    write_manifest,
+)
 from src.services.schemas import validate_module_file_path, validate_module_name
 
 router = APIRouter(prefix="/api/modules", tags=["modules"])
@@ -75,8 +81,8 @@ async def api_create_module(body: CreateModuleRequest):
     manifest = ModuleManifest(
         name=name,
         summary=body.summary,
-        secrets=body.secrets,
-        dependencies=body.requirements,
+        secrets=extract_secrets(body.content),
+        dependencies=extract_packages(body.content),
     )
     write_manifest(git_repo.module_dir(name), manifest)
 
@@ -97,8 +103,8 @@ async def api_update_module(name: str, body: UpdateModuleRequest):
     manifest = ModuleManifest(
         name=name,
         summary=body.summary,
-        secrets=body.secrets,
-        dependencies=body.requirements,
+        secrets=extract_secrets(body.content),
+        dependencies=extract_packages(body.content),
     )
     write_manifest(git_repo.module_dir(name), manifest)
 

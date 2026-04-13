@@ -25,7 +25,11 @@ export const EmptyStateCard: FC = () => {
       <div className="rounded-lg border border-border bg-bg-raised p-5">
         <h3 className="text-base font-semibold text-text">Welcome</h3>
         <p className="mt-1 text-sm text-text-secondary">
-          You don't have any integrations yet — let me walk you through what to add and how.
+          You don't have any integrations yet. Start with onboarding, then run
+          {" "}
+          <code>/add-integration &lt;name&gt;</code>
+          {" "}
+          for the first one you want to set up.
         </p>
         <button
           type="button"

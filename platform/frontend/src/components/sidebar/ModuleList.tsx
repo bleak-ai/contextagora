@@ -89,7 +89,9 @@ export function ModuleList({
           ? "Loading..."
           : selectionMatchesLoaded && loaded.length > 0
             ? `${loaded.length} Module${loaded.length !== 1 ? "s" : ""} Loaded`
-            : "Load Selected"}
+            : selected.size === 0 && loaded.length > 0
+              ? "Unload All"
+              : "Load Selected"}
       </button>
     </div>
   );

@@ -8,8 +8,13 @@ constants above its router imports.
 """
 from pathlib import Path
 
+from dotenv import load_dotenv
 from pydantic import model_validator
 from pydantic_settings import BaseSettings
+
+# Load .env into os.environ so subprocesses (e.g. varlock) inherit all vars,
+# not just the ones Pydantic Settings knows about.
+load_dotenv()
 
 
 class Settings(BaseSettings):
@@ -29,8 +34,12 @@ class Settings(BaseSettings):
     # ── Server ──
     PORT: int = 8080
 
-    # ── Infisical ──
+    # ── Infisical (bootstrap credentials for varlock subprocesses) ──
     INFISICAL_SITE_URL: str = "https://app.infisical.com"
+    INFISICAL_PROJECT_ID: str = ""
+    INFISICAL_ENVIRONMENT: str = ""
+    INFISICAL_CLIENT_ID: str = ""
+    INFISICAL_CLIENT_SECRET: str = ""
 
     # ── Overridable paths ──
     MODULES_REPO_DIR: Path = Path("")  # resolved in validator

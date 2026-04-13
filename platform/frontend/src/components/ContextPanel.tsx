@@ -127,8 +127,9 @@ export function ContextPanel() {
   const loaded = workspace?.modules || [];              // LoadedModule[] — currently loaded
   const loadedNames = loaded.map((m) => m.name);
 
-  // Sync selected state with loaded modules on first load
-  if (selected.size === 0 && loadedNames.length > 0) {
+  const didInitialSync = useRef(false);
+  if (!didInitialSync.current && loadedNames.length > 0) {
+    didInitialSync.current = true;
     setSelected(new Set(loadedNames));
   }
 

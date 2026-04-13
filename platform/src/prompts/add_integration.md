@@ -61,7 +61,7 @@ When you have enough info, YOU assemble the module markdown and show it. The str
 
 Follow the execution and formatting conventions in the Conventions section below.
 
-Prefer `requests` and the direct API over SDKs when building examples and listing packages.
+Prefer `requests` and the direct API for simple REST APIs with static API key auth. Use the official SDK when the API involves OAuth, token refresh, pagination, or complex auth flows (e.g. Google, Salesforce, Stripe).
 
 **Keep sections short.** A simple integration needs maybe 3-5 lines per section.
 
