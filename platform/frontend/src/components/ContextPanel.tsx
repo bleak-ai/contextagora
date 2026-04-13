@@ -337,6 +337,11 @@ export function ContextPanel() {
           </div>
         )}
       </div>
+      <div className="px-3.5 py-1.5 border-t border-border flex-shrink-0">
+        <span className="text-[9px] text-text-muted font-mono select-none">
+          v{import.meta.env.VITE_APP_VERSION}
+        </span>
+      </div>
     </aside>
   );
 }
