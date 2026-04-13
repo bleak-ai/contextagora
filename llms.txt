@@ -47,6 +47,7 @@
 - [landing/](landing/) — Astro-based landing site and deploy guide
 - [landing/src/pages/index.astro](landing/src/pages/index.astro) — Landing page home
 - [landing/src/pages/deploy.astro](landing/src/pages/deploy.astro) — Deploy guide page (imports docs/guides/deployment.md)
+- [landing/src/components/ArchitectureDiagram.astro](landing/src/components/ArchitectureDiagram.astro) — Animated SVG architecture diagram showing modules flowing into the agent workspace
 
 ## Self-Hosting
 - [docker-compose.yml](docker-compose.yml) — Docker Compose for deployment (pulls image) and dev (--build)

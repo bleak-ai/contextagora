@@ -3,9 +3,16 @@ import '../styles/global.css';
 
 interface Props {
 	title: string;
+	description?: string;
 }
 
-const { title } = Astro.props;
+const {
+	title,
+	description = 'ContextAgora is the AI support layer for startups. Give your agents real context — database schemas, API docs, tool configs — without custom integrations.',
+} = Astro.props;
+
+const ogImage = '/og-image.png';
+const siteUrl = 'https://contextagora.com';
 ---
 
 <html lang="en">
@@ -15,8 +22,36 @@ const { title } = Astro.props;
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
+		<meta name="description" content={description} />
+
+		<!-- Open Graph -->
+		<meta property="og:type" content="website" />
+		<meta property="og:url" content={siteUrl} />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:image" content={`${siteUrl}${ogImage}`} />
+
+		<!-- Twitter -->
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={title} />
+		<meta name="twitter:description" content={description} />
+		<meta name="twitter:image" content={`${siteUrl}${ogImage}`} />
 	</head>
 	<body class="min-h-screen bg-bg text-text font-sans">
+		<header class="border-b border-border/50">
+			<div class="max-w-3xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
+				<a href="/" class="text-sm font-semibold text-accent tracking-tight hover:opacity-80 transition-opacity">
+					ContextAgora
+				</a>
+				<nav class="flex items-center gap-6">
+					<a href="#case-studies" class="text-xs text-text-muted hover:text-text transition-colors hidden sm:block">Case studies</a>
+					<a href="#how-it-works" class="text-xs text-text-muted hover:text-text transition-colors hidden sm:block">How it works</a>
+					<a href="#waitlist" class="text-xs font-medium text-accent border border-accent/30 px-3 py-1.5 hover:bg-accent/10 transition-colors">
+						Get early access
+					</a>
+				</nav>
+			</div>
+		</header>
 		<main class="max-w-3xl mx-auto px-5 py-12 sm:px-8 sm:py-16">
 			<slot />
 		</main>

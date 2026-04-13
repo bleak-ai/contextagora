@@ -10,7 +10,7 @@ export function IconRail() {
     <nav className="w-12 flex-shrink-0 border-r border-border bg-bg-raised flex flex-col items-center py-3 gap-1 h-full">
       {/* Logo */}
       <div className="w-8 h-8 mb-3">
-        <img src="/logo.webp" alt="ContextAgora" className="w-full h-full object-contain" />
+        <img src="/favicon-mark.webp" alt="ContextAgora" className="w-full h-full object-contain" />
       </div>
 
       {/* Chat */}
