@@ -52,3 +52,16 @@ export interface WorkspaceFile {
 export function fetchWorkspaceFiles(): Promise<{ files: WorkspaceFile[] }> {
   return apiFetch("/workspace/files");
 }
+
+export interface InstallDepsResult {
+  success: boolean;
+  error: string | null;
+}
+
+export function installModuleDeps(
+  moduleName: string,
+): Promise<InstallDepsResult> {
+  return apiFetch(`/workspace/${moduleName}/install-deps`, {
+    method: "POST",
+  });
+}

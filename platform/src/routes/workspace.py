@@ -127,16 +127,9 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
 
             link_path.symlink_to(target, target_is_directory=True)
 
-            # install_module_deps reads module.yaml via the symlink — fine.
-            dep_result = install_module_deps(link_path)
-            if dep_result is not None and dep_result.returncode != 0:
-                raise RuntimeError(
-                    f"pip install failed: {dep_result.stderr.strip()}"
-                )
-
             loaded.append(name)
 
-        except (OSError, ValueError, FileNotFoundError, RuntimeError) as exc:
+        except (OSError, ValueError, FileNotFoundError) as exc:
             log.error("Failed to load module '%s': %s", name, exc)
             if link_path.is_symlink() or link_path.exists():
                 try:
@@ -178,3 +171,33 @@ async def api_workspace_secrets():
     global _secrets_cache
     _secrets_cache = await get_secrets_status(settings.CONTEXT_DIR, _list_modules)
     return {"secrets": _secrets_cache}
+
+
+@router.post("/{module_name}/install-deps")
+async def api_install_module_deps(module_name: str):
+    """Install Python dependencies for a single loaded module."""
+    import importlib
+
+    # Prevent directory traversal. We can't use resolve() here because
+    # loaded modules are symlinks into modules-repo/, so resolve() would
+    # point outside CONTEXT_DIR. Validate the name directly instead.
+    if "/" in module_name or module_name in (".", ".."):
+        return {"success": False, "error": "Invalid module name"}
+
+    module_dir = settings.CONTEXT_DIR / module_name
+
+    if not module_dir.is_dir():
+        return {"success": False, "error": f"Module '{module_name}' is not loaded"}
+
+    result = install_module_deps(module_dir)
+    if result is None:
+        return {"success": True, "error": None}  # no deps declared
+
+    if result.returncode != 0:
+        return {"success": False, "error": result.stderr.strip()}
+
+    # Invalidate cached package metadata so inspect_module_packages
+    # sees freshly installed packages without restarting the server.
+    importlib.invalidate_caches()
+
+    return {"success": True, "error": None}

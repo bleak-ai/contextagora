@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { fetchModuleFile } from "../../api/modules";
 import type { LoadedModule } from "../../api/workspace";
+import { installModuleDeps } from "../../api/workspace";
 import { FilePreviewModal } from "./FilePreviewModal";
 
 interface Props {
@@ -44,6 +45,21 @@ export function ModuleCard({
       : "bg-accent shadow-[0_0_6px_rgba(107,138,253,0.6)]";
 
   const [previewFile, setPreviewFile] = useState<string | null>(null);
+
+  const queryClient = useQueryClient();
+  const [installError, setInstallError] = useState<string | null>(null);
+
+  const installMutation = useMutation({
+    mutationFn: () => installModuleDeps(module.name),
+    onSuccess: (data) => {
+      if (!data.success) {
+        setInstallError(data.error ?? "Unknown error");
+      } else {
+        setInstallError(null);
+      }
+      queryClient.invalidateQueries({ queryKey: ["workspace"] });
+    },
+  });
 
   const okSecretCount = Object.values(module.secrets).filter(
     (v) => v !== null,
@@ -140,22 +156,47 @@ export function ModuleCard({
             {module.packages.length === 0 ? (
               <Empty>none declared</Empty>
             ) : (
-              module.packages.map((p) => (
-                <Item
-                  key={p.name}
-                  name={p.name}
-                  bullet={p.installed ? "text-accent/60" : "text-red-400/70"}
-                  trailing={
-                    p.installed ? (
-                      <Pill tone="ok" mono>
-                        v{p.version}
-                      </Pill>
-                    ) : (
-                      <Pill tone="bad">not installed</Pill>
-                    )
-                  }
-                />
-              ))
+              <>
+                {module.packages.map((p) => (
+                  <Item
+                    key={p.name}
+                    name={p.name}
+                    bullet={p.installed ? "text-accent/60" : "text-red-400/70"}
+                    trailing={
+                      p.installed ? (
+                        <Pill tone="ok" mono>
+                          v{p.version}
+                        </Pill>
+                      ) : (
+                        <Pill tone="bad">not installed</Pill>
+                      )
+                    }
+                  />
+                ))}
+                {module.packages.some((p) => !p.installed) && (
+                  <button
+                    type="button"
+                    disabled={installMutation.isPending}
+                    onClick={() => {
+                      setInstallError(null);
+                      installMutation.mutate();
+                    }}
+                    className="mt-1.5 w-full rounded border border-accent/40 bg-accent/10 px-2 py-1 text-[10px] font-semibold text-accent transition-colors hover:bg-accent/20 disabled:opacity-50"
+                  >
+                    {installMutation.isPending ? "Installing…" : "Install packages"}
+                  </button>
+                )}
+                {installError && (
+                  <details className="mt-1.5">
+                    <summary className="cursor-pointer text-[10px] font-semibold text-red-400">
+                      Install failed — click for details
+                    </summary>
+                    <pre className="mt-1 max-h-32 overflow-auto rounded bg-bg p-2 text-[9px] text-red-300">
+                      {installError}
+                    </pre>
+                  </details>
+                )}
+              </>
             )}
           </Section>
         </div>

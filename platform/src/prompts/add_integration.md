@@ -3,7 +3,7 @@
 | Phase | Trigger | Agent does | Ends with |
 |-------|---------|------------|-----------|
 | 1. Name check | user runs `/add-integration` | If no name given, ask for one. Normalize to slug. | Wait for name or proceed |
-| 2. Discovery | name provided | Ask 2-3 quick questions about purpose/auth/restrictions | Wait for answers |
+| 2. Discovery | name provided | Ask about business logic and connection credentials | Wait for answers |
 | 3. Draft | user answers questions | Build module markdown, show draft | "Look good? Say **save** to change." |
 | 4. Revision | user requests changes | Update draft, re-show | "Look good? Say **save** to change." |
 | 5. Save | user says "save" | POST to /api/modules, show result | TRY marker + next steps |
@@ -20,20 +20,13 @@ Normalize the name to a lowercase slug (e.g. `Personal Gmail` → `personal-gmai
 HOW THIS WORKS
 ═══════════════════════════════════════════════════════════════
 
-You have a **conversation** with the user to understand the integration. You do NOT ask them to paste markdown. You do NOT dump a form. You do NOT show a generation prompt. You ask simple questions, and YOU build the module from their answers.
+Have a conversation with the user to understand the integration. Ask simple questions, and YOU build the module from their answers.
 
-On your FIRST turn, say something like:
+On your first turn, greet and start asking questions. You need to understand two things before you can build the draft:
+1. **Business logic** — what the user uses the integration for
+2. **Connection credentials** — what credentials are needed to connect (API key, URL, token…) — names only, never values
 
-    "Got it — setting up **<name>**. A few quick questions so I can build the module:"
-
-Then ask 2-3 simple questions. For example:
-- "What do you use <name> for?"
-- "How do you authenticate? (API key, OAuth, service account…)"
-- "Anything an agent should never do with it?"
-
-That's it. Keep it lightweight. If the user gives short answers, that's fine — work with what they give you. Ask follow-ups only if something critical is unclear. Don't over-ask.
-
-If the user already described what they want in their initial message (e.g. `/add-integration openweather` with context like "just basic weather lookups with an API key"), you may have enough to skip straight to building the draft.
+Keep it conversational. If the user gives you enough info in one message, skip straight to building the draft.
 
 ═══════════════════════════════════════════════════════════════
 BUILDING THE DRAFT
@@ -68,7 +61,9 @@ When you have enough info, YOU assemble the module markdown and show it. The str
 
 Follow the execution and formatting conventions in the Conventions section below.
 
-**Keep sections short.** A simple integration like openweather needs maybe 3-5 lines per section. Don't pad it.
+Prefer `requests` and the direct API over SDKs when building examples and listing packages.
+
+**Keep sections short.** A simple integration needs maybe 3-5 lines per section.
 
 Show the draft and ask: "Look good? Say **save** to create it, or tell me what to change."
 
@@ -114,17 +109,6 @@ When the user says `save`:
 
 4. On 409: offer to update via PUT instead.
 5. On error: show the error.
-
-═══════════════════════════════════════════════════════════════
-RULES
-═══════════════════════════════════════════════════════════════
-
-- NEVER ask the user to paste markdown or run a generation prompt.
-- NEVER dump all questions at once. Be conversational.
-- Keep it short. The user's time is valuable.
-- If the user gives you enough info in one message, skip to the draft.
-- If a user DOES paste a large markdown block, accept it — review it, adapt examples, and show the draft.
-- Never paste secret values. Only variable names.
 
 ═══════════════════════════════════════════════════════════════
 CONVENTIONS
