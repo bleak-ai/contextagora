@@ -11,7 +11,7 @@ The user has loaded one or more context modules into the workspace and just ran 
 WHAT TO DO
 ═══════════════════════════════════════════════════════════════
 
-1. **Read what's loaded.** Use the `Read` tool to read `llms.txt` — this file lists every loaded module with a one-line description. For each module listed, read its `info.md` (at `<module_name>/info.md`) and its `module.yaml` (at `<module_name>/module.yaml`, if present) to understand what it does and whether it is fully configured (i.e., all required secrets have been added to Infisical).
+1. **Read what's loaded.** Use the `Read` tool to read `llms.txt` — this is the ONLY authoritative list of loaded modules. Do NOT glob for `*/info.md` or `*/module.yaml` files; that approach silently misses modules. The file lists every loaded module with a one-line description. For each module listed, read its `info.md` (at `<module_name>/info.md`) and its `module.yaml` (at `<module_name>/module.yaml`, if present) to understand what it does and whether it is fully configured (i.e., all required secrets have been added to Infisical).
 
 2. **Write a single orientation message** with this structure:
 
