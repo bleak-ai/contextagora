@@ -11,7 +11,7 @@ import Base from '../layouts/Base.astro';
 		</h1>
 		<p class="text-lg sm:text-xl text-text font-medium mb-6">The AI support layer built for startups</p>
 		<p class="text-base text-text-secondary leading-relaxed max-w-sm mx-auto">
-			Let your AI agents handle support, ops, and integrations without babysitting every prompt or worrying about leaked credentials.
+			Let your AI agents handle support, ops, and integrations without babysitting every prompt.
 		</p>
 	</section>
 
@@ -106,6 +106,141 @@ import Base from '../layouts/Base.astro';
 				</div>
 			</div>
 		</dl>
+	</section>
+
+	<!-- In the wild -->
+	<section class="mb-16 sm:mb-24">
+		<h2 class="text-xs font-medium text-text-muted uppercase tracking-widest mb-10">Testimonials</h2>
+
+		<!-- Testimonial quotes -->
+		<div class="flex flex-col gap-3 mb-8">
+			<div class="border border-border bg-bg-raised px-6 py-8 sm:px-8">
+				<a href="https://soundmurai.com" target="_blank" rel="noopener noreferrer" class="group flex items-center gap-4 mb-6 w-fit hover:opacity-80 transition-opacity">
+					<img src="https://soundmurai.com/favicon.svg" alt="Soundmurai logo" class="w-14 h-14 shrink-0" />
+					<span class="text-3xl sm:text-4xl font-bold text-text tracking-tight">Soundmurai</span>
+					<svg class="w-4 h-4 text-text-muted -mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
+				</a>
+				<p class="text-sm text-text-muted uppercase tracking-widest mb-3">Live music marketplace</p>
+				<p class="text-lg text-text-secondary leading-relaxed">
+					"ContextAgora lets our AI answer real questions about our marketplace — live, from our own database. No custom APIs, no manual queries."
+				</p>
+			</div>
+			<div class="border border-border bg-bg-raised px-6 py-8 sm:px-8">
+				<a href="https://maatapp.com" target="_blank" rel="noopener noreferrer" class="group flex items-center gap-4 mb-6 w-fit hover:opacity-80 transition-opacity">
+					<img src="https://www.datocms-assets.com/166339/1754751403-logo.svg" alt="MAAT logo" class="w-14 h-14 shrink-0" />
+					<span class="text-3xl sm:text-4xl font-bold text-text tracking-tight">MAAT</span>
+					<svg class="w-4 h-4 text-text-muted -mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
+				</a>
+				<p class="text-sm text-text-muted uppercase tracking-widest mb-3">Gym management software for BJJ, MMA & martial arts</p>
+				<p class="text-lg text-text-secondary leading-relaxed">
+					"We went from spending hours digging through member data to having our AI surface exactly what we need in seconds. ContextAgora made that possible."
+				</p>
+			</div>
+		</div>
+
+		<!-- Soundmurai spotlight -->
+		<div class="border border-accent/20 bg-bg-raised px-6 py-7 sm:px-8 mb-3">
+			<!-- Company header -->
+			<div class="flex items-center gap-3 mb-5">
+				<div class="w-9 h-9 flex items-center justify-center border border-accent/25 bg-accent/10 text-accent text-xs font-semibold shrink-0">
+					SM
+				</div>
+				<div>
+					<p class="text-sm font-semibold text-text">Soundmurai</p>
+					<p class="text-xs text-text-secondary">Marketplace for live music opportunities</p>
+				</div>
+			</div>
+
+			<!-- Use case description -->
+			<p class="text-sm text-text-secondary leading-relaxed border-l-2 border-accent/30 pl-4 mb-5">
+				Soundmurai is building the go-to marketplace for live music. Fully AI-native in their approach, they needed their agents to query live database data — without writing a custom integration for every question.
+			</p>
+
+			<!-- Example query -->
+			<div class="bg-bg border border-border px-4 py-3 mb-5 text-xs">
+				<span class="text-accent font-medium">User asks →</span>
+				<span class="text-text italic ml-1">"Which is the average price for independent artists in Berlin?"</span>
+			</div>
+
+			<!-- 5-step flow -->
+			<ol class="space-y-2.5 mb-6">
+				{[
+					'The agent finds the right context file for their database',
+					'It reads and understands how their DB is structured',
+					'It generates a script or request to retrieve artists in Berlin and venue prices',
+					'It filters the results that match the question',
+					'It delivers a clear, accurate answer to the user',
+				].map((step, i) => (
+					<li class="flex gap-3 items-start text-sm text-text-secondary">
+						<span class="flex-shrink-0 w-5 h-5 border border-accent/30 text-accent text-[10px] font-semibold flex items-center justify-center mt-0.5">
+							{i + 1}
+						</span>
+						<span>{step}</span>
+					</li>
+				))}
+			</ol>
+
+			<!-- Video placeholder -->
+			<div class="w-full aspect-video bg-bg border border-dashed border-border flex flex-col items-center justify-center gap-2 text-text-muted">
+				<svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5 10.5 7.5v9l5.25-3v-3Z"/>
+					<path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+				</svg>
+				<p class="text-sm text-text-secondary font-medium">Demo video coming soon</p>
+				<p class="text-xs">See ContextAgora in action with Soundmurai's live database</p>
+			</div>
+		</div>
+
+		<!-- MAAT spotlight -->
+		<div class="border border-accent/20 bg-bg-raised px-6 py-7 sm:px-8">
+			<!-- Company header -->
+			<div class="flex items-center gap-3 mb-5">
+				<img src="https://www.datocms-assets.com/166339/1754751403-logo.svg" alt="MAAT logo" class="w-9 h-9 shrink-0" />
+				<div>
+					<p class="text-sm font-semibold text-text">MAAT</p>
+					<p class="text-xs text-text-secondary">Gym management for BJJ, MMA & martial arts</p>
+				</div>
+			</div>
+
+			<!-- Use case description -->
+			<p class="text-sm text-text-secondary leading-relaxed border-l-2 border-accent/30 pl-4 mb-5">
+				MAAT is building a platform at the intersection of music and arts. With a growing catalogue of events, artists, and venues, they needed their AI to surface meaningful insights from their data without any manual overhead.
+			</p>
+
+			<!-- Example query -->
+			<div class="bg-bg border border-border px-4 py-3 mb-5 text-xs">
+				<span class="text-accent font-medium">User asks →</span>
+				<span class="text-text italic ml-1">"Which artists performed at more than three events last month?"</span>
+			</div>
+
+			<!-- Steps -->
+			<ol class="space-y-2.5 mb-6">
+				{[
+					'The agent locates the relevant context module for the events catalogue',
+					'It reads the schema and understands how artists, events, and venues relate',
+					'It generates a query to retrieve artist performance counts for the period',
+					'It filters and ranks results by frequency',
+					'It returns a clear answer with the matching artists listed',
+				].map((step, i) => (
+					<li class="flex gap-3 items-start text-sm text-text-secondary">
+						<span class="flex-shrink-0 w-5 h-5 border border-accent/30 text-accent text-[10px] font-semibold flex items-center justify-center mt-0.5">
+							{i + 1}
+						</span>
+						<span>{step}</span>
+					</li>
+				))}
+			</ol>
+
+			<!-- Video placeholder -->
+			<div class="w-full aspect-video bg-bg border border-dashed border-border flex flex-col items-center justify-center gap-2 text-text-muted">
+				<svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5 10.5 7.5v9l5.25-3v-3Z"/>
+					<path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+				</svg>
+				<p class="text-sm text-text-secondary font-medium">Demo video coming soon</p>
+				<p class="text-xs">See ContextAgora in action with MAAT's platform</p>
+			</div>
+		</div>
 	</section>
 
 </Base>
