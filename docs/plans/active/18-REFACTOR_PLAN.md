@@ -1,4 +1,4 @@
-# Context Loader — Refactor Plan
+# Context Agora — Refactor Plan
 
 > What to change, why, and in what order. Organized by net impact on system complexity.
 

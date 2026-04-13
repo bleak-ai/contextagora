@@ -2,7 +2,7 @@
 
 ## Goal
 
-Validate whether Context Loader can be a paid product by getting it in front of real teams, before building any SaaS infrastructure. Answer three questions: (1) does the problem resonate, (2) will people pay, (3) what's the right packaging.
+Validate whether Context Agora can be a paid product by getting it in front of real teams, before building any SaaS infrastructure. Answer three questions: (1) does the problem resonate, (2) will people pay, (3) what's the right packaging.
 
 ## Why direct sales first
 
@@ -12,7 +12,7 @@ Building multi-tenant SaaS (container orchestration, Stripe, auth, tenant isolat
 
 ### 1.1 Pick a product name and register domain
 
-- "Context Loader" is too generic for outreach. Pick a short, memorable name.
+- "Context Agora" is too generic for outreach. Pick a short, memorable name.
 - Register the `.dev` or `.ai` domain.
 - Update the repo, Docker image, and UI title to use the new name.
 
