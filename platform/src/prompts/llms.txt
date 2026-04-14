@@ -6,6 +6,7 @@ Prompt templates for chat slash commands and module-building flows.
 
 - [_conventions.md](_conventions.md) — Single source of truth for varlock, TRY markers, secret naming, and execution conventions. Injected into other prompts automatically.
 - [add_integration.md](add_integration.md) — /add-integration slash command: multi-turn wizard to create a new context module from chat
+- [improve_integration.md](improve_integration.md) — /improve-integration slash command: reads an existing module, analyzes gaps, and improves it via PUT
 - [add_module.md](add_module.md) — Template prompt for generating a module's info.md from codebase analysis
 - [adapt_examples.md](adapt_examples.md) — Rules for rewriting code examples to match varlock execution conventions
 - [download.md](download.md) — /download slash command: generates download links for files written in the session
