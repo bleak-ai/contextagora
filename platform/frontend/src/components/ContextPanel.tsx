@@ -17,7 +17,9 @@ import { RootSection } from "./sidebar/RootSection";
 
 export function ContextPanel() {
   const queryClient = useQueryClient();
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  // null = user hasn't touched the selection yet → derive from data
+  // Set  = user has toggled at least one checkbox → use their explicit choice
+  const [userSelection, setUserSelection] = useState<Set<string> | null>(null);
 
   const rawModel = useChatStore((s) => s.model);
   const modelLabel = rawModel
@@ -127,15 +129,16 @@ export function ContextPanel() {
   const loaded = workspace?.modules || [];              // LoadedModule[] — currently loaded
   const loadedNames = loaded.map((m) => m.name);
 
-  const didInitialSync = useRef(false);
-  if (!didInitialSync.current && loadedNames.length > 0) {
-    didInitialSync.current = true;
-    setSelected(new Set(loadedNames));
-  }
+  // Derived selection: if the user hasn't touched anything, default to
+  // loaded modules (returning user) or ALL modules (fresh start).
+  const selected: Set<string> =
+    userSelection ??
+    (loadedNames.length > 0 ? new Set(loadedNames) : new Set(modules));
 
   const toggleModule = (name: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
+    const base = selected; // capture current derived value
+    setUserSelection(() => {
+      const next = new Set(base);
       if (next.has(name)) next.delete(name);
       else next.add(name);
       return next;
