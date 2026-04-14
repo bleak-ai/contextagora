@@ -14,13 +14,13 @@ export type SyncStatus = {
 export const fetchSyncStatus = (): Promise<SyncStatus> =>
   apiFetch<SyncStatus>("/sync/status");
 
-export const pullSync = (): Promise<{ status: "ok" }> =>
-  apiFetch<{ status: "ok" }>("/sync/pull", { method: "POST" });
+export const pullSync = (): Promise<{ status: "ok"; sync: SyncStatus }> =>
+  apiFetch<{ status: "ok"; sync: SyncStatus }>("/sync/pull", { method: "POST" });
 
 export const pushSync = (
   message: string,
-): Promise<{ status: "ok"; commit: string }> =>
-  apiFetch<{ status: "ok"; commit: string }>("/sync/push", {
+): Promise<{ status: "ok"; commit: string; sync: SyncStatus }> =>
+  apiFetch<{ status: "ok"; commit: string; sync: SyncStatus }>("/sync/push", {
     method: "POST",
     body: JSON.stringify({ message }),
   });

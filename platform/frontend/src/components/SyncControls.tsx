@@ -5,6 +5,7 @@ import {
   pushSync,
   type SyncStatus,
 } from "../api/sync";
+import { ApiError } from "../api/client";
 
 export function SyncControls() {
   const qc = useQueryClient();
@@ -15,19 +16,25 @@ export function SyncControls() {
     refetchInterval: 30_000,
   });
 
-  const invalidateAll = () => {
-    qc.invalidateQueries({ queryKey: ["sync-status"] });
-    qc.invalidateQueries({ queryKey: ["modules"] });
-  };
-
   const pull = useMutation({
     mutationFn: pullSync,
-    onSuccess: invalidateAll,
+    onSuccess: (data) => {
+      qc.setQueryData(["sync-status"], data.sync);
+      qc.invalidateQueries({ queryKey: ["modules"] });
+    },
+    onError: () => {
+      setTimeout(() => pull.reset(), 4000);
+    },
   });
 
   const push = useMutation({
     mutationFn: (message: string) => pushSync(message),
-    onSuccess: invalidateAll,
+    onSuccess: (data) => {
+      qc.setQueryData(["sync-status"], data.sync);
+    },
+    onError: () => {
+      setTimeout(() => push.reset(), 4000);
+    },
   });
 
   const canPull = Boolean(data?.can_pull);
@@ -39,32 +46,34 @@ export function SyncControls() {
     push.mutate(message.trim());
   };
 
+  const errorMessage = (error: Error | null) =>
+    error instanceof ApiError ? error.message : "Failed";
+
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1.5 mt-3 px-1">
       <button
         type="button"
-        className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
-          canPull && !pull.isPending
-            ? "text-text-secondary bg-border border-border-light hover:text-text hover:bg-bg-hover cursor-pointer"
-            : "text-text-muted bg-border/50 border-border-light/50 hover:bg-bg-hover cursor-default"
-        }`}
-        onClick={() => canPull && !pull.isPending && pull.mutate()}
+        disabled={!canPull || pull.isPending}
+        className="flex-1 text-[11px] font-medium py-1 rounded border transition-colors border-border text-text-secondary hover:text-text hover:border-accent/50 hover:bg-accent/5 disabled:opacity-30 disabled:pointer-events-none"
+        onClick={() => pull.mutate()}
         title={canPull ? "Pull latest from remote" : "Up to date"}
       >
-        {pull.isPending ? "Pulling…" : "Pull"}
+        {pull.isPending ? "Pulling…" : "↓ Pull"}
       </button>
       <button
         type="button"
-        className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
-          canPush && !push.isPending
-            ? "text-text-secondary bg-border border-border-light hover:text-text hover:bg-bg-hover cursor-pointer"
-            : "text-text-muted bg-border/50 border-border-light/50 hover:bg-bg-hover cursor-default"
-        }`}
-        onClick={() => canPush && !push.isPending && handlePush()}
+        disabled={!canPush || push.isPending}
+        className="flex-1 text-[11px] font-medium py-1 rounded border transition-colors border-border text-text-secondary hover:text-text hover:border-accent/50 hover:bg-accent/5 disabled:opacity-30 disabled:pointer-events-none"
+        onClick={handlePush}
         title={canPush ? "Push local changes" : "Nothing to push"}
       >
-        {push.isPending ? "Pushing…" : "Push"}
+        {push.isPending ? "Pushing…" : "↑ Push"}
       </button>
+      {(pull.isError || push.isError) && (
+        <span className="text-[10px] text-red-400">
+          {errorMessage(pull.error ?? push.error)}
+        </span>
+      )}
     </div>
   );
 }

@@ -14,6 +14,9 @@ class PushRequest(BaseModel):
     message: str
 
 
+_CLEAN_SYNC = {"dirty": False, "ahead": 0, "behind": 0, "can_pull": False, "can_push": False}
+
+
 @router.get("/status")
 def api_sync_status():
     try:
@@ -30,7 +33,7 @@ def api_sync_pull():
         git_repo.pull()
     except git_repo.GitRepoError as exc:
         return JSONResponse({"error": str(exc)}, status_code=502)
-    return {"status": "ok"}
+    return {"status": "ok", "sync": _CLEAN_SYNC}
 
 
 @router.post("/push")
@@ -44,4 +47,4 @@ def api_sync_push(body: PushRequest):
         msg = str(exc)
         status_code = 409 if ("Nothing to push" in msg or "pull first" in msg) else 502
         return JSONResponse({"error": str(exc)}, status_code=status_code)
-    return {"status": "ok", "commit": commit}
+    return {"status": "ok", "commit": commit, "sync": _CLEAN_SYNC}

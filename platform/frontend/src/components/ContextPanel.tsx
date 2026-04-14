@@ -211,9 +211,6 @@ export function ContextPanel() {
             </button>
           </div>
         </div>
-        <div className="mt-2">
-          <SyncControls />
-        </div>
       </div>
 
       {/* Tab strip */}
@@ -296,6 +293,7 @@ export function ContextPanel() {
                 </ul>
               </div>
             )}
+            <SyncControls />
           </div>
         )}
 
