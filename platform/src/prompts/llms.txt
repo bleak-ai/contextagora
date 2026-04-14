@@ -2,13 +2,19 @@
 
 Prompt templates for chat slash commands and module-building flows.
 
-## Files
+## Shared
 
 - [_conventions.md](_conventions.md) — Single source of truth for varlock, TRY markers, secret naming, and execution conventions. Injected into other prompts automatically.
-- [add_integration.md](add_integration.md) — /add-integration slash command: multi-turn wizard to create a new context module from chat
-- [improve_integration.md](improve_integration.md) — /improve-integration slash command: reads an existing module, analyzes gaps, and improves it via PUT
-- [add_module.md](add_module.md) — Template prompt for generating a module's info.md from codebase analysis
-- [adapt_examples.md](adapt_examples.md) — Rules for rewriting code examples to match varlock execution conventions
-- [download.md](download.md) — /download slash command: generates download links for files written in the session
-- [guide.md](guide.md) — /guide slash command: shows loaded modules and suggests prompts to try
-- [introduction.md](introduction.md) — /introduction slash command: 4-turn onboarding flow that delegates to /add-integration
+
+## Commands (user-facing slash commands)
+
+- [commands/add_integration.md](commands/add_integration.md) — /add-integration: multi-turn wizard to create a new context module from chat
+- [commands/improve_integration.md](commands/improve_integration.md) — /improve-integration: reads an existing module, analyzes gaps, and improves it via PUT
+- [commands/download.md](commands/download.md) — /download: generates download links for files written in the session
+- [commands/guide.md](commands/guide.md) — /guide: shows loaded modules and suggests prompts to try
+- [commands/introduction.md](commands/introduction.md) — /introduction: 4-turn onboarding flow that delegates to /add-integration
+
+## Templates (internal, not user-facing)
+
+- [templates/add_module.md](templates/add_module.md) — Template prompt for generating a module's info.md from codebase analysis
+- [templates/adapt_examples.md](templates/adapt_examples.md) — Rules for rewriting code examples to match varlock execution conventions

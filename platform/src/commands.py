@@ -34,13 +34,13 @@ class CommandDef:
 
 
 # Load add_integration first so the standalone command is registered once.
-_ADD_INTEGRATION_PROMPT = _load_prompt("add_integration.md", inject_conventions=True)
+_ADD_INTEGRATION_PROMPT = _load_prompt("commands/add_integration.md", inject_conventions=True)
 
 COMMANDS: list[CommandDef] = [
     CommandDef(
         name="download",
         description="Download files written in this session",
-        prompt=_load_prompt("download.md"),
+        prompt=_load_prompt("commands/download.md"),
     ),
     CommandDef(
         name="add-integration",
@@ -50,11 +50,16 @@ COMMANDS: list[CommandDef] = [
     CommandDef(
         name="introduction",
         description="First-time setup: explain Context Agora and choose your first integration",
-        prompt=_load_prompt("introduction.md", inject_conventions=True),
+        prompt=_load_prompt("commands/introduction.md", inject_conventions=True),
     ),
     CommandDef(
         name="guide",
         description="Show what's loaded right now and prompts to try",
-        prompt=_load_prompt("guide.md", inject_conventions=True),
+        prompt=_load_prompt("commands/guide.md", inject_conventions=True),
+    ),
+    CommandDef(
+        name="improve-integration",
+        description="Improve an existing context module",
+        prompt=_load_prompt("commands/improve_integration.md", inject_conventions=True),
     ),
 ]
