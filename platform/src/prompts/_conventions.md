@@ -42,7 +42,7 @@ creds = service_account.Credentials.from_service_account_info(
 ## 3. Secret Handling
 
 - List ENVIRONMENT VARIABLE NAMES ONLY in "Auth & access" sections. Never paste actual values.
-- Secrets are stored in Infisical at path `/<module_name>`, one key per secret.
+- Secrets are stored in Infisical at path `/<module_name>/<SECRET_KEY>` (e.g. `/linear/LINEAR_API_KEY`). Each secret is its own entry inside the module's folder.
 
 ## 4. TRY Marker Syntax
 
