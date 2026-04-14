@@ -10,44 +10,47 @@ import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
 		<h1 class="text-5xl sm:text-7xl font-semibold text-accent tracking-tight mb-4 leading-none">
 			ContextAgora
 		</h1>
-		<p class="text-lg sm:text-xl text-text font-medium mb-3">Your AI agents, actually informed.</p>
-		<p class="text-base text-text-secondary leading-relaxed max-w-sm mx-auto mb-8">
-			Load your database schemas, API docs, and tool configs as context modules. Your agents query real data and give real answers.
+		<p class="text-lg sm:text-xl text-text font-medium mb-3">AI support that knows your product.</p>
+		<p class="text-base text-text-secondary leading-relaxed max-w-md mx-auto mb-8">
+			Connect your AI agents to all your integrations and 3rd parties. Feed the right context to your AI every time, so your Agent can understand the whole picture.
 		</p>
 		<button
 			id="hero-cta"
 			class="bg-accent text-bg text-sm font-medium px-6 py-2.5 hover:bg-accent-hover transition-colors cursor-pointer"
 		>
-			Get early access
+			Join the waitlist
 		</button>
 	</section>
 
 	<!-- Architecture diagram -->
 	<section class="mb-16 sm:mb-24">
-		<h2 class="text-xs font-medium text-text-muted uppercase tracking-widest mb-8">How it fits together</h2>
+		<h2 class="text-xs font-medium text-text-muted uppercase tracking-widest mb-3">How it fits together</h2>
+		<p class="text-sm text-text-secondary leading-relaxed mb-8">
+			Define what your agent can access as modules: database schemas, API docs, tool configs. It loads only what it needs and connects to your integrations live.
+		</p>
 		<ArchitectureDiagram />
 	</section>
 
 	<!-- Case studies -->
 	<section id="case-studies" class="mb-16 sm:mb-24">
-		<h2 class="text-xs font-medium text-text-muted uppercase tracking-widest mb-10">Case studies</h2>
+		<h2 class="text-xs font-medium text-text-muted uppercase tracking-widest mb-3">Case studies</h2>
 
 		<div class="flex flex-col gap-3">
 
 			<!-- Soundmurai -->
 			<div class="border border-accent/20 bg-bg-raised px-6 py-8 sm:px-8">
 				<a href="https://soundmurai.com" target="_blank" rel="noopener noreferrer" class="group flex items-center gap-4 mb-5 w-fit hover:opacity-80 transition-opacity">
-					<img src="https://soundmurai.com/favicon.svg" alt="Soundmurai logo" class="w-14 h-14 shrink-0" width="56" height="56" loading="lazy" />
+					<img src="/logos/soundmurai.svg" alt="Soundmurai logo" class="w-14 h-14 shrink-0" width="56" height="56" loading="lazy" />
 					<span class="text-3xl sm:text-4xl font-bold text-text tracking-tight">Soundmurai</span>
 					<svg class="w-4 h-4 text-text-muted -mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
 				</a>
 				<p class="text-sm text-text-muted uppercase tracking-widest mb-4">Live music marketplace</p>
 				<blockquote class="text-lg text-text-secondary leading-relaxed mb-3">
-					"ContextAgora lets our AI answer real questions about our marketplace — live, from our own database. No custom APIs, no manual queries."
+					"ContextAgora lets our AI answer real questions about our marketplace, live, from our own database. No custom APIs, no manual queries."
 				</blockquote>
 				<p class="text-xs text-text-muted mb-6">— Eduard, Co-founder at Soundmurai</p>
 				<p class="text-sm text-text-secondary leading-relaxed border-l-2 border-accent/30 pl-4 mb-5">
-					Soundmurai is building the go-to marketplace for live music. Fully AI-native in their approach, they needed their agents to query live database data — without writing a custom integration for every question.
+					Soundmurai is building the go-to marketplace for live music. Their team kept getting the same questions about pricing, availability, and artist stats. Now their AI answers them directly from the live database.
 				</p>
 				<div class="bg-bg border border-border px-4 py-3 mb-5 text-xs">
 					<span class="text-accent font-medium">User asks →</span>
@@ -82,7 +85,7 @@ import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
 			<!-- MAAT -->
 			<div class="border border-accent/20 bg-bg-raised px-6 py-8 sm:px-8">
 				<a href="https://maatapp.com" target="_blank" rel="noopener noreferrer" class="group flex items-center gap-4 mb-5 w-fit hover:opacity-80 transition-opacity">
-					<img src="https://www.datocms-assets.com/166339/1754751403-logo.svg" alt="MAAT logo" class="w-14 h-14 shrink-0" width="56" height="56" loading="lazy" />
+					<img src="/logos/maat.svg" alt="MAAT logo" class="w-14 h-14 shrink-0" width="56" height="56" loading="lazy" />
 					<span class="text-3xl sm:text-4xl font-bold text-text tracking-tight">MAAT</span>
 					<svg class="w-4 h-4 text-text-muted -mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
 				</a>
@@ -92,7 +95,7 @@ import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
 				</blockquote>
 				<p class="text-xs text-text-muted mb-6">— Bernat, AI Engineer at MAAT</p>
 				<p class="text-sm text-text-secondary leading-relaxed border-l-2 border-accent/30 pl-4 mb-5">
-					MAAT is building the go-to platform for martial arts gym management. With members, payments, classes, and belt progressions all in one place, they needed their AI to surface the right data instantly — without manual digging.
+					MAAT manages members, payments, classes, and belt progressions for martial arts gyms. Their team used to dig through data manually to answer routine questions. Now their AI pulls the answers in seconds.
 				</p>
 				<div class="bg-bg border border-border px-4 py-3 mb-5 text-xs">
 					<span class="text-accent font-medium">User asks →</span>
@@ -165,9 +168,8 @@ import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
 	<!-- Bottom CTA -->
 	<section id="waitlist" class="mb-16 sm:mb-24">
 		<div class="border border-accent/20 bg-bg-raised px-6 py-8 sm:px-8 max-w-lg mx-auto text-center">
-			<p class="text-xs font-medium text-accent uppercase tracking-widest mb-3">Early access</p>
-			<h2 class="text-lg font-medium text-text mb-1">Ready to give your AI real context?</h2>
-			<p class="text-sm text-text-secondary mb-6">We're opening up to a small group of early-stage teams first. Join the waitlist and we'll be in touch.</p>
+			<h2 class="text-lg font-medium text-text mb-1">Join the waitlist.</h2>
+			<p class="text-sm text-text-secondary mb-6">We're opening up to a small group of teams. We'll be in touch.</p>
 			<form id="bottom-form" class="flex flex-col gap-3 text-left">
 				<input
 					type="email"
@@ -193,7 +195,7 @@ import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
 					id="bottom-btn"
 					class="bg-accent text-bg text-sm font-medium px-4 py-2 hover:bg-accent-hover transition-colors cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed w-full"
 				>
-					Get early access
+					Join the waitlist
 				</button>
 			</form>
 			<p id="bottom-success" class="hidden text-sm text-text-secondary mt-3">You're on the list. We'll be in touch.</p>
@@ -214,7 +216,8 @@ import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
 			form.addEventListener('submit', async (e) => {
 				e.preventDefault();
 				btn.disabled = true;
-				btn.textContent = 'Joining...';
+				btn.textContent = 'Joining the waitlist...';
+
 				const email = (form.elements.namedItem('email') as HTMLInputElement).value;
 				const useCaseEl = form.elements.namedItem('useCase') as HTMLTextAreaElement | null;
 				const params: Record<string, string> = { email };
@@ -231,7 +234,7 @@ import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
 					success.classList.remove('hidden');
 				} catch {
 					btn.disabled = false;
-					btn.textContent = 'Get early access';
+					btn.textContent = 'Join the waitlist';
 					error.classList.remove('hidden');
 				}
 			});
