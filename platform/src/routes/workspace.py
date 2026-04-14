@@ -169,7 +169,21 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
 async def api_workspace_secrets():
     """Re-check secrets status from Infisical."""
     global _secrets_cache
+    log.info("Refreshing Infisical secrets for workspace: %s", settings.CONTEXT_DIR)
     _secrets_cache = await get_secrets_status(settings.CONTEXT_DIR, _list_modules)
+    missing_vars = [
+        f"{mod}/{var}"
+        for mod, vars in _secrets_cache.items()
+        for var, val in vars.items()
+        if val is None
+    ]
+    total = sum(len(v) for v in _secrets_cache.values()) - len(missing_vars)
+    log.info(
+        "Secrets refresh complete — resolved: %d, missing: %d%s",
+        total,
+        len(missing_vars),
+        f" ({', '.join(missing_vars)})" if missing_vars else "",
+    )
     return {"secrets": _secrets_cache}
 
 

@@ -60,6 +60,7 @@ def load_and_mask_secrets(workspace_dir: Path) -> dict[str, str | None]:
     Returns {VAR: masked_preview} for all non-bootstrap vars.
     Raises SecretsValidationError on any varlock failure.
     """
+    log.info("Fetching Infisical secrets via varlock for workspace: %s", workspace_dir)
     result = subprocess.run(
         ["varlock", "load", "--format", "json", "--path", str(workspace_dir)],
         capture_output=True,
@@ -68,15 +69,28 @@ def load_and_mask_secrets(workspace_dir: Path) -> dict[str, str | None]:
     if result.returncode != 0:
         combined = (result.stderr or "") + "\n" + (result.stdout or "")
         missing = parse_varlock_failure(combined)
+        log.error(
+            "varlock failed for workspace %s (missing=%s): %s",
+            workspace_dir,
+            missing,
+            combined.strip(),
+        )
         raise SecretsValidationError("workspace", missing, combined.strip())
 
     try:
         data = json.loads(result.stdout)
     except json.JSONDecodeError as exc:
+        log.error("varlock returned invalid JSON for workspace %s: %s", workspace_dir, exc)
         raise SecretsValidationError(
             "workspace", [], f"varlock returned invalid JSON: {exc}\n{result.stdout}"
         ) from exc
 
+    secret_keys = [k for k in data if k not in INFISICAL_VARS]
+    log.info(
+        "Successfully retrieved %d secret(s) from Infisical: %s",
+        len(secret_keys),
+        secret_keys,
+    )
     return {
         k: ((v[:2] + "\u2592" * 5) if isinstance(v, str) and v else None)
         for k, v in data.items()
