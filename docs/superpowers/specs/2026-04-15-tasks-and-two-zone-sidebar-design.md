@@ -40,7 +40,7 @@ class ModuleManifest(BaseModel):
 - **`kind`**: Display hint. Determines which sidebar zone renders the module. Defaults to `"integration"` — all existing modules work without changes.
 - **`archived`**: Filters the module from the active UI. Reversible boolean. Defaults to `false`.
 
-`write_manifest` omits `kind` when `"integration"` and `archived` when `false`, keeping existing `module.yaml` files untouched.
+`write_manifest` omits `kind` when `"integration"` and `archived` when `false`, keeping existing `module.yaml` files untouched. Note: `kind="integration"` is truthy, so `write_manifest` needs an explicit `if manifest.kind != "integration":` check (not the truthiness pattern used for other fields).
 
 ### 2. Task Module Structure
 
@@ -49,16 +49,27 @@ A task module is a regular module folder with a conventional file structure:
 ```
 tax-correction/
 ├── module.yaml        # kind: task, summary
+├── info.md            # task description (required — module detail endpoint reads this)
 ├── llms.txt           # index of contents (for AI navigation)
 ├── status.md          # current state and next steps
 └── ...                # investigation notes, scripts, CSVs, drafts — whatever accumulates
 ```
+
+Task modules include an `info.md` because the existing module detail endpoint (`GET /api/modules/{name}`) reads it and returns 404 if missing. For tasks, `info.md` contains the task description — functionally equivalent to an integration's service documentation but focused on the problem being solved.
 
 Example `module.yaml`:
 ```yaml
 name: tax-correction
 kind: task
 summary: "Fix wrong tax-inclusive invoices via Invopop"
+```
+
+Example `info.md`:
+```markdown
+# Tax Correction
+
+Fix wrong tax-inclusive invoices via Invopop. Prices are tax-inclusive (gross)
+but the mapper sent them as net amounts, causing 21% IVA to be added on top.
 ```
 
 Example `llms.txt`:
@@ -83,13 +94,15 @@ Fix wrong tax-inclusive invoices via Invopop
 -
 ```
 
-The system doesn't parse or enforce these files. They're conventions for the AI to read.
+The system doesn't parse or enforce `status.md` — it's a convention for the AI to read. `info.md` is the only required file (enforced by the existing module detail endpoint).
 
 ### 3. Backend Changes
 
 #### 3.1 Manifest model
 
 Add `kind` and `archived` fields as shown above.
+
+**Note:** This spec's `kind` field supersedes the `type` field proposed in `docs/plans/active/20-module-types-and-support-workflow.md`. The earlier plan should be updated to reference `kind` instead of `type`. The name `kind` was chosen to avoid collision with Python's `type` builtin and Pydantic's `model_type` conventions.
 
 #### 3.2 API response model (`platform/src/models.py`)
 
@@ -124,16 +137,37 @@ This is a breaking change to the response shape. Frontend must be updated in the
 - `POST /api/modules/{name}/archive` — reads `module.yaml`, sets `archived: true`, writes back.
 - `POST /api/modules/{name}/unarchive` — sets `archived: false`, writes back.
 
-If the module is currently loaded when archived, it gets unloaded (symlink removed from `context/`).
+If the module is currently loaded when archived, it must be unloaded. Since there is no single-module unload endpoint (the current `POST /api/workspace/load` does a full clear-and-relink), the archive endpoint should: (1) read the current loaded module set from `context/`, (2) remove the archived module from that set, (3) call the existing full workspace load flow with the remaining modules. This ensures `.env.schema` regeneration, root `llms.txt` regeneration, and secrets cache stay consistent.
 
-#### 3.5 Create-task endpoint
+#### 3.5 File path validation
+
+`validate_module_file_path` in `platform/src/services/schemas.py` currently only allows `info.md` and `docs/*.md`. Task modules use `status.md` at the root level. Update the validation to also allow `status.md`:
+
+```python
+if file_path in ("info.md", "status.md"):
+    return file_path
+```
+
+This is the minimal change. If tasks accumulate other root-level files (scripts, CSVs), those will be accessible via the AI reading symlinked files directly but not through the file CRUD API — which is fine, since the file CRUD API is for the module editor UI and tasks don't need their CSVs to be editable through it.
+
+#### 3.6 Create-task endpoint
 
 `POST /api/modules/create-task` with body `{ name: string, description?: string }`:
 
-1. Slugify the name for the folder (e.g., "Tax Correction" -> `tax-correction`)
-2. Scaffold `module.yaml`, `llms.txt`, `status.md` in `modules-repo/`
-3. Trigger workspace reload to symlink it into `context/`
+Request model:
+```python
+class CreateTaskRequest(BaseModel):
+    name: str
+    description: str = ""
+```
+
+Steps:
+1. Slugify the name for the folder: lowercase, replace spaces and underscores with hyphens, strip non-alphanumeric/hyphen characters, collapse multiple hyphens (e.g., "Tax Correction" -> `tax-correction`, "Stealth TicketBAI Errors" -> `stealth-ticketbai-errors`). Validate the result against `validate_module_name`.
+2. Scaffold `module.yaml`, `info.md`, `llms.txt`, `status.md` in `modules-repo/`
+3. Auto-load: read the current loaded module set from `context/`, append the new task, call the existing full workspace load flow. This ensures all side effects (`.env.schema`, root `llms.txt`) are handled.
 4. Return the created module info
+
+**Route ordering:** This endpoint must be registered before `/{name}` parameterized routes in the FastAPI router to avoid routing conflicts.
 
 Reuses existing `write_manifest` logic. Validates name doesn't conflict with existing modules.
 
@@ -157,7 +191,7 @@ The Context tab splits into two sections:
   - Expanding shows all archived tasks
 
 #### Implementation approach
-Integrate into the **zones layout** (`ZonesLayout.tsx`) first, which already has a top/bottom concept. Other layouts (classic, accordion, cards) can follow later.
+The sidebar currently lives in `platform/frontend/src/components/ContextPanel.tsx` with module rendering in `platform/frontend/src/components/sidebar/` (`ModuleList.tsx`, `ModuleCard.tsx`, `IdleModuleCard.tsx`). The two-zone split modifies `ContextPanel.tsx` to render modules in two groups (filtered by `kind`), and may need a new `TaskCard.tsx` component in the `sidebar/` directory for the tasks zone cards. The existing `ModuleCard.tsx` and `IdleModuleCard.tsx` continue to serve the integrations zone.
 
 #### What the AI sees
 Nothing changes. Loaded modules (integration or task) appear as symlinks in `context/`. The AI reads files from task modules the same way it reads files from integrations.
@@ -204,21 +238,36 @@ The support workflow is the process. Tasks are the working folders. They're comp
 
 | File | Change |
 |---|---|
-| `platform/src/services/manifest.py` | Add `kind` and `archived` to `ModuleManifest`; update `write_manifest` to conditionally include them |
-| `platform/src/models.py` | Add `ModuleInfo` model with `kind`, `summary`, `archived` |
-| `platform/src/routes/modules.py` | Update `GET /api/modules` to return `ModuleInfo` objects; add archive/unarchive endpoints; add create-task endpoint |
-| `platform/frontend/src/api/modules.ts` | Update types and fetch functions for new response shape |
-| `platform/frontend/src/components/context/ZonesLayout.tsx` | Two-zone rendering (integrations + tasks) |
-| `platform/frontend/src/components/context/TaskCard.tsx` | New component for task cards in the tasks zone |
-| `platform/frontend/src/components/context/CreateTaskModal.tsx` | New component for quick-create flow |
-| `platform/frontend/src/components/context/useContextData.ts` | Split module data by `kind` for zone rendering |
+| `platform/src/services/manifest.py` | Add `kind` and `archived` to `ModuleManifest`; update `write_manifest` with explicit `kind != "integration"` check |
+| `platform/src/services/schemas.py` | Update `validate_module_file_path` to allow `status.md` |
+| `platform/src/models.py` | Add `ModuleInfo` and `CreateTaskRequest` models |
+| `platform/src/routes/modules.py` | Update `GET /api/modules` to return `ModuleInfo` objects; add archive/unarchive endpoints; add create-task endpoint (before `/{name}` routes) |
+| `platform/frontend/src/api/modules.ts` | Update types and fetch functions for new response shape (`string[]` -> `ModuleInfo[]`) |
+| `platform/frontend/src/components/ContextPanel.tsx` | Split module rendering into two zones by `kind` |
+| `platform/frontend/src/components/sidebar/TaskCard.tsx` | New component for task cards in the tasks zone |
+| `platform/frontend/src/components/sidebar/CreateTaskModal.tsx` | New component for quick-create flow |
+| `platform/frontend/src/components/sidebar/ModuleList.tsx` | May need updates to accept filtered module lists per zone |
+
+**Breaking change consumers** — the `GET /api/modules` response changes from `{ modules: string[] }` to `{ modules: ModuleInfo[] }`. All frontend consumers must be updated:
+
+| Consumer | Location |
+|---|---|
+| `fetchModules()` / `refreshModules()` | `platform/frontend/src/api/modules.ts` |
+| Module list in ContextPanel | `platform/frontend/src/components/ContextPanel.tsx` |
+| Module dashboard | `platform/frontend/src/components/ModuleDashboard.tsx` |
+| Chat (module list for mentions) | `platform/frontend/src/components/Chat.tsx` |
+| Tool call humanizer | `platform/frontend/src/utils/humanizeToolCall.ts` |
 
 ### 9. What Stays The Same
 
 - Workspace load/unload (symlinks)
 - Git sync (push/pull)
 - Secrets machinery (tasks don't declare secrets)
-- Module file editor (works on any module)
+- Module file editor (works on any module — task `info.md` and `status.md` are editable; other task files like CSVs are accessible to the AI via symlinks but not through the editor API)
 - Chat and slash commands
 - CLAUDE.md and context directory structure
 - All existing module.yaml files (new fields have backwards-compatible defaults)
+
+### 10. Superseded Plans
+
+This spec supersedes the `type` field from `docs/plans/active/20-module-types-and-support-workflow.md` Phase 1. That plan proposed `type: str = "integration"` on `ModuleManifest` — this spec uses `kind` instead and extends it with `archived`. Phase 2 of that plan (support workflow module) is unaffected and can proceed independently.
