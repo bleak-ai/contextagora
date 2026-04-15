@@ -13,9 +13,11 @@ from pydantic import BaseModel
 
 class ModuleManifest(BaseModel):
     name: str
+    kind: str = "integration"   # "integration" | "task"
     summary: str = ""
     secrets: list[str] = []
     dependencies: list[str] = []
+    archived: bool = False
 
 
 def _extract_section(content: str, heading: str) -> str:
@@ -64,12 +66,16 @@ def read_manifest(module_dir: Path) -> ModuleManifest:
 def write_manifest(module_dir: Path, manifest: ModuleManifest) -> None:
     """Write a ModuleManifest to module.yaml, omitting empty optional fields."""
     data: dict = {"name": manifest.name}
+    if manifest.kind != "integration":
+        data["kind"] = manifest.kind
     if manifest.summary:
         data["summary"] = manifest.summary
     if manifest.secrets:
         data["secrets"] = manifest.secrets
     if manifest.dependencies:
         data["dependencies"] = manifest.dependencies
+    if manifest.archived:
+        data["archived"] = manifest.archived
     (module_dir / "module.yaml").write_text(
         yaml.dump(data, default_flow_style=False, sort_keys=False)
     )

@@ -24,7 +24,7 @@ def validate_module_file_path(file_path: str, managed_files: frozenset[str]) -> 
         raise ValueError("File path cannot contain '..'")
     if file_path in managed_files:
         raise ValueError(f"'{file_path}' is managed automatically and cannot be edited directly")
-    if file_path == "info.md":
+    if file_path in ("info.md", "status.md"):
         return file_path
     if file_path.startswith("docs/") and file_path.endswith(".md"):
         return file_path

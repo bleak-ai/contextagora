@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchModules } from "../api/modules";
+import { fetchModules, type ModuleInfo } from "../api/modules";
 import {
   fetchWorkspace,
   loadModules,
@@ -13,6 +13,7 @@ import { useSessionStore } from "../hooks/useSessionStore";
 import { DecisionTreePanel } from "./chat/DecisionTreePanel";
 import { SyncControls } from "./SyncControls";
 import { ModuleList } from "./sidebar/ModuleList";
+import { TaskZone } from "./sidebar/TaskZone";
 import { RootSection } from "./sidebar/RootSection";
 
 export function ContextPanel() {
@@ -125,15 +126,22 @@ export function ContextPanel() {
     },
   });
 
-  const modules = modulesData?.modules || [];           // string[] — all available
+  const allModuleInfos: ModuleInfo[] = modulesData?.modules || [];
+  const modules = allModuleInfos.map((m) => m.name);   // string[] for selection logic
   const loaded = workspace?.modules || [];              // LoadedModule[] — currently loaded
+
+  // Split by kind for two-zone rendering
+  const activeTasks = allModuleInfos.filter((m) => m.kind === "task" && !m.archived);
+  const archivedTasks = allModuleInfos.filter((m) => m.kind === "task" && m.archived);
   const loadedNames = loaded.map((m) => m.name);
 
   // Derived selection: if the user hasn't touched anything, default to
   // loaded modules (returning user) or ALL modules (fresh start).
   const selected: Set<string> =
     userSelection ??
-    (loadedNames.length > 0 ? new Set(loadedNames) : new Set(modules));
+    (loadedNames.length > 0
+      ? new Set(loadedNames)
+      : new Set(allModuleInfos.filter((m) => m.kind === "integration").map((m) => m.name)));
 
   const toggleModule = (name: string) => {
     const base = selected; // capture current derived value
@@ -148,11 +156,6 @@ export function ContextPanel() {
   const handleLoad = () => {
     loadMutation.mutate([...selected]);
   };
-
-  // Determine load button state
-  const selectionMatchesLoaded =
-    selected.size === loadedNames.length &&
-    loadedNames.every((n) => selected.has(n));
 
   if (collapsed) {
     return (
@@ -252,14 +255,26 @@ export function ContextPanel() {
             <RootSection />
             <ModuleList
               loaded={loaded}
-              available={modules}
+              available={allModuleInfos}
               selected={selected}
               onToggleSelect={toggleModule}
               onLoad={handleLoad}
               isLoading={loadMutation.isPending}
-              selectionMatchesLoaded={selectionMatchesLoaded}
               onRefreshSecrets={() => secretsMutation.mutate()}
               isRefreshingSecrets={secretsMutation.isPending}
+            />
+
+            {/* Divider between zones */}
+            <div className="my-3 border-t border-border" />
+
+            <TaskZone
+              tasks={activeTasks}
+              archivedTasks={archivedTasks}
+              loaded={loaded}
+              selected={selected}
+              onToggleSelect={toggleModule}
+              onLoad={handleLoad}
+              isLoading={loadMutation.isPending}
             />
 
             {loadErrors.length > 0 && (

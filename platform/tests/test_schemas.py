@@ -1,0 +1,26 @@
+import pytest
+from src.services.schemas import validate_module_file_path
+
+MANAGED_FILES = frozenset({"module.yaml", "llms.txt"})
+
+
+def test_info_md_allowed():
+    assert validate_module_file_path("info.md", MANAGED_FILES) == "info.md"
+
+
+def test_status_md_allowed():
+    assert validate_module_file_path("status.md", MANAGED_FILES) == "status.md"
+
+
+def test_docs_subdir_allowed():
+    assert validate_module_file_path("docs/guide.md", MANAGED_FILES) == "docs/guide.md"
+
+
+def test_random_root_file_rejected():
+    with pytest.raises(ValueError, match="Only"):
+        validate_module_file_path("random.txt", MANAGED_FILES)
+
+
+def test_managed_file_rejected():
+    with pytest.raises(ValueError, match="managed"):
+        validate_module_file_path("module.yaml", MANAGED_FILES)

@@ -75,13 +75,19 @@ async def api_workspace_files():
     return {"files": out}
 
 
-@router.post("/load")
-async def api_workspace_load(body: WorkspaceLoadRequest):
+def _get_loaded_module_names() -> list[str]:
+    """Return names of currently loaded modules in context/."""
+    return _list_modules(settings.CONTEXT_DIR)
+
+
+def reload_workspace(module_names: list[str]) -> dict:
     """Clear workspace and (re)link selected modules into context/.
 
     Each loaded module becomes a symlink context/<name> -> modules-repo/<name>.
     A global context/.env.schema is generated with Infisical config for all
     modules so varlock resolves secrets directly from the workspace root.
+
+    Returns a dict with 'modules' (loaded names) and optionally 'errors'.
     """
     # 1. Clear context/: unlink symlinks, delete real subdirs (legacy copies),
     #    delete loose files except settings.PRESERVED_FILES.
@@ -106,7 +112,7 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
     loaded: list[str] = []
     errors: list[dict] = []
 
-    for name in body.modules:
+    for name in module_names:
         if name not in available:
             errors.append({"module": name, "reason": "not_available"})
             continue
@@ -163,6 +169,12 @@ async def api_workspace_load(body: WorkspaceLoadRequest):
     if errors:
         response["errors"] = errors
     return response
+
+
+@router.post("/load")
+async def api_workspace_load(body: WorkspaceLoadRequest):
+    """Clear workspace and (re)link selected modules into context/."""
+    return reload_workspace(body.modules)
 
 
 @router.post("/secrets")

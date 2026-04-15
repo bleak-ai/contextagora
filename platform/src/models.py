@@ -43,3 +43,15 @@ class GenerateModuleRequest(BaseModel):
 
 class GenerateModuleResponse(BaseModel):
     summary: str  # 1-2 sentence module summary
+
+
+class ModuleInfo(BaseModel):
+    name: str
+    kind: str = "integration"
+    summary: str = ""
+    archived: bool = False
+
+
+class CreateTaskRequest(BaseModel):
+    name: str
+    description: str = ""

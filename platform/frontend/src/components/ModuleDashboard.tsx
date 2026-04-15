@@ -17,7 +17,7 @@ export function ModuleDashboard() {
     queryFn: fetchModules,
   });
 
-  const modules = modulesData?.modules || [];
+  const modules = (modulesData?.modules || []).map((m) => m.name);
 
   // Fetch details and files for all modules in parallel
   const detailQueries = useQueries({

@@ -1,4 +1,5 @@
 import os
+import re as _re
 import subprocess
 
 from fastapi import APIRouter
@@ -11,9 +12,11 @@ from src.llms import (
 )
 from src.models import (
     CreateModuleRequest,
+    CreateTaskRequest,
     FileContentRequest,
     GenerateModuleRequest,
     GenerateModuleResponse,
+    ModuleInfo,
     UpdateModuleRequest,
 )
 from src.config import settings
@@ -26,14 +29,127 @@ from src.services.manifest import (
     write_manifest,
 )
 from src.services.schemas import validate_module_file_path, validate_module_name
+from src.routes.workspace import reload_workspace, _get_loaded_module_names
 
 router = APIRouter(prefix="/api/modules", tags=["modules"])
+
+
+def slugify_task_name(name: str) -> str:
+    """Convert a human task name to a folder-safe slug."""
+    slug = name.strip().lower()
+    slug = slug.replace("_", "-")
+    slug = _re.sub(r"[^a-z0-9-]", "-", slug)
+    slug = _re.sub(r"-+", "-", slug)
+    slug = slug.strip("-")
+    return slug
 
 
 @router.get("")
 async def api_list_modules():
     """List available modules from the local clone."""
-    return {"modules": git_repo.list_modules()}
+    modules = []
+    for name in git_repo.list_modules():
+        manifest = read_manifest(git_repo.module_dir(name))
+        modules.append(ModuleInfo(
+            name=name,
+            kind=manifest.kind,
+            summary=manifest.summary,
+            archived=manifest.archived,
+        ))
+    return {"modules": modules}
+
+
+@router.post("/create-task", status_code=201)
+async def api_create_task(body: CreateTaskRequest):
+    """Scaffold a new task module and auto-load it."""
+    slug = slugify_task_name(body.name)
+    slug = validate_module_name(slug)
+
+    try:
+        git_repo.create_module_dir(slug)
+    except FileExistsError:
+        return JSONResponse(
+            {"error": f"Module '{slug}' already exists"}, status_code=409
+        )
+
+    title = body.name.strip()
+    description = body.description.strip() if body.description else ""
+    summary = description or title
+
+    # module.yaml
+    manifest = ModuleManifest(name=slug, kind="task", summary=summary)
+    write_manifest(git_repo.module_dir(slug), manifest)
+
+    # info.md
+    info_lines = [f"# {title}", ""]
+    if description:
+        info_lines.append(description)
+    git_repo.write_file(slug, "info.md", "\n".join(info_lines) + "\n")
+
+    # status.md
+    from datetime import date
+    status_lines = [
+        f"# {title} — Status",
+        "",
+        f"**Created:** {date.today().isoformat()}",
+        "",
+        "## Context",
+        summary,
+        "",
+        "## Next Steps",
+        "- ",
+    ]
+    git_repo.write_file(slug, "status.md", "\n".join(status_lines) + "\n")
+
+    # llms.txt
+    llms_lines = [
+        f"# {title}",
+        f"> {summary}",
+        "",
+        "## Status",
+        f"- [status.md](status.md) — Current status and next steps",
+    ]
+    git_repo.write_file(slug, "llms.txt", "\n".join(llms_lines) + "\n")
+
+    # Auto-load: add to current workspace
+    current = _get_loaded_module_names()
+    if slug not in current:
+        current.append(slug)
+    reload_workspace(current)
+
+    return {"name": slug}
+
+
+@router.post("/{name}/archive")
+async def api_archive_module(name: str):
+    """Set archived=true on a module and unload it if loaded."""
+    if not git_repo.module_exists(name):
+        return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
+
+    manifest = read_manifest(git_repo.module_dir(name))
+    manifest = manifest.model_copy(update={"archived": True})
+    write_manifest(git_repo.module_dir(name), manifest)
+
+    # Unload if currently loaded
+    current = _get_loaded_module_names()
+    if name in current:
+        current.remove(name)
+        reload_workspace(current)
+
+    return {"status": "ok"}
+
+
+@router.post("/{name}/unarchive")
+async def api_unarchive_module(name: str):
+    """Set archived=false on a module."""
+    if not git_repo.module_exists(name):
+        return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
+
+    manifest = read_manifest(git_repo.module_dir(name))
+    manifest = manifest.model_copy(update={"archived": False})
+    write_manifest(git_repo.module_dir(name), manifest)
+
+    return {"status": "ok"}
 
 
 @router.get("/{name}")
@@ -115,18 +231,24 @@ async def api_update_module(name: str, body: UpdateModuleRequest):
 
 @router.delete("/{name}")
 async def api_delete_module(name: str):
-    """Delete a module and all its files."""
-    try:
-        git_repo.delete_module_dir(name)
-    except FileNotFoundError:
+    """Delete a module and all its files. Unloads first if loaded."""
+    if not git_repo.module_exists(name):
         return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
+
+    # Unload if currently loaded
+    current = _get_loaded_module_names()
+    if name in current:
+        current.remove(name)
+        reload_workspace(current)
+
+    git_repo.delete_module_dir(name)
     return {"status": "ok"}
 
 
 @router.post("/refresh")
 async def api_refresh_modules():
     """Kept for frontend compatibility. Local clone listing is always fresh."""
-    return {"modules": git_repo.list_modules()}
+    return await api_list_modules()
 
 
 # ── AI generation ────────────────────────────────────────────

@@ -40,6 +40,9 @@
 - [platform/frontend/src/components/context/AccordionLayout.tsx](platform/frontend/src/components/context/AccordionLayout.tsx) — Accordion layout mode with always-visible module pills, 4 collapsible sections (File Access, Sessions, Modules, Secrets), and auto-close Modules section when loaded data arrives
 - [platform/frontend/src/components/context/ZonesLayout.tsx](platform/frontend/src/components/context/ZonesLayout.tsx) — Two-zone sidebar layout: top status strip with module pills and secret/session summary, bottom tabbed area with Files (DecisionTreePanel), Sessions, and Setup tabs
 - [platform/frontend/src/components/context/CardsLayout.tsx](platform/frontend/src/components/context/CardsLayout.tsx) — Card-based layout with module card (inline manage expand), file access card, and compact session card
+- [platform/frontend/src/components/sidebar/CreateTaskModal.tsx](platform/frontend/src/components/sidebar/CreateTaskModal.tsx) — Modal dialog for creating a new task module; posts to createTask API and invalidates modules/workspace queries on success
+- [platform/frontend/src/components/sidebar/ArchivedSection.tsx](platform/frontend/src/components/sidebar/ArchivedSection.tsx) — Collapsible "ARCHIVED" section listing archived tasks with unarchive action; hidden when list is empty
+- [platform/frontend/src/components/sidebar/TaskZone.tsx](platform/frontend/src/components/sidebar/TaskZone.tsx) — Task zone sidebar section: renders active task cards, "Apply Changes" button, archived section, and create-task modal trigger
 - [platform/frontend/src/routes/](platform/frontend/src/routes/) — TanStack Router file-based routes
 - [platform/frontend/src/utils/humanizeToolCall.ts](platform/frontend/src/utils/humanizeToolCall.ts) — Utility to translate raw tool call names/args into human-readable labels with module resolution
 - [platform/Dockerfile](platform/Dockerfile) — Multi-stage container image (Node build + Python runtime)
@@ -55,9 +58,7 @@
 - [.github/workflows/publish.yml](.github/workflows/publish.yml) — CI workflow to build and push image to GHCR
 
 ## Active Plans
-- [docs/plans/active/17-agent-backend-abstraction.md](docs/plans/active/17-agent-backend-abstraction.md) — Plan: Agent backend abstraction (Claude Code vs opencode)
-- [docs/plans/active/18-REFACTOR_PLAN.md](docs/plans/active/18-REFACTOR_PLAN.md) — Plan: Refactoring roadmap (config, manifest, SQLite, SDK)
-- [docs/plans/active/19-module-manifest.md](docs/plans/active/19-module-manifest.md) — Plan: Replace .env.schema + requirements.txt with module.yaml manifest
+- [docs/plans/active/20-module-types-and-support-workflow.md](docs/plans/active/20-module-types-and-support-workflow.md) — Plan: Module types (integration/workflow) and self-improving support playbook system
 
 ## Archived Plans
 - [docs/plans/archive/](docs/plans/archive/) — Historical plans (filebrowser, CLI, module management, MCP server, commercialization)

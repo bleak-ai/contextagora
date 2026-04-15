@@ -1,5 +1,12 @@
 import { apiFetch } from "./client";
 
+export interface ModuleInfo {
+  name: string;
+  kind: "integration" | "task";
+  summary: string;
+  archived: boolean;
+}
+
 export interface ModuleDetail {
   name: string;
   content: string;
@@ -8,7 +15,7 @@ export interface ModuleDetail {
   requirements: string[];
 }
 
-export function fetchModules(): Promise<{ modules: string[] }> {
+export function fetchModules(): Promise<{ modules: ModuleInfo[] }> {
   return apiFetch("/modules");
 }
 
@@ -29,6 +36,25 @@ export function createModule(data: {
   });
 }
 
+export function createTask(data: {
+  name: string;
+  description?: string;
+}): Promise<{ name: string }> {
+  return apiFetch("/modules/create-task", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function archiveModule(name: string): Promise<{ status: string }> {
+  return apiFetch(`/modules/${name}/archive`, { method: "POST" });
+}
+
+export function unarchiveModule(name: string): Promise<{ status: string }> {
+  return apiFetch(`/modules/${name}/unarchive`, { method: "POST" });
+}
+
+
 export function updateModule(
   name: string,
   data: { content: string; summary: string; secrets: string[]; requirements: string[] },
@@ -43,7 +69,7 @@ export function deleteModule(name: string): Promise<{ status: string }> {
   return apiFetch(`/modules/${name}`, { method: "DELETE" });
 }
 
-export function refreshModules(): Promise<{ modules: string[] }> {
+export function refreshModules(): Promise<{ modules: ModuleInfo[] }> {
   return apiFetch("/modules/refresh", { method: "POST" });
 }
 

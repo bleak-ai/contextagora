@@ -35,7 +35,7 @@ export function Chat() {
   });
 
   const loaded = workspace?.modules.map((m) => m.name) || [];
-  const allModules = modulesData?.modules || [];
+  const allModules = (modulesData?.modules || []).map((m) => m.name);
 
   const setActiveClaudeSessionId = useSessionStore((s) => s.setActiveClaudeSessionId);
 
