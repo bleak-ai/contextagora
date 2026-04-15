@@ -235,6 +235,7 @@ git commit -m "feat(schemas): allow status.md in module file path validation"
 **Files:**
 - Modify: `platform/src/models.py`
 - Modify: `platform/src/routes/modules.py:33-36` (api_list_modules)
+- Modify: `platform/src/routes/modules.py:126-129` (api_refresh_modules)
 
 - [ ] **Step 1: Add `ModuleInfo` and `CreateTaskRequest` to models.py**
 
@@ -285,6 +286,15 @@ async def api_list_modules():
             archived=manifest.archived,
         ))
     return {"modules": modules}
+```
+
+Also update `api_refresh_modules` (currently at line 126) to return the same shape:
+
+```python
+@router.post("/refresh")
+async def api_refresh_modules():
+    """Kept for frontend compatibility. Local clone listing is always fresh."""
+    return await api_list_modules()
 ```
 
 - [ ] **Step 3: Verify backend starts**
@@ -1285,13 +1295,10 @@ import { TaskZone } from "./sidebar/TaskZone";
 import type { ModuleInfo } from "../api/modules";
 ```
 
-After the existing `modules` / `loaded` / `loadedNames` / `selected` lines (around line 128), add:
+Task 7 already introduced `allModuleInfos` and `modules`. Now add the task filters after those lines:
 
 ```typescript
-const allModuleInfos: ModuleInfo[] = modulesData?.modules || [];
-const modules = allModuleInfos.map((m) => m.name);
-
-// Split by kind for two-zone rendering
+// Split by kind for two-zone rendering (add after existing allModuleInfos/modules lines)
 const activeTasks = allModuleInfos.filter((m) => m.kind === "task" && !m.archived);
 const archivedTasks = allModuleInfos.filter((m) => m.kind === "task" && m.archived);
 ```
