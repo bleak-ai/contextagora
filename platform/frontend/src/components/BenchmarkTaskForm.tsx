@@ -64,7 +64,7 @@ export function BenchmarkTaskForm({ initial, onSubmit, onCancel }: Props) {
         className="bg-bg border border-border rounded shadow-lg w-full max-w-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto"
       >
         <h2 className="text-sm font-semibold text-text">
-          {isEdit ? `Edit task: ${initial!.id}` : "New task"}
+          {isEdit ? `Edit task: ${initial?.id}` : "New task"}
         </h2>
 
         <label className="block">

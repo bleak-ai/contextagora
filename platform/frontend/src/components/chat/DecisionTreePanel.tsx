@@ -28,7 +28,8 @@ function buildTree(files: { path: string }[]): TreeNode[] {
         current.push(existing);
       }
       if (!isFile) {
-        current = existing.children!;
+        existing.children ??= [];
+        current = existing.children;
       }
     }
   }
@@ -60,11 +61,11 @@ function TreeNodeView({
   isStreaming: boolean;
   depth: number;
 }) {
-  const isDir = !!node.children;
   const fullPath = `${module}/${node.fullPath}`;
 
-  if (isDir) {
-    const hasReadChildren = node.children!.some((child) =>
+  if (node.children) {
+    const children = node.children;
+    const hasReadChildren = children.some((child) =>
       child.children
         ? child.children.some((c) => accessedFiles.has(`${module}/${c.fullPath}`))
         : accessedFiles.has(`${module}/${child.fullPath}`)
@@ -78,7 +79,7 @@ function TreeNodeView({
           <span className="truncate">{node.name}</span>
         </div>
         <div className="space-y-0.5">
-          {node.children!.map((child) => (
+          {children.map((child) => (
             <TreeNodeView
               key={child.fullPath}
               node={child}

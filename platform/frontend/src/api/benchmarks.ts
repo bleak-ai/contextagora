@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiFetch, apiUpload } from "./client";
 
 export interface BenchmarkTask {
   id: string;
@@ -49,21 +49,11 @@ export function deleteBenchmarkRun(
   });
 }
 
-export async function uploadBenchmarkRun(
+export function uploadBenchmarkRun(
   taskId: string,
   file: File,
 ): Promise<{ ok: boolean; task_id: string; run_id: string }> {
-  const fd = new FormData();
-  fd.append("file", file);
-  const res = await fetch(`/api/benchmarks/tasks/${taskId}/runs/upload`, {
-    method: "POST",
-    body: fd,
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(body.detail || body.error || res.statusText);
-  }
-  return res.json();
+  return apiUpload(`/benchmarks/tasks/${taskId}/runs/upload`, file);
 }
 
 export interface BenchmarkProgress {
@@ -116,32 +106,32 @@ export function runBenchmarkTaskStream(
             else if (line.startsWith("data:")) dataLine += line.slice(5).trim();
           }
           if (!dataLine) continue;
-          let data: any;
+          let data: unknown;
           try {
             data = JSON.parse(dataLine);
           } catch {
             continue;
           }
-          if (evType === "started") handlers.onStarted?.(data);
-          else if (evType === "progress") handlers.onProgress?.(data);
-          else if (evType === "judging") handlers.onJudging?.(data);
-          else if (evType === "done") handlers.onDone?.(data);
-          else if (evType === "error") handlers.onError?.(data.error || "error");
+          if (evType === "started") handlers.onStarted?.(data as { task_id: string; timestamp: string });
+          else if (evType === "progress") handlers.onProgress?.(data as BenchmarkProgress);
+          else if (evType === "judging") handlers.onJudging?.(data as BenchmarkProgress);
+          else if (evType === "done") handlers.onDone?.(data as RunBenchmarkResult & { verdict: string; elapsed_s: number });
+          else if (evType === "error") handlers.onError?.((data as { error?: string }).error || "error");
         }
       }
-    } catch (e: any) {
-      if (e.name !== "AbortError") handlers.onError?.(e.message || String(e));
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        if (e.name !== "AbortError") handlers.onError?.(e.message);
+      } else {
+        handlers.onError?.(String(e));
+      }
     }
   })();
   return () => ctrl.abort();
 }
 
-export interface TaskBody {
-  id: string;
-  description: string;
-  prompt: string;
-  judge_prompt: string;
-}
+/** Alias kept for write-side consumers; identical to BenchmarkTask. */
+export type TaskBody = BenchmarkTask;
 
 export function createBenchmarkTask(
   body: TaskBody,
@@ -172,18 +162,8 @@ export function downloadBenchmarkTaskUrl(taskId: string): string {
   return `/api/benchmarks/tasks/${taskId}/download`;
 }
 
-export async function uploadBenchmarkTask(
+export function uploadBenchmarkTask(
   file: File,
 ): Promise<{ ok: boolean; id: string }> {
-  const fd = new FormData();
-  fd.append("file", file);
-  const res = await fetch(`/api/benchmarks/tasks/upload`, {
-    method: "POST",
-    body: fd,
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(body.detail || body.error || res.statusText);
-  }
-  return res.json();
+  return apiUpload(`/benchmarks/tasks/upload`, file);
 }

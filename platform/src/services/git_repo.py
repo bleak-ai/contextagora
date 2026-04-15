@@ -22,11 +22,10 @@ _TOKEN_IN_URL = re.compile(r"(https://)x-access-token:[^@]*@")
 
 
 class GitRepoError(RuntimeError):
-    """Raised when a git operation fails."""
+    pass
 
 
 def _scrub(text: str) -> str:
-    """Remove the token from any URL in text."""
     return _TOKEN_IN_URL.sub(r"\1<token>@", text)
 
 
@@ -56,8 +55,6 @@ def _default_remote_url() -> str:
 def _resolve_clone(clone_dir: Path | None) -> Path:
     return Path(clone_dir) if clone_dir else settings.MODULES_REPO_DIR
 
-
-# --- Lifecycle ---
 
 def init_repo(
     *,
@@ -100,10 +97,7 @@ def init_repo(
         raise
 
 
-# --- Read ops ---
-
 def list_modules(*, clone_dir: Path | None = None) -> list[str]:
-    """Return sorted top-level module names, excluding hidden dirs and .git."""
     root = _resolve_clone(clone_dir)
     if not root.exists():
         return []
@@ -118,7 +112,6 @@ def module_exists(name: str, *, clone_dir: Path | None = None) -> bool:
 
 
 def module_dir(name: str, *, clone_dir: Path | None = None) -> Path:
-    """Return the Path to a module's directory in the local clone."""
     return _resolve_clone(clone_dir) / name
 
 
@@ -132,13 +125,13 @@ def list_module_files(
     managed_files: frozenset[str],
     *,
     clone_dir: Path | None = None,
-) -> list[dict]:
+) -> list[dict[str, str]]:
     """List top-level non-managed files + `docs/*.md` for a module."""
     root = _resolve_clone(clone_dir) / module
     if not root.is_dir():
         raise FileNotFoundError(f"Module '{module}' not found")
 
-    result: list[dict] = []
+    result: list[dict[str, str]] = []
     for entry in sorted(root.iterdir()):
         if entry.is_file() and entry.name not in managed_files:
             result.append({"name": entry.name, "path": entry.name})
@@ -148,8 +141,6 @@ def list_module_files(
                     result.append({"name": doc.name, "path": f"docs/{doc.name}"})
     return result
 
-
-# --- Write ops ---
 
 def write_file(
     module: str,
@@ -184,14 +175,12 @@ def delete_module_dir(name: str, *, clone_dir: Path | None = None) -> None:
     shutil.rmtree(path)
 
 
-# --- Sync ops ---
-
 def _current_branch(clone: Path) -> str:
     proc = _run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=clone)
     return proc.stdout.strip()
 
 
-def sync_status(*, clone_dir: Path | None = None) -> dict:
+def sync_status(*, clone_dir: Path | None = None) -> dict[str, bool | int]:
     """Report dirty/ahead/behind relative to the remote tracking branch.
 
     Runs `git fetch` first so `behind` reflects the latest remote state.

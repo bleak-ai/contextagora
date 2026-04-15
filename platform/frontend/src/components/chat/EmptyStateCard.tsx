@@ -19,7 +19,6 @@ export const EmptyStateCard: FC = () => {
 
   const { modules_in_repo, modules_loaded, loaded_module_names } = data;
 
-  // Cold: no modules created yet
   if (modules_in_repo === 0) {
     return (
       <div className="rounded-lg border border-border bg-bg-raised p-5">
@@ -42,7 +41,6 @@ export const EmptyStateCard: FC = () => {
     );
   }
 
-  // Lukewarm: modules in repo but none loaded
   if (modules_loaded === 0) {
     return (
       <div className="rounded-lg border border-border bg-bg-raised px-4 py-3 text-sm text-text-secondary">
@@ -51,7 +49,6 @@ export const EmptyStateCard: FC = () => {
     );
   }
 
-  // Warm: at least one module loaded
   const names = loaded_module_names.join(", ");
   return (
     <div className="rounded-lg border border-border bg-bg-raised p-5">

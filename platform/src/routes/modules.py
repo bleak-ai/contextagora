@@ -29,7 +29,7 @@ from src.services.manifest import (
     write_manifest,
 )
 from src.services.schemas import validate_module_file_path, validate_module_name
-from src.routes.workspace import reload_workspace, _get_loaded_module_names
+from src.services.workspace import get_loaded_module_names, reload_workspace
 
 router = APIRouter(prefix="/api/modules", tags=["modules"])
 
@@ -76,17 +76,14 @@ async def api_create_task(body: CreateTaskRequest):
     description = body.description.strip() if body.description else ""
     summary = description or title
 
-    # module.yaml
     manifest = ModuleManifest(name=slug, kind="task", summary=summary)
     write_manifest(git_repo.module_dir(slug), manifest)
 
-    # info.md
     info_lines = [f"# {title}", ""]
     if description:
         info_lines.append(description)
     git_repo.write_file(slug, "info.md", "\n".join(info_lines) + "\n")
 
-    # status.md
     from datetime import date
     status_lines = [
         f"# {title} — Status",
@@ -101,7 +98,6 @@ async def api_create_task(body: CreateTaskRequest):
     ]
     git_repo.write_file(slug, "status.md", "\n".join(status_lines) + "\n")
 
-    # llms.txt
     llms_lines = [
         f"# {title}",
         f"> {summary}",
@@ -111,13 +107,19 @@ async def api_create_task(body: CreateTaskRequest):
     ]
     git_repo.write_file(slug, "llms.txt", "\n".join(llms_lines) + "\n")
 
-    # Auto-load: add to current workspace
-    current = _get_loaded_module_names()
+    current = get_loaded_module_names()
     if slug not in current:
         current.append(slug)
     reload_workspace(current)
 
     return {"name": slug}
+
+
+def _set_module_archived(name: str, archived: bool) -> None:
+    """Update the archived flag in a module's manifest."""
+    manifest = read_manifest(git_repo.module_dir(name))
+    manifest = manifest.model_copy(update={"archived": archived})
+    write_manifest(git_repo.module_dir(name), manifest)
 
 
 @router.post("/{name}/archive")
@@ -126,12 +128,9 @@ async def api_archive_module(name: str):
     if not git_repo.module_exists(name):
         return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
 
-    manifest = read_manifest(git_repo.module_dir(name))
-    manifest = manifest.model_copy(update={"archived": True})
-    write_manifest(git_repo.module_dir(name), manifest)
+    _set_module_archived(name, True)
 
-    # Unload if currently loaded
-    current = _get_loaded_module_names()
+    current = get_loaded_module_names()
     if name in current:
         current.remove(name)
         reload_workspace(current)
@@ -145,9 +144,7 @@ async def api_unarchive_module(name: str):
     if not git_repo.module_exists(name):
         return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
 
-    manifest = read_manifest(git_repo.module_dir(name))
-    manifest = manifest.model_copy(update={"archived": False})
-    write_manifest(git_repo.module_dir(name), manifest)
+    _set_module_archived(name, False)
 
     return {"status": "ok"}
 
@@ -235,8 +232,7 @@ async def api_delete_module(name: str):
     if not git_repo.module_exists(name):
         return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
 
-    # Unload if currently loaded
-    current = _get_loaded_module_names()
+    current = get_loaded_module_names()
     if name in current:
         current.remove(name)
         reload_workspace(current)
@@ -245,13 +241,27 @@ async def api_delete_module(name: str):
     return {"status": "ok"}
 
 
-@router.post("/refresh")
-async def api_refresh_modules():
-    """Kept for frontend compatibility. Local clone listing is always fresh."""
-    return await api_list_modules()
+_CLAUDE_HEADLESS_ENV = {
+    "DISABLE_AUTOUPDATER": "1",
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+}
 
 
-# ── AI generation ────────────────────────────────────────────
+def _run_claude_headless(prompt: str, *, timeout: int = 120) -> subprocess.CompletedProcess:
+    """Run a single-turn headless Claude CLI call with telemetry disabled.
+
+    Returns the CompletedProcess so callers can inspect returncode/stdout/stderr.
+    """
+    env = {**os.environ, **_CLAUDE_HEADLESS_ENV}
+    return subprocess.run(
+        ["claude", "-p", prompt, "--output-format", "text", "--max-turns", "1"],
+        capture_output=True,
+        text=True,
+        env=env,
+        timeout=timeout,
+    )
+
 
 _GENERATE_PROMPT_TEMPLATE = (
     "You are writing a summary for a context module — a package of documentation"
@@ -287,20 +297,7 @@ def api_generate_module(name: str, body: GenerateModuleRequest):
         raw_content=body.content,
     )
 
-    env = {
-        **os.environ,
-        "DISABLE_AUTOUPDATER": "1",
-        "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
-        "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
-    }
-
-    proc = subprocess.run(
-        ["claude", "-p", prompt, "--output-format", "text", "--max-turns", "1"],
-        capture_output=True,
-        text=True,
-        env=env,
-        timeout=120,
-    )
+    proc = _run_claude_headless(prompt)
 
     if proc.returncode != 0:
         return JSONResponse(
@@ -339,20 +336,7 @@ def api_detect_packages(name: str, body: GenerateModuleRequest):
 
     prompt = _DETECT_PACKAGES_PROMPT.format(raw_content=body.content)
 
-    env = {
-        **os.environ,
-        "DISABLE_AUTOUPDATER": "1",
-        "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
-        "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
-    }
-
-    proc = subprocess.run(
-        ["claude", "-p", prompt, "--output-format", "text", "--max-turns", "1"],
-        capture_output=True,
-        text=True,
-        env=env,
-        timeout=120,
-    )
+    proc = _run_claude_headless(prompt)
 
     if proc.returncode != 0:
         return JSONResponse(
@@ -365,9 +349,6 @@ def api_detect_packages(name: str, body: GenerateModuleRequest):
 
     packages = [p.strip().strip("`").lower() for p in raw.split(",") if p.strip().strip("`")]
     return {"packages": packages}
-
-
-# --- Module file CRUD ---
 
 
 @router.get("/{name}/files")

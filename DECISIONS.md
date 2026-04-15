@@ -56,21 +56,21 @@ Secrets are stored exclusively in Infisical. No `.env` files on disk.
 
 ### Platform credentials separated from module schemas
 
-The Infisical bootstrap credentials (`INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET`, etc.) are platform-level env vars passed to the Docker container. They do NOT live in module `.env.schema` files.
+The Infisical bootstrap credentials (`INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET`, etc.) are platform-level env vars passed to the Docker container. They do NOT live in module manifests.
 
-**Why:** The user insisted: "the infisical variables CANNOT live in the .env.schema, they are platform base, it doesn't even make any sense." Module schemas declare what secrets the module needs. How to authenticate to the vault is the platform's concern.
+**Why:** The user insisted: "the infisical variables CANNOT live in the .env.schema, they are platform base, it doesn't even make any sense." Module manifests declare what secrets the module needs. How to authenticate to the vault is the platform's concern.
 
-### Modules stay "dumb" — augmentation happens at load time
+### Modules stay "dumb" — global schema generated at load time
 
-Module `.env.schema` files in the git repo are simple: just variable names (`LINEAR_API_KEY=`). At workspace load time, the platform enriches these with Infisical plugin config (`@plugin`, `@initInfisical`, `=infisical()` resolvers).
+Module `module.yaml` files in the git repo are simple: a `secrets:` list with variable names. At workspace load time, `generate_global_schema()` builds a single `context/.env.schema` with Infisical plugin config (`@plugin`, `@initInfisical`, `=infisical()` resolvers) for all loaded modules.
 
-**Why:** Clean separation. Module authors write simple schemas. The platform owns the "how" (Infisical config injected at load time). Modules are portable — they work regardless of whether the deployer uses Infisical, 1Password, or something else. **Rejected:** Modules self-containing Infisical config (tried first, but it mutates the git clone and couples modules to a specific vault provider).
+**Why:** Clean separation. Module authors write simple manifests. The platform owns the "how" (Infisical config generated at load time). Modules are portable — they work regardless of whether the deployer uses Infisical, 1Password, or something else. **Rejected:** Modules self-containing Infisical config (tried first, but it mutates the git clone and couples modules to a specific vault provider). **Superseded:** Per-module `.env.schema` files were replaced by `module.yaml` manifests with a `secrets:` list.
 
-### Global `context/.env.schema` instead of per-module augmented schemas
+### Global `context/.env.schema` instead of per-module schemas
 
-Instead of writing per-module augmented schemas to `context/.schemas/<name>.env.schema`, generate ONE global `context/.env.schema` that merges all loaded modules' secrets. Multiple `@initInfisical` blocks with `id` parameters target different vault paths. The agent runs `varlock run --` from context root with no `--path` flag.
+Instead of per-module schemas, generate ONE global `context/.env.schema` that merges all loaded modules' secrets. Multiple `@initInfisical` blocks with `id` parameters target different vault paths. The agent runs `varlock run --` from context root with no `--path` flag.
 
-**Why:** The user said: "I don't like this whole enrichment, it feels complicated. Why do we even need it? Can we just have a global .env.schema in the root folder under context/?" This eliminated the `.schemas/` directory, simplified CLAUDE.md instructions, and removed the need for per-module `--path` args. **Rejected:** Per-module `.schemas/` directory (broke with symlinks), per-file symlink replacement, injecting secrets server-side.
+**Why:** The user said: "I don't like this whole enrichment, it feels complicated. Why do we even need it? Can we just have a global .env.schema in the root folder under context/?" This eliminated per-module schema files, simplified CLAUDE.md instructions, and removed the need for per-module `--path` args. **Rejected:** Per-module `.schemas/` directory (broke with symlinks), per-file symlink replacement, injecting secrets server-side.
 
 ### Varlock runs from context root, no --path flag
 
@@ -78,11 +78,11 @@ Instead of writing per-module augmented schemas to `context/.schemas/<name>.env.
 
 **Why:** The global `.env.schema` lives at the context root. Running from a subdirectory would miss it. Simpler agent instructions too.
 
-### Module dependencies via requirements.txt, installed at load time
+### Module manifest (`module.yaml`) for secrets and dependencies
 
-Each module can declare Python dependencies in a `requirements.txt`. At workspace load, `uv pip install -r` installs them into the platform's single shared venv.
+Each module declares secrets and Python dependencies in `module.yaml`. At workspace load, secrets feed into the global `.env.schema`, and dependencies are installed via `uv pip install` into the platform's single shared venv.
 
-**Why:** Modules using SDKs (stripe, google-cloud-firestore) were downloading dependencies on every script execution via `uv run --with`. The module should declare deps once, installed at load time — same pattern as secrets with `.env.schema`. **Accepted tradeoff:** single shared venv, no per-module isolation, no cleanup on unload.
+**Why:** Modules using SDKs (stripe, google-cloud-firestore) were downloading dependencies on every script execution via `uv run --with`. The module should declare deps once, installed at load time. **Superseded:** The original approach used separate `.env.schema` (for secrets) and `requirements.txt` (for deps) files per module. These were consolidated into `module.yaml` for simplicity. **Accepted tradeoff:** single shared venv, no per-module isolation, no cleanup on unload.
 
 ## Chat and commands
 
@@ -146,11 +146,11 @@ Files like `.claude/commands/download.md` are placed in the repo at `platform/sr
 
 ### Module file convention
 
-Modules follow this structure: `info.md` (main description, editable), `docs/*.md` (additional docs, editable), `llms.txt` (auto-generated), `.env.schema` (declares secret names), `requirements.txt` (declares Python deps). Only `info.md` and `docs/*.md` are user-editable.
+Modules follow this structure: `info.md` (main description, editable), `docs/*.md` (additional docs, editable), `module.yaml` (declares name, summary, secrets, dependencies), `llms.txt` (auto-generated). Only `info.md`, `docs/*.md`, and `status.md` are user-editable.
 
 ### MANAGED_FILES vs PRESERVED_FILES
 
-Two sets govern workspace reload behavior: `PRESERVED_FILES = {"CLAUDE.md"}` — files that survive when modules are reloaded. `MANAGED_FILES = {"llms.txt", ".env.schema", "requirements.txt"}` — auto-generated files that are not user-editable.
+Two sets govern workspace reload behavior: `PRESERVED_FILES = {"CLAUDE.md"}` — files that survive when modules are reloaded. `MANAGED_FILES = {"llms.txt", "module.yaml"}` — auto-generated/managed files that are not directly user-editable via the file API.
 
 ### context/ is ephemeral
 
@@ -198,4 +198,4 @@ No tests for runner, judge, or HTTP routes. **Fix:** mock subprocess tests, capt
 
 ### `CONTEXT_DIR` imported lazily
 
-Dodges a circular import. **Fix:** extract to `config.py`.
+~~Dodges a circular import.~~ **Fixed:** Extracted to `config.py` as `settings.CONTEXT_DIR`. All imports now go through `from src.config import settings`.

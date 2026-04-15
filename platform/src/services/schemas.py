@@ -8,7 +8,6 @@ _VALID_MODULE_NAME = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]*$")
 
 
 def validate_module_name(name: str) -> str:
-    """Sanitize and validate a module name. Raises ValueError if invalid."""
     name = name.strip()
     if not name or not _VALID_MODULE_NAME.match(name):
         raise ValueError(f"Invalid module name: '{name}'. Use only letters, numbers, hyphens, underscores.")
@@ -16,7 +15,6 @@ def validate_module_name(name: str) -> str:
 
 
 def validate_module_file_path(file_path: str, managed_files: frozenset[str]) -> str:
-    """Validate a file path within a module. Returns cleaned path or raises ValueError."""
     file_path = file_path.strip().strip("/")
     if not file_path:
         raise ValueError("File path cannot be empty")

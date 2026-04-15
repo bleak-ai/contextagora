@@ -1,4 +1,3 @@
-# platform/src/services/suggestion_parser.py
 """Streaming parser that extracts <<TRY: ...>> markers from assistant text.
 
 Used by routes/chat.py to convert in-message suggestion markers into
@@ -72,7 +71,7 @@ class SuggestionBuffer:
         self._pending = ""
         return tail
 
-    # ── helpers ───────────────────────────────────────────────────────────
+    # helpers
 
     def _split_safe(self, text: str) -> tuple[str, str]:
         """Split `text` into (safe-to-forward-now, must-hold).

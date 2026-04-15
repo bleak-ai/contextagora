@@ -18,38 +18,36 @@ load_dotenv()
 
 
 class Settings(BaseSettings):
-    """All platform configuration in one place."""
-
-    # ── GitHub module source ──
+    # GitHub module source
     GH_OWNER: str = ""
     GH_REPO: str = ""
     GH_TOKEN: str = ""
     GH_BRANCH: str = "main"
 
-    # ── LLM ──
+    # LLM
     LLM_API_KEY: str = ""
     LLM_BASE_URL: str = ""
     LLM_MODEL: str = ""
 
-    # ── Server ──
+    # Server
     PORT: int = 8080
 
-    # ── Infisical (bootstrap credentials for varlock subprocesses) ──
+    # Infisical (bootstrap credentials for varlock subprocesses)
     INFISICAL_SITE_URL: str = "https://app.infisical.com"
     INFISICAL_PROJECT_ID: str = ""
     INFISICAL_ENVIRONMENT: str = ""
     INFISICAL_CLIENT_ID: str = ""
     INFISICAL_CLIENT_SECRET: str = ""
 
-    # ── Overridable paths ──
+    # Overridable paths
     MODULES_REPO_DIR: Path = Path("")  # resolved in validator
 
-    # ── Derived (not from env) ──
+    # Derived (not from env)
     BASE_DIR: Path = Path("")  # resolved in validator
     CONTEXT_DIR: Path = Path("")  # resolved in validator
     STATIC_DIR: Path = Path("")  # resolved in validator
 
-    # ── Constants (not from env) ──
+    # Constants (not from env)
     PRESERVED_FILES: frozenset[str] = frozenset({"CLAUDE.md"})
     MANAGED_FILES: frozenset[str] = frozenset({"llms.txt", "module.yaml"})
 

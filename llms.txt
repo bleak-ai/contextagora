@@ -23,6 +23,7 @@
 - [platform/frontend/src/components/SyncControls.tsx](platform/frontend/src/components/SyncControls.tsx) — Pull/Push buttons driven by sync status
 - [platform/src/services/manifest.py](platform/src/services/manifest.py) — ModuleManifest Pydantic model + read_manifest/write_manifest I/O; replaces per-module .env.schema and requirements.txt with a single module.yaml
 - [platform/src/services/schemas.py](platform/src/services/schemas.py) — generate_global_schema(dict[str,list[str]]) builds workspace .env.schema from manifest secret lists; validate_module_name/validate_module_file_path for input sanitization
+- [platform/src/services/workspace.py](platform/src/services/workspace.py) — Workspace management: list_loaded_modules, get_loaded_module_names, reload_workspace (clear and re-link modules into context directory)
 - [platform/src/services/secrets.py](platform/src/services/secrets.py) — Varlock secret status and loading
 - [platform/frontend/](platform/frontend/) — React SPA (Vite + TanStack Router + TanStack Query)
 - [platform/frontend/src/api/](platform/frontend/src/api/) — API client layer (fetch wrapper, modules, workspace, chat, sessions, commands)
@@ -32,14 +33,7 @@
 - [platform/frontend/src/components/chat/DecisionTreePanel.tsx](platform/frontend/src/components/chat/DecisionTreePanel.tsx) — Tree navigation visualization with breadcrumbs and module access counts
 - [platform/frontend/src/api/sessions.ts](platform/frontend/src/api/sessions.ts) — Sessions API client (fetchSessions only; SessionInfo type)
 - [platform/frontend/src/hooks/useSessionStore.ts](platform/frontend/src/hooks/useSessionStore.ts) — Zustand store holding only `activeClaudeSessionId` (localStorage-persisted); session list comes from the server
-- [platform/frontend/src/hooks/useSidebarMode.ts](platform/frontend/src/hooks/useSidebarMode.ts) — Zustand store for sidebar layout mode (classic/accordion/zones/cards) and collapsed state (localStorage-persisted)
 - [platform/frontend/src/components/](platform/frontend/src/components/) — React components (Chat, ModuleRegistry, IconRail, ContextPanel, etc.)
-- [platform/frontend/src/components/context/useContextData.ts](platform/frontend/src/components/context/useContextData.ts) — Shared hook extracting all data-fetching, mutations, session handlers, and derived state from ContextPanel (returns ContextData for layout components to consume)
-- [platform/frontend/src/components/context/SidebarHeader.tsx](platform/frontend/src/components/context/SidebarHeader.tsx) — Sidebar header with CONTEXT label, 4-icon mode switcher (classic/accordion/zones/cards segmented control), and collapse toggle
-- [platform/frontend/src/components/context/ClassicLayout.tsx](platform/frontend/src/components/context/ClassicLayout.tsx) — Original flat-section sidebar layout (Sessions, Modules, Secrets, Decision Tree)
-- [platform/frontend/src/components/context/AccordionLayout.tsx](platform/frontend/src/components/context/AccordionLayout.tsx) — Accordion layout mode with always-visible module pills, 4 collapsible sections (File Access, Sessions, Modules, Secrets), and auto-close Modules section when loaded data arrives
-- [platform/frontend/src/components/context/ZonesLayout.tsx](platform/frontend/src/components/context/ZonesLayout.tsx) — Two-zone sidebar layout: top status strip with module pills and secret/session summary, bottom tabbed area with Files (DecisionTreePanel), Sessions, and Setup tabs
-- [platform/frontend/src/components/context/CardsLayout.tsx](platform/frontend/src/components/context/CardsLayout.tsx) — Card-based layout with module card (inline manage expand), file access card, and compact session card
 - [platform/frontend/src/components/sidebar/CreateTaskModal.tsx](platform/frontend/src/components/sidebar/CreateTaskModal.tsx) — Modal dialog for creating a new task module; posts to createTask API and invalidates modules/workspace queries on success
 - [platform/frontend/src/components/sidebar/ArchivedSection.tsx](platform/frontend/src/components/sidebar/ArchivedSection.tsx) — Collapsible "ARCHIVED" section listing archived tasks with unarchive action; hidden when list is empty
 - [platform/frontend/src/components/sidebar/TaskZone.tsx](platform/frontend/src/components/sidebar/TaskZone.tsx) — Task zone sidebar section: renders active task cards, "Apply Changes" button, archived section, and create-task modal trigger

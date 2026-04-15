@@ -24,16 +24,16 @@ The marketing line "🤖 AI-safe config — agents read your schema, never your 
 
 - **Infisical** — the vault. Holds the actual secret values. Source of truth.
 - **Server env vars `INFISICAL_*`** — credentials your FastAPI server uses to authenticate *to* Infisical on behalf of varlock. These bootstrap varlock's plugin; they are not module secrets.
-- **Module `.env.schema`** — checked into each module's git repo. Lists the var names a module needs. No values.
-- **`augment_schema()` in `platform/src/services/schemas.py`** — at module-load time, your server rewrites the module's `.env.schema` in place, prepending an `@plugin(@varlock/infisical-plugin)` + `@initInfisical(...)` header and turning each `VAR=` line into `VAR=infisical()`. The result is a varlock recipe that says "to fill these names, call the Infisical plugin with these credentials at this path."
-- **`varlock run --path context/<module> -- <cmd>`** — at agent-runtime, this reads the augmented schema, calls Infisical, injects the resolved values into `<cmd>`'s environment for the duration of `<cmd>`, then they are gone.
+- **Module `module.yaml`** — checked into each module's git repo. The `secrets:` list declares the var names a module needs. No values.
+- **`generate_global_schema()` in `platform/src/services/schemas.py`** — at module-load time, your server generates a single `context/.env.schema` from all loaded modules' manifests, with `@plugin(@varlock/infisical-plugin)` + `@initInfisical(...)` headers and `VAR=infisical()` resolvers. The result is a varlock recipe that says "to fill these names, call the Infisical plugin with these credentials at these paths."
+- **`varlock run -- <cmd>`** — at agent-runtime (run from `context/` root), this reads the global schema, calls Infisical, injects the resolved values into `<cmd>`'s environment for the duration of `<cmd>`, then they are gone.
 
 ### The two pipelines (read this twice)
 
 Today there are **two independent paths** that both call Infisical:
 
 1. **Server-side validation pipeline.** During `/api/workspace/load`, the server runs `varlock load --format json` once per module to (a) confirm the secrets resolve and (b) get masked previews for the UI. The server **discards the plaintext immediately** and only keeps the masked dict in `_secrets_cache`.
-2. **Agent-side runtime pipeline.** When the agent runs a tool command via `varlock run --path context/<module> -- <cmd>`, varlock makes a **separate** call to Infisical, injects the values into `<cmd>`'s environment, runs `<cmd>`, and the values are gone when `<cmd>` exits.
+2. **Agent-side runtime pipeline.** When the agent runs a tool command via `varlock run -- <cmd>` (from the `context/` root), varlock makes a **separate** call to Infisical, injects the values into `<cmd>`'s environment, runs `<cmd>`, and the values are gone when `<cmd>` exits.
 
 These two pipelines do not share a cache. The server's RAM never holds plaintext for more than the milliseconds between varlock's stdout and the masking step. The agent's runtime path does not benefit from the server's earlier fetch in any way.
 
@@ -58,7 +58,7 @@ If you're an LLM reading this to avoid repeating the mistake that triggered this
 2. **Varlock's "AI-safe" claim is about repo files, not runtime isolation.** Don't argue against the runtime-isolation interpretation as if it's what they're claiming. They're not claiming it. They're claiming the schema-in-repo / values-in-vault separation, which is real and useful.
 3. **`varlock run -- claude` is an officially recommended pattern.** The varlock docs explicitly suggest using it to inject `ANTHROPIC_API_KEY` into Claude Code itself. This proves they know the wrapped process can read its own env — they would not recommend this pattern if they were claiming otherwise. Treat the docs as honest, not as marketing.
 4. **The `@sensitive` flag does more than "mark a value."** Combined with `@redactLogs` (JS-only) and stdout redaction, it participates in real leak-mitigation features. It's not purely metadata.
-5. **Schema-only access is the default for file-reading tools.** An agent that reads `context/<module>/.env.schema` directly sees var names and types, not values. This is the intended interaction for any tool that's just trying to understand structure. The only time values come into play is when something invokes `varlock run` or `varlock load`.
+5. **Schema-only access is the default for file-reading tools.** An agent that reads `context/<module>/module.yaml` sees secret variable names, not values. This is the intended interaction for any tool that's just trying to understand structure. The only time values come into play is when something invokes `varlock run` or `varlock load`.
 6. **The cost model is "one Infisical call per `varlock run` invocation."** If that latency matters, the answer is varlock's own caching (check `--cache` / `VARLOCK_CACHE` in current docs), not "rip varlock out and roll your own." Optimizing the cost without losing the properties is a real engineering problem; assuming the properties don't exist is not.
 
 ## The principle to internalize
@@ -75,10 +75,11 @@ If you can't answer those three questions, you don't yet understand what varlock
 
 ## Reference: where things live in this repo
 
-- `platform/src/services/schemas.py` — `augment_schema()`, the rewriter that turns a passive schema into a varlock recipe.
-- `platform/src/services/secrets.py` — `load_module_secrets()`, `load_and_mask_module_secrets()`, `parse_varlock_failure()`. The server-side validation pipeline.
+- `platform/src/services/schemas.py` — `generate_global_schema()`, builds the global `context/.env.schema` from all loaded modules' manifests.
+- `platform/src/services/secrets.py` — `load_and_mask_secrets()`, `parse_varlock_failure()`. The server-side validation pipeline.
 - `platform/src/routes/workspace.py` — `/api/workspace/load`, `/api/workspace/secrets`. The endpoints that drive the validation pipeline.
-- Module `.env.schema` files — checked into each module's repo. Var names only.
+- Module `module.yaml` files — checked into each module's repo. The `secrets:` list declares var names only.
+- Global `context/.env.schema` — auto-generated at load time from all modules' manifests. Not checked into git.
 - `varlock` CLI — must be on `PATH` wherever the server and agent run. Node-based.
 
 ## Reference: external

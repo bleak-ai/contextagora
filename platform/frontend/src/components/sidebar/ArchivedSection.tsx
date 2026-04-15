@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { unarchiveModule, deleteModule, type ModuleInfo } from "../../api/modules";
+import { invalidateModuleQueries } from "../../lib/queryClient";
 
 interface Props {
   tasks: ModuleInfo[];
@@ -37,10 +38,7 @@ export function ArchivedSection({ tasks }: Props) {
 function ArchivedTaskRow({ task }: { task: ModuleInfo }) {
   const queryClient = useQueryClient();
 
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["modules"] });
-    queryClient.invalidateQueries({ queryKey: ["workspace"] });
-  };
+  const invalidate = () => invalidateModuleQueries(queryClient);
 
   const unarchiveMutation = useMutation({
     mutationFn: () => unarchiveModule(task.name),

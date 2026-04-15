@@ -25,7 +25,7 @@ class ParsedSession:
     final_text: str
 
 
-def _detail_for(msg: dict) -> tuple[str, str]:
+def _detail_for(msg: dict[str, object]) -> tuple[str, str]:
     """Return (event_detail, tool_name_or_empty)."""
     content = (msg or {}).get("content")
     if not isinstance(content, list) or not content:
@@ -46,7 +46,7 @@ def _detail_for(msg: dict) -> tuple[str, str]:
     return first.get("type", ""), ""
 
 
-def _final_text(msg: dict) -> str:
+def _final_text(msg: dict[str, object]) -> str:
     content = (msg or {}).get("content")
     if not isinstance(content, list):
         return ""

@@ -1,22 +1,11 @@
 from fastapi import APIRouter
-from pydantic import BaseModel
 
 from src.config import settings
+from src.models import RootContextResponse, RootFile
 
 router = APIRouter(prefix="/api/root-context", tags=["root-context"])
 
 MAX_BYTES = 256 * 1024  # 256 KB safety cap
-
-
-class RootFile(BaseModel):
-    path: str
-    exists: bool
-    content: str | None
-
-
-class RootContextResponse(BaseModel):
-    claude_md: RootFile
-    llms_txt: RootFile
 
 
 def _read_root_file(name: str) -> RootFile:

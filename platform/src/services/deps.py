@@ -1,4 +1,3 @@
-# platform/src/services/deps.py
 import logging
 import subprocess
 import sys

@@ -258,7 +258,7 @@ not just the ones you think might be slow.
 
 The honest move is to find out *first*, with a small probe:
 
-    varlock run --path ./firestore -- uv run python <<'PYEOF'
+    varlock run -- uv run python <<'PYEOF'
     import json, os
     from google.cloud import firestore
     from google.oauth2 import service_account

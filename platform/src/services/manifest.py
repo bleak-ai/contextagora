@@ -65,7 +65,7 @@ def read_manifest(module_dir: Path) -> ModuleManifest:
 
 def write_manifest(module_dir: Path, manifest: ModuleManifest) -> None:
     """Write a ModuleManifest to module.yaml, omitting empty optional fields."""
-    data: dict = {"name": manifest.name}
+    data: dict[str, str | bool | list[str]] = {"name": manifest.name}
     if manifest.kind != "integration":
         data["kind"] = manifest.kind
     if manifest.summary:

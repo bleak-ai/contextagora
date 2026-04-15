@@ -12,7 +12,7 @@ import { fetchWorkspaceFiles, type WorkspaceFile } from "../../api/workspace";
  *    (so `foo@bar.com` does NOT trigger).
  *  - Whitespace before the `@` (between `@` and cursor) breaks the mention.
  */
-export function findActiveMention(
+function findActiveMention(
   text: string,
   cursor: number,
 ): { start: number; query: string } | null {

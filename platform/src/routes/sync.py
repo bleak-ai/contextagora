@@ -2,16 +2,12 @@ import logging
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 
+from src.models import PushRequest
 from src.services import git_repo
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/sync", tags=["sync"])
-
-
-class PushRequest(BaseModel):
-    message: str
 
 
 _CLEAN_SYNC = {"dirty": False, "ahead": 0, "behind": 0, "can_pull": False, "can_push": False}

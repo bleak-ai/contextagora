@@ -24,14 +24,12 @@ export function ModuleList({
   onRefreshSecrets,
   isRefreshingSecrets,
 }: Props) {
-  // Only show integration modules in this zone
   const integrations = available.filter((m) => m.kind === "integration" && !m.archived);
   const integrationNames = new Set(integrations.map((m) => m.name));
   const loadedIntegrations = loaded.filter((m) => integrationNames.has(m.name));
   const loadedNames = new Set(loadedIntegrations.map((m) => m.name));
   const idleModules = integrations.filter((m) => !loadedNames.has(m.name));
 
-  // Integration-scoped selection check (independent of task selections)
   const integrationSelectionMatchesLoaded = integrations.every(
     (m) => selected.has(m.name) === loadedNames.has(m.name),
   );

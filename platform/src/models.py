@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class FileContentRequest(BaseModel):
@@ -18,14 +18,6 @@ class UpdateModuleRequest(BaseModel):
     summary: str = ""
     secrets: list[str] = []
     requirements: list[str] = []
-
-
-class ModuleDetail(BaseModel):
-    name: str
-    content: str
-    summary: str
-    secrets: list[str]
-    requirements: list[str]
 
 
 class ChatRequest(BaseModel):
@@ -55,3 +47,31 @@ class ModuleInfo(BaseModel):
 class CreateTaskRequest(BaseModel):
     name: str
     description: str = ""
+
+
+class PushRequest(BaseModel):
+    message: str
+
+
+class RootFile(BaseModel):
+    path: str
+    exists: bool
+    content: str | None
+
+
+class RootContextResponse(BaseModel):
+    claude_md: RootFile
+    llms_txt: RootFile
+
+
+class BenchmarkTaskBody(BaseModel):
+    id: str = Field(..., min_length=1, max_length=64)
+    description: str = ""
+    prompt: str
+    judge_prompt: str
+
+
+class BenchmarkTaskUpdateBody(BaseModel):
+    description: str = ""
+    prompt: str
+    judge_prompt: str

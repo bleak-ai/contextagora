@@ -27,7 +27,6 @@ export const ToolCallDisplay: FC<ToolCallMessagePartProps> = ({
 
   const isRunning = status?.type === "running";
 
-  // Timing data injected by convertMessage
   const startedAt = argsObj.__startedAt as number | undefined;
   const completedAt = argsObj.__completedAt as number | undefined;
   const duration =
@@ -35,7 +34,6 @@ export const ToolCallDisplay: FC<ToolCallMessagePartProps> = ({
       ? `${((completedAt - startedAt) / 1000).toFixed(1)}s`
       : null;
 
-  // Clean args for display (remove internal fields)
   const displayArgs = Object.fromEntries(
     Object.entries(argsObj).filter(([k]) => !k.startsWith("__")),
   );

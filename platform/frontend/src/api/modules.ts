@@ -69,12 +69,6 @@ export function deleteModule(name: string): Promise<{ status: string }> {
   return apiFetch(`/modules/${name}`, { method: "DELETE" });
 }
 
-export function refreshModules(): Promise<{ modules: ModuleInfo[] }> {
-  return apiFetch("/modules/refresh", { method: "POST" });
-}
-
-// --- Module file operations ---
-
 export interface ModuleFile {
   name: string;
   path: string;
@@ -110,8 +104,6 @@ export function deleteModuleFile(
 ): Promise<{ status: string }> {
   return apiFetch(`/modules/${name}/files/${path}`, { method: "DELETE" });
 }
-
-// --- AI generation ---
 
 export interface GenerateResult {
   summary: string;

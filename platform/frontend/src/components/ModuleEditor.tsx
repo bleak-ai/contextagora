@@ -13,14 +13,9 @@ import {
 import { EditorHeader } from "./modules/EditorHeader";
 import { EditorSidebar } from "./modules/EditorSidebar";
 import { EditorContent } from "./modules/EditorContent";
+import type { OpenFile } from "./modules/types";
 
 const routeApi = getRouteApi("/modules/$name");
-
-interface OpenFile {
-  content: string;
-  dirty: boolean;
-  original: string;
-}
 
 export function ModuleEditor() {
   const { name } = routeApi.useParams();
@@ -38,7 +33,6 @@ export function ModuleEditor() {
 
   const files = filesData?.files || [];
 
-  // Local editor state
   const [summary, setSummary] = useState("");
   const [secrets, setSecrets] = useState<string[]>([]);
   const [requirements, setRequirements] = useState<string[]>([]);
@@ -47,13 +41,12 @@ export function ModuleEditor() {
   const [mode, setMode] = useState<"files" | "secrets" | "requirements">("files");
   const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
-  // Track server values for dirty detection
   const serverSummary = useRef("");
   const serverSecrets = useRef<string[]>([]);
   const serverRequirements = useRef<string[]>([]);
 
-  // Initialize state when detail loads
   useEffect(() => {
     if (detail) {
       setSummary(detail.summary);
@@ -65,7 +58,6 @@ export function ModuleEditor() {
     }
   }, [detail]);
 
-  // Compute dirty state
   const summaryDirty = summary !== serverSummary.current;
   const secretsDirty =
     JSON.stringify(secrets) !== JSON.stringify(serverSecrets.current);
@@ -74,7 +66,6 @@ export function ModuleEditor() {
   const filesDirty = Array.from(openFiles.values()).some((f) => f.dirty);
   const isDirty = summaryDirty || secretsDirty || requirementsDirty || filesDirty;
 
-  // Open a file in the editor
   const handleSelectFile = useCallback(
     async (path: string) => {
       setActiveFile(path);
@@ -139,7 +130,6 @@ export function ModuleEditor() {
     async (path: string) => {
       await saveModuleFile(name, path, "");
       queryClient.invalidateQueries({ queryKey: ["module-files", name] });
-      // Open the new file
       setOpenFiles((prev) => {
         const next = new Map(prev);
         next.set(path, { content: "", dirty: false, original: "" });
@@ -159,7 +149,6 @@ export function ModuleEditor() {
     try {
       const promises: Promise<unknown>[] = [];
 
-      // Save module-level changes (summary, secrets, requirements)
       if (summaryDirty || secretsDirty || requirementsDirty) {
         promises.push(
           updateModule(name, {
@@ -175,7 +164,6 @@ export function ModuleEditor() {
         );
       }
 
-      // Save dirty files
       for (const [path, file] of openFiles) {
         if (file.dirty) {
           promises.push(
@@ -219,17 +207,17 @@ export function ModuleEditor() {
   ]);
 
   const handleGenerate = useCallback(async () => {
-    // Get info.md content — from open files if edited, otherwise from server
     const infoFile = openFiles.get("info.md");
     const content = infoFile ? infoFile.content : detail?.content || "";
     if (!content.trim()) return;
 
     setIsGenerating(true);
+    setGenerateError(null);
     try {
       const result = await generateModule(name, content);
       setSummary(result.summary);
     } catch (err) {
-      console.error("Generate failed:", err);
+      setGenerateError((err as Error).message || "Generate failed");
     } finally {
       setIsGenerating(false);
     }
@@ -245,7 +233,6 @@ export function ModuleEditor() {
 
   const canGenerate = (openFiles.get("info.md")?.content ?? detail?.content ?? "").trim().length > 0 && !isGenerating && !isSaving;
 
-  // Build openFiles map for EditorContent (without `original` field)
   const contentOpenFiles = new Map<string, { content: string; dirty: boolean }>();
   for (const [path, file] of openFiles) {
     contentOpenFiles.set(path, { content: file.content, dirty: file.dirty });
@@ -274,6 +261,9 @@ export function ModuleEditor() {
           rows={2}
           className="flex-1 bg-bg-input border border-border rounded px-3 py-1.5 text-sm text-text resize-none outline-none focus:border-accent/40"
         />
+        {generateError && (
+          <span className="text-xs text-red-400 mt-1 flex-shrink-0">{generateError}</span>
+        )}
       </div>
 
       {/* Main area */}

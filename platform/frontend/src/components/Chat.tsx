@@ -16,7 +16,6 @@ export function Chat() {
   const moduleToolCount = useChatStore((s) => s.moduleToolCompletedCount);
   const prevCount = useRef(moduleToolCount);
 
-  // Refresh module list when the agent creates/updates a module
   useEffect(() => {
     if (moduleToolCount > prevCount.current) {
       queryClient.invalidateQueries({ queryKey: ["modules"] });

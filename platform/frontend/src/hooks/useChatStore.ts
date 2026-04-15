@@ -197,7 +197,6 @@ export const useChatStore = create<ChatState>()(
                 }
                 useSessionStore.getState().setActiveClaudeSessionId(newId);
                 if (newId && newId !== sessionId) {
-                  // Migrate messages from placeholder (or old id) to real id.
                   const oldId = sessionId;
                   set((state) => {
                     const oldMsgs = state.messagesBySession[oldId];

@@ -34,9 +34,6 @@ def _expand_slash_command(prompt: str) -> str:
     return cmd_def.prompt
 
 
-# ── Session listing (read-through to Claude's on-disk transcripts) ──
-
-
 @router.get("/sessions")
 async def api_list_sessions():
     """List all Claude sessions for settings.CONTEXT_DIR, newest first.

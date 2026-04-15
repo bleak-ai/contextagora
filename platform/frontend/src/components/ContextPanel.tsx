@@ -10,6 +10,7 @@ import {
 import { fetchSessions } from "../api/sessions";
 import { useChatStore } from "../hooks/useChatStore";
 import { useSessionStore } from "../hooks/useSessionStore";
+import { invalidateModuleQueries } from "../lib/queryClient";
 import { DecisionTreePanel } from "./chat/DecisionTreePanel";
 import { SyncControls } from "./SyncControls";
 import { ModuleList } from "./sidebar/ModuleList";
@@ -18,8 +19,6 @@ import { RootSection } from "./sidebar/RootSection";
 
 export function ContextPanel() {
   const queryClient = useQueryClient();
-  // null = user hasn't touched the selection yet → derive from data
-  // Set  = user has toggled at least one checkbox → use their explicit choice
   const [userSelection, setUserSelection] = useState<Set<string> | null>(null);
 
   const rawModel = useChatStore((s) => s.model);
@@ -27,7 +26,6 @@ export function ContextPanel() {
     ? rawModel.replace("claude-", "").replace(/-\d{8}$/, "")
     : null;
 
-  // Session state
   const activeClaudeSessionId = useSessionStore(
     (s) => s.activeClaudeSessionId,
   );
@@ -53,7 +51,6 @@ export function ContextPanel() {
     localStorage.setItem("context-panel-tab", t);
   };
 
-  // Resizable width
   const MIN_WIDTH = 240;
   const MAX_WIDTH = 640;
   const [width, setWidth] = useState<number>(() => {
@@ -95,7 +92,6 @@ export function ContextPanel() {
     document.body.style.userSelect = "none";
   };
 
-  // Module + workspace queries
   const { data: modulesData } = useQuery({
     queryKey: ["modules"],
     queryFn: fetchModules,
@@ -116,9 +112,7 @@ export function ContextPanel() {
   const loadMutation = useMutation({
     mutationFn: loadModules,
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["workspace"] });
-      queryClient.invalidateQueries({ queryKey: ["workspace-files"] });
-      queryClient.invalidateQueries({ queryKey: ["root-context"] });
+      invalidateModuleQueries(queryClient);
       setLoadErrors(data.errors ?? []);
       // Auto-fetch secrets so newly-loaded modules immediately show their
       // Infisical state without requiring a separate manual click.
@@ -130,13 +124,10 @@ export function ContextPanel() {
   const modules = allModuleInfos.map((m) => m.name);   // string[] for selection logic
   const loaded = workspace?.modules || [];              // LoadedModule[] — currently loaded
 
-  // Split by kind for two-zone rendering
   const activeTasks = allModuleInfos.filter((m) => m.kind === "task" && !m.archived);
   const archivedTasks = allModuleInfos.filter((m) => m.kind === "task" && m.archived);
   const loadedNames = loaded.map((m) => m.name);
 
-  // Derived selection: if the user hasn't touched anything, default to
-  // loaded modules (returning user) or ALL modules (fresh start).
   const selected: Set<string> =
     userSelection ??
     (loadedNames.length > 0

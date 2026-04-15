@@ -6,9 +6,9 @@ import re
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from fastapi.responses import PlainTextResponse, StreamingResponse
 
+from src.models import BenchmarkTaskBody as TaskBody, BenchmarkTaskUpdateBody as TaskUpdateBody
 from src.services.benchmarks import storage
 from src.services.benchmarks.runner import run_task_stream
-from pydantic import BaseModel, Field
 
 from src.services.benchmarks.tasks import (
     Task,
@@ -19,19 +19,6 @@ from src.services.benchmarks.tasks import (
     load_tasks,
     write_task,
 )
-
-
-class TaskBody(BaseModel):
-    id: str = Field(..., min_length=1, max_length=64)
-    description: str = ""
-    prompt: str
-    judge_prompt: str
-
-
-class TaskUpdateBody(BaseModel):
-    description: str = ""
-    prompt: str
-    judge_prompt: str
 
 _RUN_ID_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z$")
 _FRIENDLY_RE = re.compile(r"(\d{4}-\d{2}-\d{2})[_T](\d{2})h(\d{2})")

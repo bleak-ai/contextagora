@@ -35,7 +35,7 @@ def list_workspace_files(
     return paths
 
 
-def inspect_module_packages(module_dir: Path) -> list[dict]:
+def inspect_module_packages(module_dir: Path) -> list[dict[str, str | bool | None]]:
     """Return [{name, version, installed}] for each package declared in
     the module's module.yaml. Empty list if no dependencies.
 
@@ -48,7 +48,7 @@ def inspect_module_packages(module_dir: Path) -> list[dict]:
     if not manifest.dependencies:
         return []
 
-    out: list[dict] = []
+    out: list[dict[str, str | bool | None]] = []
     for name in manifest.dependencies:
         try:
             v = _version(name)

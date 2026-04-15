@@ -15,12 +15,12 @@ from pathlib import Path
 
 import yaml
 
-# ── Severity ─────────────────────────────────────────────────────────────
+# Severity
 
 ERROR = "ERROR"
 WARN = "WARN"
 
-# ── Colours (disabled when not a tty) ────────────────────────────────────
+# Colours (disabled when not a tty)
 
 USE_COLOUR = sys.stdout.isatty()
 
@@ -49,7 +49,7 @@ def dim(t: str) -> str:
     return _c("2", t)
 
 
-# ── Markdown helpers ─────────────────────────────────────────────────────
+# Markdown helpers
 
 def _extract_section(content: str, heading: str) -> str:
     """Return text under a ## or ### heading, up to the next heading."""
@@ -82,8 +82,6 @@ def _extract_packages_from_info(content: str) -> list[str]:
 
 
 def _has_heading(content: str, level: int, title: str) -> bool:
-    pat = rf"^#{{  {level}  }}\s+{re.escape(title)}\s*$"
-    # Build precise pattern
     pat = rf"^{'#' * level}\s+{re.escape(title)}\s*$"
     return bool(re.search(pat, content, re.MULTILINE | re.IGNORECASE))
 
@@ -92,13 +90,13 @@ def _has_top_heading(content: str) -> bool:
     return bool(re.search(r"^#\s+\S", content, re.MULTILINE))
 
 
-# ── Code-block convention checks ────────────────────────────────────────
+# Code-block convention checks
 
 def _extract_code_blocks(content: str) -> list[str]:
     return re.findall(r"```(?:\w*)\n(.*?)```", content, re.DOTALL)
 
 
-# ── Validators ───────────────────────────────────────────────────────────
+# Validators
 
 Issue = tuple[str, str]  # (severity, message)
 
@@ -107,7 +105,7 @@ def validate_module(module_dir: Path) -> list[Issue]:
     issues: list[Issue] = []
     name = module_dir.name
 
-    # ── Required files ───────────────────────────────────────────────
+    # Required files
     info_path = module_dir / "info.md"
     manifest_path = module_dir / "module.yaml"
 
@@ -116,13 +114,13 @@ def validate_module(module_dir: Path) -> list[Issue]:
     if not manifest_path.exists():
         issues.append((ERROR, "Missing required file: module.yaml"))
 
-    # ── Forbidden files ──────────────────────────────────────────────
+    # Forbidden files
     for forbidden in (".env", ".env.schema", "requirements.txt"):
         if (module_dir / forbidden).exists():
             issues.append((ERROR, f"Forbidden file present: {forbidden}"))
 
-    # ── module.yaml checks ───────────────────────────────────────────
-    manifest: dict = {}
+    # module.yaml checks
+    manifest: dict[str, object] = {}
     if manifest_path.exists():
         try:
             manifest = yaml.safe_load(manifest_path.read_text()) or {}
@@ -131,7 +129,6 @@ def validate_module(module_dir: Path) -> list[Issue]:
             manifest = {}
 
         if manifest:
-            # name
             if "name" not in manifest:
                 issues.append((ERROR, "module.yaml missing 'name' field"))
             elif manifest["name"] != name:
@@ -139,20 +136,17 @@ def validate_module(module_dir: Path) -> list[Issue]:
                     (ERROR, f"module.yaml name '{manifest['name']}' does not match directory name '{name}'")
                 )
 
-            # summary
             if not manifest.get("summary"):
                 issues.append((WARN, "module.yaml missing 'summary' field"))
 
-    # ── info.md checks ───────────────────────────────────────────────
+    # info.md checks
     info_content = ""
     if info_path.exists():
         info_content = info_path.read_text()
 
-        # top-level heading
         if not _has_top_heading(info_content):
             issues.append((WARN, "info.md missing top-level # heading"))
 
-        # recommended sections
         recommended_sections = [
             "Purpose",
             "Where it lives",
@@ -165,7 +159,7 @@ def validate_module(module_dir: Path) -> list[Issue]:
             if not _has_heading(info_content, 2, section):
                 issues.append((WARN, f"info.md missing recommended section: ## {section}"))
 
-        # ── Cross-validate secrets ───────────────────────────────────
+        # Cross-validate secrets
         info_secrets = sorted(set(_extract_secrets_from_info(info_content)))
         manifest_secrets = sorted(manifest.get("secrets", []))
 
@@ -187,7 +181,7 @@ def validate_module(module_dir: Path) -> list[Issue]:
                 parts.append(f"in module.yaml but not info.md: {only_manifest}")
             issues.append((ERROR, f"Secrets mismatch — {'; '.join(parts)}"))
 
-        # ── Cross-validate dependencies ──────────────────────────────
+        # Cross-validate dependencies
         info_packages = sorted(set(_extract_packages_from_info(info_content)))
         manifest_deps = sorted(manifest.get("dependencies", []))
 
@@ -209,7 +203,7 @@ def validate_module(module_dir: Path) -> list[Issue]:
                 parts.append(f"in module.yaml but not info.md: {only_manifest}")
             issues.append((ERROR, f"Dependencies mismatch — {'; '.join(parts)}"))
 
-        # ── Example convention checks ────────────────────────────────
+        # Example convention checks
         code_blocks = _extract_code_blocks(info_content)
         has_secrets = bool(info_secrets or manifest_secrets)
 
@@ -219,27 +213,24 @@ def validate_module(module_dir: Path) -> list[Issue]:
             if "load_dotenv" in block:
                 issues.append((ERROR, f"{block_label}: uses load_dotenv() — forbidden"))
 
-            # Check for bare python (not uv run python)
             if re.search(r"(?<!uv run )python -c", block):
                 issues.append((WARN, f"{block_label}: uses bare 'python' instead of 'uv run python'"))
 
             if "pip install" in block:
                 issues.append((WARN, f"{block_label}: uses pip — use uv instead"))
 
-            # If module has secrets and example uses env vars, it should use varlock
             if has_secrets and "os.environ" in block and "varlock run" not in block:
                 issues.append(
                     (WARN, f"{block_label}: reads os.environ but doesn't use 'varlock run'")
                 )
 
-    # ── llms.txt checks ──────────────────────────────────────────────
+    # llms.txt checks
     llms_path = module_dir / "llms.txt"
     if not llms_path.exists():
         issues.append((WARN, "Missing recommended file: llms.txt"))
     else:
         llms_content = llms_path.read_text()
 
-        # Check link targets exist
         links = re.findall(r"\[.*?\]\((.*?)\)", llms_content)
         for link in links:
             target = module_dir / link
@@ -249,7 +240,7 @@ def validate_module(module_dir: Path) -> list[Issue]:
     return issues
 
 
-# ── Output ───────────────────────────────────────────────────────────────
+# Output
 
 def print_report(results: dict[str, list[Issue]]) -> int:
     total_errors = 0
@@ -298,7 +289,7 @@ def print_report(results: dict[str, list[Issue]]) -> int:
     return 1 if total_errors > 0 else 0
 
 
-# ── CLI ──────────────────────────────────────────────────────────────────
+# CLI
 
 def main() -> int:
     default_repo = Path(__file__).resolve().parent.parent / "modules-repo"
@@ -322,7 +313,6 @@ def main() -> int:
         print(f"Error: modules repo not found at {repo_dir}", file=sys.stderr)
         return 1
 
-    # Discover modules
     module_dirs = sorted(
         d for d in repo_dir.iterdir()
         if d.is_dir() and not d.name.startswith(".")

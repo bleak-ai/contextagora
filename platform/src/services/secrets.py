@@ -1,7 +1,6 @@
 import asyncio
 import json
 import logging
-import os
 import re
 import subprocess
 from pathlib import Path
@@ -29,8 +28,6 @@ _ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 
 
 class SecretsValidationError(Exception):
-    """Raised when `varlock load` fails for a module."""
-
     def __init__(self, module: str, missing: list[str], raw: str):
         self.module = module
         self.missing = missing
@@ -110,7 +107,6 @@ async def get_secrets_status(
     if not (directory / ".env.schema").exists():
         return {}
 
-    # Build var_name -> module_name mapping from each module's manifest
     from src.services.manifest import read_manifest
 
     var_to_module: dict[str, str] = {}
@@ -123,7 +119,6 @@ async def get_secrets_status(
             for var in manifest.secrets:
                 var_to_module[var] = name
 
-    # Run varlock once at workspace root
     try:
         previews = await asyncio.to_thread(load_and_mask_secrets, directory)
     except SecretsValidationError as e:
@@ -133,7 +128,6 @@ async def get_secrets_status(
             result[mod][var] = None
         return result
 
-    # Split resolved vars by module
     result = {m: {} for m in modules_with_secrets}
     for var, value in previews.items():
         mod = var_to_module.get(var)

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createTask } from "../../api/modules";
+import { invalidateModuleQueries } from "../../lib/queryClient";
 
 interface Props {
   onClose: () => void;
@@ -14,10 +15,7 @@ export function CreateTaskModal({ onClose }: Props) {
   const mutation = useMutation({
     mutationFn: () => createTask({ name, description: description || undefined }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["modules"] });
-      queryClient.invalidateQueries({ queryKey: ["workspace"] });
-      queryClient.invalidateQueries({ queryKey: ["workspace-files"] });
-      queryClient.invalidateQueries({ queryKey: ["root-context"] });
+      invalidateModuleQueries(queryClient);
       onClose();
     },
   });

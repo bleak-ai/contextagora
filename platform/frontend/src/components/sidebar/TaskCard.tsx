@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { archiveModule, deleteModule } from "../../api/modules";
 import type { LoadedModule } from "../../api/workspace";
+import { invalidateModuleQueries } from "../../lib/queryClient";
 
 interface Props {
   name: string;
@@ -13,12 +14,7 @@ interface Props {
 export function TaskCard({ name, summary, loaded, selected, onToggleSelect }: Props) {
   const queryClient = useQueryClient();
 
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["modules"] });
-    queryClient.invalidateQueries({ queryKey: ["workspace"] });
-    queryClient.invalidateQueries({ queryKey: ["workspace-files"] });
-    queryClient.invalidateQueries({ queryKey: ["root-context"] });
-  };
+  const invalidate = () => invalidateModuleQueries(queryClient);
 
   const archiveMutation = useMutation({
     mutationFn: () => archiveModule(name),

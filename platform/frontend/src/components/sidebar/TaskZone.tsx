@@ -27,7 +27,6 @@ export function TaskZone({
   const [showCreate, setShowCreate] = useState(false);
   const loadedMap = new Map(loaded.map((m) => [m.name, m]));
 
-  // Check if any task's selection differs from its load state
   const taskNames = tasks.map((t) => t.name);
   const hasTaskChanges = taskNames.some((n) => {
     const isSelected = selected.has(n);

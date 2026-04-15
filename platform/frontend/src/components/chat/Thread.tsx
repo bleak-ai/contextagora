@@ -125,7 +125,6 @@ const StreamSuggestions: FC = () => {
   const sendMessage = useChatStore((s) => s.sendMessage);
   const suggestions = useChatStore((s) => {
     const msgs = s.messagesBySession[key] ?? [];
-    // Walk backwards to find the last assistant message with suggestions.
     for (let i = msgs.length - 1; i >= 0; i--) {
       const m = msgs[i];
       if (m.role === "assistant" && m.suggestions && m.suggestions.length > 0) {
@@ -167,7 +166,6 @@ const Composer: FC<{ onNewSession?: () => void }> = ({ onNewSession }) => {
   const [dismissed, setDismissed] = useState(false);
   const composerRuntime = useComposerRuntime();
 
-  // Subscribe to composer runtime text — stays in sync after submit clears, etc.
   useEffect(() => {
     return composerRuntime.subscribe(() => {
       const text = composerRuntime.getState().text;

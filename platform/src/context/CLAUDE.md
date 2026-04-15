@@ -26,7 +26,7 @@ When asked anything, start by asking: **"Which module do I need?"**
 ## Setup
 
 1. Read [llms.txt](llms.txt) — orient yourself in the module hierarchy
-2. For any module you need, read its `.env.schema` — lists required credentials and their purposes
+2. For any module you need, read its `module.yaml` — declares required secrets and dependencies
 
 ## Running Scripts
 
@@ -41,7 +41,7 @@ Do not use `--with` flags — dependencies are already available.
 
 Secrets are NOT stored in any file. There are no `.env` files. No plaintext on disk. Values live in a vault and are fetched at runtime by `varlock`.
 
-A module needs secrets if and only if it has an `.env.schema` file (variable names only, no values).
+A module needs secrets if and only if its `module.yaml` declares a `secrets:` list (variable names only, no values).
 
 ### How to run scripts with secrets
 
@@ -66,5 +66,5 @@ A module needs secrets if and only if it has an `.env.schema` file (variable nam
 
 ### How to discover which variables a module needs
 
-Read `<module>/.env.schema`. It is a plain text file listing variable names.
+Read `<module>/module.yaml`. The `secrets:` list contains variable names.
 It contains no values. It is safe to read, print, and reason about.

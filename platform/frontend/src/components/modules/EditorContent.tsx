@@ -1,9 +1,5 @@
 import { useState } from "react";
-
-interface OpenFile {
-  content: string;
-  dirty: boolean;
-}
+import type { OpenFile } from "./types";
 
 interface EditorContentProps {
   mode: "files" | "secrets" | "requirements";
@@ -198,6 +194,7 @@ function RequirementsPanel({
 }) {
   const [newPkg, setNewPkg] = useState("");
   const [isDetecting, setIsDetecting] = useState(false);
+  const [detectError, setDetectError] = useState<string | null>(null);
 
   const handleAdd = () => {
     const name = newPkg.trim().toLowerCase();
@@ -221,10 +218,10 @@ function RequirementsPanel({
   const handleDetect = async () => {
     if (!infoContent.trim() || isDetecting) return;
     setIsDetecting(true);
+    setDetectError(null);
     try {
       const { detectPackages } = await import("../../api/modules");
       const result = await detectPackages(moduleName, infoContent);
-      // Merge detected packages with existing (no duplicates)
       const merged = [...requirements];
       for (const pkg of result.packages) {
         if (!merged.includes(pkg)) {
@@ -233,7 +230,7 @@ function RequirementsPanel({
       }
       onChange(merged);
     } catch (err) {
-      console.error("Detect packages failed:", err);
+      setDetectError((err as Error).message || "Detection failed");
     } finally {
       setIsDetecting(false);
     }
@@ -253,6 +250,9 @@ function RequirementsPanel({
           {isDetecting ? "Detecting..." : "Detect from info.md"}
         </button>
       </div>
+      {detectError && (
+        <p className="text-xs text-red-400 mb-2">{detectError}</p>
+      )}
       <p className="text-xs text-text-muted mb-4">
         Python packages this module needs for PTC scripts. Installed automatically when the module is loaded.
       </p>
