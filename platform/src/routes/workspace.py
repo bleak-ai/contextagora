@@ -9,7 +9,7 @@ from src.services.workspace_inspect import (
     list_workspace_files,
 )
 from src.services.deps import install_module_deps
-from src.services.secrets import get_secrets_status
+from src.services.secrets import get_secrets_status, prune_schema_for_resolved
 from src.services.workspace import list_loaded_modules, reload_workspace
 
 log = logging.getLogger(__name__)
@@ -72,19 +72,23 @@ async def api_workspace_secrets():
     global _secrets_cache
     log.info("Refreshing Infisical secrets for workspace: %s", settings.CONTEXT_DIR)
     _secrets_cache = await get_secrets_status(settings.CONTEXT_DIR, list_loaded_modules)
-    missing_vars = [
-        f"{mod}/{var}"
-        for mod, vars in _secrets_cache.items()
-        for var, val in vars.items()
-        if val is None
-    ]
-    total = sum(len(v) for v in _secrets_cache.values()) - len(missing_vars)
+    resolved = 0
+    missing_labels: list[str] = []
+    for mod, vars in _secrets_cache.items():
+        for var, val in vars.items():
+            if val is None:
+                missing_labels.append(f"{mod}/{var}")
+            else:
+                resolved += 1
     log.info(
         "Secrets refresh complete — resolved: %d, missing: %d%s",
-        total,
-        len(missing_vars),
-        f" ({', '.join(missing_vars)})" if missing_vars else "",
+        resolved,
+        len(missing_labels),
+        f" ({', '.join(missing_labels)})" if missing_labels else "",
     )
+
+    prune_schema_for_resolved(_secrets_cache, settings.CONTEXT_DIR)
+
     return {"secrets": _secrets_cache}
 
 

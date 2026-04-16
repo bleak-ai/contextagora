@@ -38,7 +38,10 @@ class SecretsValidationError(Exception):
 def parse_varlock_failure(stderr: str) -> list[str]:
     """Extract missing variable names from varlock's human-readable error output.
 
-    Tries multiple patterns since varlock's output varies with TTY/non-TTY.
+    Fallback only — used when json-full parsing fails entirely (e.g. varlock
+    binary not found, catastrophic auth failure). The primary path extracts
+    errors from the structured json-full ``errors.configItems`` dict.
+
     Strips ANSI color codes first because varlock wraps var names in
     `\\x1b[31m...\\x1b[39m` which breaks `[A-Z_]+` matching.
     """
@@ -52,47 +55,91 @@ def parse_varlock_failure(stderr: str) -> list[str]:
 
 
 def load_and_mask_secrets(workspace_dir: Path) -> dict[str, str | None]:
-    """Run `varlock load --format json` at the workspace root.
+    """Run `varlock load --format json-full --show-all` at the workspace root.
 
-    Returns {VAR: masked_preview} for all non-bootstrap vars.
-    Raises SecretsValidationError on any varlock failure.
+    Uses json-full + --show-all so varlock always emits complete JSON on stdout,
+    even when some secrets fail to resolve. Resolved secrets get a masked preview;
+    missing ones map to None.
+
+    Raises SecretsValidationError only on total varlock failure (e.g. bad
+    credentials, binary not found, unparseable output).
     """
     log.info("Fetching Infisical secrets via varlock for workspace: %s", workspace_dir)
     result = subprocess.run(
-        ["varlock", "load", "--format", "json", "--path", str(workspace_dir)],
+        [
+            "varlock", "load",
+            "--format", "json-full",
+            "--show-all",
+            "--path", str(workspace_dir),
+        ],
         capture_output=True,
         text=True,
     )
-    if result.returncode != 0:
-        combined = (result.stderr or "") + "\n" + (result.stdout or "")
-        missing = parse_varlock_failure(combined)
-        log.error(
-            "varlock failed for workspace %s (missing=%s): %s",
-            workspace_dir,
-            missing,
-            combined.strip(),
-        )
-        raise SecretsValidationError("workspace", missing, combined.strip())
 
     try:
         data = json.loads(result.stdout)
-    except json.JSONDecodeError as exc:
-        log.error("varlock returned invalid JSON for workspace %s: %s", workspace_dir, exc)
+    except (json.JSONDecodeError, ValueError) as exc:
+        combined = (result.stderr or "") + "\n" + (result.stdout or "")
+        missing = parse_varlock_failure(combined)
+        log.error("varlock produced no usable JSON for %s: %s", workspace_dir, combined.strip())
         raise SecretsValidationError(
-            "workspace", [], f"varlock returned invalid JSON: {exc}\n{result.stdout}"
+            "workspace", missing, combined.strip()
         ) from exc
 
-    secret_keys = [k for k in data if k not in INFISICAL_VARS]
+    config = data.get("config", {})
+    errors = data.get("errors", {}).get("configItems", {})
+
+    out: dict[str, str | None] = {}
+    for key, item in config.items():
+        if key in INFISICAL_VARS:
+            continue
+        value = item.get("value")
+        if isinstance(value, str) and value:
+            out[key] = value[:2] + "\u2592" * 5
+        else:
+            out[key] = None
+
+    resolved = [k for k, v in out.items() if v is not None]
+    missing = list(errors.keys())
     log.info(
-        "Successfully retrieved %d secret(s) from Infisical: %s",
-        len(secret_keys),
-        secret_keys,
+        "Retrieved %d/%d secret(s) from Infisical (missing=%s): %s",
+        len(resolved),
+        len(out),
+        missing,
+        resolved,
     )
-    return {
-        k: ((v[:2] + "\u2592" * 5) if isinstance(v, str) and v else None)
-        for k, v in data.items()
-        if k not in INFISICAL_VARS
-    }
+    return out
+
+
+def prune_schema_for_resolved(
+    secrets_status: dict[str, dict[str, str | None]],
+    workspace_dir: Path,
+) -> None:
+    """Rewrite .env.schema excluding secrets that failed to resolve.
+
+    This allows `varlock run` to execute even when some secrets are missing
+    from Infisical. The UI still shows missing secrets correctly because the
+    display is driven by module manifests, not the schema.
+    """
+    from src.services.schemas import generate_global_schema
+
+    modules_with_resolved: dict[str, list[str]] = {}
+    pruned: list[str] = []
+    for mod, vars in secrets_status.items():
+        resolved = [var for var, val in vars.items() if val is not None]
+        missing = [var for var, val in vars.items() if val is None]
+        if resolved:
+            modules_with_resolved[mod] = resolved
+        pruned.extend(missing)
+
+    schema_path = workspace_dir / ".env.schema"
+    if modules_with_resolved:
+        schema_path.write_text(generate_global_schema(modules_with_resolved))
+    elif schema_path.exists():
+        schema_path.unlink()
+
+    if pruned:
+        log.info("Pruned .env.schema: removed %d unresolvable var(s): %s", len(pruned), pruned)
 
 
 async def get_secrets_status(
