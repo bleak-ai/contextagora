@@ -119,37 +119,23 @@ import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
 					"ContextAgora lets our AI answer real questions about our marketplace, live, from our own database. No custom APIs, no manual queries."
 				</blockquote>
 				<p class="text-xs text-text-muted mb-6">— Eduard, Co-founder at Soundmurai</p>
-				<div class="bg-bg border border-border px-4 py-3 text-xs">
+				<div class="bg-bg border border-border px-4 py-3 text-xs mb-6">
 					<span class="text-accent font-medium">User asks →</span>
 					<span class="text-text italic ml-1">"Which is the average price for independent artists in Berlin?"</span>
 				</div>
-				<!-- <p class="text-sm text-text-secondary leading-relaxed border-l-2 border-accent/30 pl-4 mb-5">
-					Soundmurai is building the go-to marketplace for live music. Their team kept getting the same questions about pricing, availability, and artist stats. Now their AI answers them directly from the live database.
-				</p>
-				<ol class="space-y-2.5 mb-6">
-					{[
-						'The agent finds the right context file for their database',
-						'It reads and understands how their DB is structured',
-						'It generates a script or request to retrieve artists in Berlin and venue prices',
-						'It filters the results that match the question',
-						'It delivers a clear, accurate answer to the user',
-					].map((step, i) => (
-						<li class="flex gap-3 items-start text-sm text-text-secondary">
-							<span class="flex-shrink-0 w-5 h-5 border border-accent/30 text-accent text-[10px] font-semibold flex items-center justify-center mt-0.5">
-								{i + 1}
-							</span>
-							<span>{step}</span>
-						</li>
-					))}
-				</ol>
-				<div class="w-full aspect-video bg-bg border border-dashed border-border flex flex-col items-center justify-center gap-2 text-text-muted">
-					<svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2">
-						<path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5 10.5 7.5v9l5.25-3v-3Z"/>
-						<path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
-					</svg>
-					<p class="text-sm text-text-secondary font-medium">Demo video coming soon</p>
-					<p class="text-xs">See ContextAgora in action with Soundmurai's live database</p>
-				</div> -->
+				<button
+					class="case-video-trigger relative w-full aspect-video bg-bg border border-border cursor-pointer group overflow-hidden"
+					data-webm="/demo.webm"
+					data-mp4="/demo.mp4"
+					aria-label="Play Soundmurai demo video"
+				>
+					<img src="/demo-poster.webp" alt="" class="w-full h-full object-cover" />
+					<div class="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
+						<svg class="w-16 h-16 text-white/90 drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24">
+							<path d="M8 5v14l11-7z"/>
+						</svg>
+					</div>
+				</button>
 			</div>
 
 			<!-- MAAT -->
@@ -164,37 +150,23 @@ import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
 					"We went from spending hours digging through member data to having our AI surface exactly what we need in seconds. ContextAgora made that possible."
 				</blockquote>
 				<p class="text-xs text-text-muted mb-6">— Bernat, AI Engineer at MAAT</p>
-				<div class="bg-bg border border-border px-4 py-3 text-xs">
+				<div class="bg-bg border border-border px-4 py-3 text-xs mb-6">
 					<span class="text-accent font-medium">User asks →</span>
 					<span class="text-text italic ml-1">"Which members haven't renewed their subscription this month?"</span>
 				</div>
-				<!-- <p class="text-sm text-text-secondary leading-relaxed border-l-2 border-accent/30 pl-4 mb-5">
-					MAAT manages members, payments, classes, and belt progressions for martial arts gyms. Their team used to dig through data manually to answer routine questions. Now their AI pulls the answers in seconds.
-				</p>
-				<ol class="space-y-2.5 mb-6">
-					{[
-						'The agent locates the relevant context module for member data',
-						'It reads the schema and understands how members and subscriptions relate',
-						'It generates a query to retrieve members with lapsed renewals',
-						'It filters and returns the matching list',
-						'It delivers a clear answer the team can act on immediately',
-					].map((step, i) => (
-						<li class="flex gap-3 items-start text-sm text-text-secondary">
-							<span class="flex-shrink-0 w-5 h-5 border border-accent/30 text-accent text-[10px] font-semibold flex items-center justify-center mt-0.5">
-								{i + 1}
-							</span>
-							<span>{step}</span>
-						</li>
-					))}
-				</ol>
-				<div class="w-full aspect-video bg-bg border border-dashed border-border flex flex-col items-center justify-center gap-2 text-text-muted">
-					<svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2">
-						<path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5 10.5 7.5v9l5.25-3v-3Z"/>
-						<path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
-					</svg>
-					<p class="text-sm text-text-secondary font-medium">Demo video coming soon</p>
-					<p class="text-xs">See ContextAgora in action with MAAT's platform</p>
-				</div> -->
+				<button
+					class="case-video-trigger relative w-full aspect-video bg-bg border border-border cursor-pointer group overflow-hidden"
+					data-webm="/demo.webm"
+					data-mp4="/demo.mp4"
+					aria-label="Play MAAT demo video"
+				>
+					<img src="/demo-poster.webp" alt="" class="w-full h-full object-cover" />
+					<div class="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
+						<svg class="w-16 h-16 text-white/90 drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24">
+							<path d="M8 5v14l11-7z"/>
+						</svg>
+					</div>
+				</button>
 			</div>
 
 		</div>
@@ -298,7 +270,25 @@ import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
 			modal.classList.remove('flex');
 		}
 
-		document.getElementById('video-trigger')?.addEventListener('click', openVideo);
+		function openVideoWithSrc(webm: string, mp4: string) {
+			const sources = player.querySelectorAll('source');
+			sources[0].src = webm;
+			sources[1].src = mp4;
+			player.load();
+			openVideo();
+		}
+
+		document.getElementById('video-trigger')?.addEventListener('click', () => {
+			openVideoWithSrc('/demo.webm', '/demo.mp4');
+		});
+
+		document.querySelectorAll('.case-video-trigger').forEach(btn => {
+			btn.addEventListener('click', () => {
+				const el = btn as HTMLElement;
+				openVideoWithSrc(el.dataset.webm!, el.dataset.mp4!);
+			});
+		});
+
 		document.getElementById('video-close')?.addEventListener('click', closeVideo);
 		modal?.addEventListener('click', (e) => {
 			if (e.target === modal) closeVideo();
