@@ -73,6 +73,64 @@ Before recommending removing varlock or replacing it with env injection, `.env` 
 
 If you can't answer those three questions, you don't yet understand what varlock is doing, and you should re-read this doc before continuing.
 
+## Partial failure handling (missing secrets)
+
+### The problem
+
+Varlock's `--format json` output is all-or-nothing: if even one secret fails to resolve, stdout is **empty** and the exit code is non-zero. The global `.env.schema` aggregates secrets from all loaded modules into a single file. This means one missing secret in one module blocks **all** secrets for **every** module.
+
+This manifests in two pipelines:
+
+| Pipeline | Command | Failure mode |
+|----------|---------|-------------|
+| Server-side preview | `varlock load --format json` | All secrets show as "not loaded" in the UI |
+| Agent-side execution | `varlock run -- <cmd>` | Command refuses to run at all |
+
+### What we found
+
+- `--format json` → empty stdout on any failure. No partial results.
+- `--format json-full --show-all` → **always emits full JSON on stdout**, even with exit code 1. Resolved secrets have a `"value"` field; failed ones don't. There's also an explicit `"errors"` dict.
+- `fallback(infisical(...), "")` in the schema does **not** catch resolver errors. `fallback()` handles empty values, not thrown errors from the infisical plugin.
+- Removing `@required` from the schema does **not** help either — the infisical() resolver itself throws when the secret doesn't exist in the vault, regardless of the required/optional annotation.
+
+### The fix (server-side preview)
+
+`load_and_mask_secrets()` in `platform/src/services/secrets.py` now uses `--format json-full --show-all` instead of `--format json`. The `json-full` response structure is:
+
+```json
+{
+  "config": {
+    "RESOLVED_VAR": { "value": "actual_value", "isSensitive": true },
+    "MISSING_VAR": { "isSensitive": true }
+  },
+  "errors": { "configItems": { "MISSING_VAR": "error message" } }
+}
+```
+
+Items with a `"value"` key get masked previews. Items without one map to `None`. The exit code is ignored — `SecretsValidationError` is only raised when JSON parsing fails entirely (binary not found, bad credentials, etc.).
+
+### The fix (agent-side execution)
+
+After the server identifies which secrets are missing, `api_workspace_secrets()` in `platform/src/routes/workspace.py` **regenerates `.env.schema`** excluding the unresolvable variables. This way `varlock run` only sees secrets that actually exist in Infisical and executes successfully.
+
+The UI still shows missing secrets correctly because the display is driven by each module's `module.yaml` manifest (the source of truth for what a module needs), not the `.env.schema` (which is just the runtime resolution recipe).
+
+### Sequence after these changes
+
+1. Workspace load → `reload_workspace` generates full `.env.schema` with all declared secrets
+2. Secrets check → `get_secrets_status` uses `json-full --show-all`, gets partial results
+3. Schema prune → `api_workspace_secrets` rewrites `.env.schema` without unresolvable vars
+4. Agent runs → `varlock run` reads the pruned schema, all remaining vars resolve, command executes
+5. UI → shows the missing var as "not loaded" (from manifest), all others as loaded (from varlock)
+
+### Key varlock CLI behaviors to remember
+
+| Flags | Stdout on failure | Use case |
+|-------|-------------------|----------|
+| `--format json` | **Empty** | Only useful when all secrets resolve |
+| `--format json-full --show-all` | **Full JSON** with resolved + failed | Partial failure handling |
+| `--show-all` (without json-full) | Only enriches stderr | Not useful for programmatic parsing |
+
 ## Reference: where things live in this repo
 
 - `platform/src/services/schemas.py` — `generate_global_schema()`, builds the global `context/.env.schema` from all loaded modules' manifests.
