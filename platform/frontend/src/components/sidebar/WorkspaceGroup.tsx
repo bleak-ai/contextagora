@@ -1,0 +1,230 @@
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchRootContext } from "../../api/rootContext";
+import type { ModuleInfo } from "../../api/modules";
+import type { LoadedModule } from "../../api/workspace";
+import { ModuleCard } from "./ModuleCard";
+import { FilePreviewModal } from "./FilePreviewModal";
+import { CreateModuleModal } from "./CreateModuleModal";
+
+/* ------------------------------------------------------------------ */
+/*  Props                                                              */
+/* ------------------------------------------------------------------ */
+
+interface WorkspaceGroupProps {
+  integrations: ModuleInfo[];
+  loaded: LoadedModule[];
+  onToggleIntegration: (name: string, enabled: boolean) => void;
+  onRefreshSecrets: () => void;
+  isRefreshingSecrets: boolean;
+  onEditModule: (name: string) => void;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Health helper                                                      */
+/* ------------------------------------------------------------------ */
+
+function computeHealth(
+  loaded: LoadedModule[],
+  integrationNames: Set<string>,
+): "ok" | "warn" | "none" {
+  const loadedIntegrations = loaded.filter((m) =>
+    integrationNames.has(m.name),
+  );
+  if (loadedIntegrations.length === 0) return "none";
+  const hasIssue = loadedIntegrations.some((m) => {
+    const missingSecret = Object.values(m.secrets).some((v) => v === null);
+    const failedPackage = m.packages.some((p) => !p.installed);
+    return missingSecret || failedPackage;
+  });
+  return hasIssue ? "warn" : "ok";
+}
+
+/* ------------------------------------------------------------------ */
+/*  WorkspaceGroup                                                     */
+/* ------------------------------------------------------------------ */
+
+export function WorkspaceGroup({
+  integrations,
+  loaded,
+  onToggleIntegration,
+  onRefreshSecrets,
+  isRefreshingSecrets,
+  onEditModule,
+}: WorkspaceGroupProps) {
+  const [expanded, setExpanded] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [rootPreview, setRootPreview] = useState<
+    "claude_md" | "llms_txt" | null
+  >(null);
+
+  /* --- root context query --- */
+  const { data: rootData, isLoading: rootLoading } = useQuery({
+    queryKey: ["root-context"],
+    queryFn: fetchRootContext,
+    staleTime: 30_000,
+  });
+
+  /* --- derived data --- */
+  const integrationNames = useMemo(
+    () => new Set(integrations.map((m) => m.name)),
+    [integrations],
+  );
+
+  const loadedCount = useMemo(
+    () => loaded.filter((m) => integrationNames.has(m.name)).length,
+    [loaded, integrationNames],
+  );
+
+  const health = useMemo(
+    () => computeHealth(loaded, integrationNames),
+    [loaded, integrationNames],
+  );
+
+  /* --- sort: loaded first, then idle --- */
+  const sortedIntegrations = useMemo(() => {
+    const loadedSet = new Set(loaded.map((l) => l.name));
+    return [...integrations].sort((a, b) => {
+      const aLoaded = loadedSet.has(a.name) ? 0 : 1;
+      const bLoaded = loadedSet.has(b.name) ? 0 : 1;
+      return aLoaded - bLoaded;
+    });
+  }, [integrations, loaded]);
+
+  /* --- health dot styling --- */
+  const dotClass =
+    health === "ok"
+      ? "bg-success shadow-[0_0_6px_rgba(92,184,122,0.4)]"
+      : health === "warn"
+        ? "bg-red-400 shadow-[0_0_6px_rgba(239,68,68,0.6)]"
+        : "bg-text-muted";
+
+  /* --- root file labels --- */
+  const ROOT_FILES = [
+    { key: "claude_md" as const, label: "CLAUDE.md" },
+    { key: "llms_txt" as const, label: "llms.txt" },
+  ];
+
+  return (
+    <>
+      {/* ---- Collapsed / Header card ---- */}
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        className={`flex w-full items-center gap-2 border border-border bg-bg-hover px-2.5 py-2 cursor-pointer hover:border-border-light text-left ${expanded ? "rounded-t-md" : "rounded-md"}`}
+      >
+        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dotClass}`} />
+        <span className="flex-1 text-xs font-semibold text-text">
+          {loadedCount} Integration{loadedCount !== 1 ? "s" : ""} Loaded
+        </span>
+        <span className="text-[9px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full font-semibold">
+          {integrations.length}
+        </span>
+        <span className="text-[10px] text-text-muted">
+          {expanded ? "▾" : "▸"}
+        </span>
+      </button>
+
+      {/* ---- Expanded body ---- */}
+      {expanded && (
+        <div className="border border-t-0 border-border rounded-b-md px-2.5 pb-2.5 pt-2">
+          {/* ---- Root Files sub-section ---- */}
+          <div className="pb-2 mb-2 border-b border-border/60">
+            <span className="text-[8px] font-bold uppercase tracking-wider text-text-muted mb-1.5 block">
+              Root Files
+            </span>
+            {rootLoading ? (
+              <p className="text-[9px] italic text-text-muted">loading...</p>
+            ) : (
+              <div className="flex items-center gap-3">
+                {ROOT_FILES.map(({ key, label }) => {
+                  const file = rootData?.[key];
+                  const exists = file?.exists ?? false;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => exists && setRootPreview(key)}
+                      className={`text-[9px] font-mono text-text-secondary flex items-center gap-1 ${
+                        exists
+                          ? "cursor-pointer hover:text-accent"
+                          : "cursor-default opacity-60"
+                      }`}
+                    >
+                      <span
+                        className={`text-[9px] leading-none ${exists ? "text-accent" : "text-text-muted"}`}
+                      >
+                        {exists ? "●" : "○"}
+                      </span>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* ---- Integrations sub-section ---- */}
+          <div className="mb-1.5">
+            <span className="text-[8px] font-bold uppercase tracking-wider text-text-muted">
+              Integrations
+            </span>
+          </div>
+
+          {/* ---- Module cards ---- */}
+          <div className="space-y-0">
+            {sortedIntegrations.map((m) => (
+              <ModuleCard
+                key={m.name}
+                info={m}
+                loaded={loaded.find((l) => l.name === m.name) ?? null}
+                onToggle={(enabled) => onToggleIntegration(m.name, enabled)}
+                onEdit={() => onEditModule(m.name)}
+              />
+            ))}
+          </div>
+
+          {/* ---- Footer row ---- */}
+          <div className="flex items-center justify-between border-t border-border/50 pt-1.5 mt-1.5">
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="text-[9px] text-accent hover:text-accent-hover"
+            >
+              + New Integration
+            </button>
+            <button
+              type="button"
+              onClick={onRefreshSecrets}
+              disabled={isRefreshingSecrets}
+              className="text-[9px] text-text-muted hover:text-accent disabled:opacity-50 flex items-center gap-0.5"
+            >
+              Re-check{" "}
+              <span
+                className={isRefreshingSecrets ? "animate-spin inline-block" : ""}
+              >
+                ↻
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ---- Root file preview modal ---- */}
+      {rootPreview && rootData && (
+        <FilePreviewModal
+          title={
+            rootPreview === "claude_md" ? "claude.md" : "llms.txt"
+          }
+          content={rootData[rootPreview].content}
+          onClose={() => setRootPreview(null)}
+        />
+      )}
+
+      {/* ---- Create module modal ---- */}
+      {showCreate && (
+        <CreateModuleModal onClose={() => setShowCreate(false)} />
+      )}
+    </>
+  );
+}

@@ -1,6 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchModules, type ModuleInfo } from "../api/modules";
+import {
+  fetchModules,
+  archiveModule,
+  deleteModule,
+  unarchiveModule,
+  type ModuleInfo,
+} from "../api/modules";
 import {
   fetchWorkspace,
   loadModules,
@@ -10,16 +16,20 @@ import {
 import { fetchSessions } from "../api/sessions";
 import { useChatStore } from "../hooks/useChatStore";
 import { useSessionStore } from "../hooks/useSessionStore";
+import { useModuleEditorStore } from "../hooks/useModuleEditorStore";
 import { invalidateModuleQueries } from "../lib/queryClient";
 import { DecisionTreePanel } from "./chat/DecisionTreePanel";
 import { SyncControls } from "./SyncControls";
-import { ModuleList } from "./sidebar/ModuleList";
-import { TaskZone } from "./sidebar/TaskZone";
-import { RootSection } from "./sidebar/RootSection";
+import { WorkspaceGroup } from "./sidebar/WorkspaceGroup";
+import { ModuleCard } from "./sidebar/ModuleCard";
+import { ArchiveModal } from "./sidebar/ArchiveModal";
+import { CreateTaskModal } from "./sidebar/CreateTaskModal";
 
 export function ContextPanel() {
   const queryClient = useQueryClient();
-  const [userSelection, setUserSelection] = useState<Set<string> | null>(null);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [showCreateTask, setShowCreateTask] = useState(false);
+  const openEditor = useModuleEditorStore((s) => s.openModuleEditor);
 
   const rawModel = useChatStore((s) => s.model);
   const modelLabel = rawModel
@@ -121,31 +131,27 @@ export function ContextPanel() {
   });
 
   const allModuleInfos: ModuleInfo[] = modulesData?.modules || [];
-  const modules = allModuleInfos.map((m) => m.name);   // string[] for selection logic
   const loaded = workspace?.modules || [];              // LoadedModule[] — currently loaded
 
   const activeTasks = allModuleInfos.filter((m) => m.kind === "task" && !m.archived);
   const archivedTasks = allModuleInfos.filter((m) => m.kind === "task" && m.archived);
-  const loadedNames = loaded.map((m) => m.name);
+  const integrations = allModuleInfos.filter((m) => m.kind === "integration");
 
-  const selected: Set<string> =
-    userSelection ??
-    (loadedNames.length > 0
-      ? new Set(loadedNames)
-      : new Set(allModuleInfos.filter((m) => m.kind === "integration").map((m) => m.name)));
+  const archiveMutation = useMutation({
+    mutationFn: archiveModule,
+    onSuccess: () => invalidateModuleQueries(queryClient),
+  });
+  const deleteMutation = useMutation({
+    mutationFn: deleteModule,
+    onSuccess: () => invalidateModuleQueries(queryClient),
+  });
 
-  const toggleModule = (name: string) => {
-    const base = selected; // capture current derived value
-    setUserSelection(() => {
-      const next = new Set(base);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
-  };
-
-  const handleLoad = () => {
-    loadMutation.mutate([...selected]);
+  const handleToggleIntegration = (name: string, enabled: boolean) => {
+    const currentNames = loaded.map((m) => m.name);
+    const nextNames = enabled
+      ? [...currentNames, name]
+      : currentNames.filter((n) => n !== name);
+    loadMutation.mutate(nextNames);
   };
 
   if (collapsed) {
@@ -243,31 +249,79 @@ export function ContextPanel() {
       <div className="flex-1 overflow-y-auto px-2.5 py-2.5">
         {tab === "context" && (
           <div>
-            <RootSection />
-            <ModuleList
-              loaded={loaded}
-              available={allModuleInfos}
-              selected={selected}
-              onToggleSelect={toggleModule}
-              onLoad={handleLoad}
-              isLoading={loadMutation.isPending}
-              onRefreshSecrets={() => secretsMutation.mutate()}
-              isRefreshingSecrets={secretsMutation.isPending}
-            />
+            {/* ---- Active Tasks Zone ---- */}
+            <div className="mb-1">
+              <div className="flex items-center justify-between mb-2 px-1">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-text-muted">
+                  Active Tasks
+                </span>
+                <span className="flex items-center gap-2">
+                  {archivedTasks.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowArchiveModal(true)}
+                      className="text-[9px] text-accent hover:text-accent-hover"
+                    >
+                      Archive ↗
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateTask(true)}
+                    className="text-[9px] text-accent hover:text-accent-hover"
+                  >
+                    + New
+                  </button>
+                </span>
+              </div>
 
-            {/* Divider between zones */}
+              {activeTasks.length === 0 ? (
+                <div className="text-center py-5 text-text-muted text-[10px]">
+                  No active tasks
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateTask(true)}
+                    className="block mx-auto mt-2 text-[10px] text-accent bg-accent/10 border border-accent/30 px-3 py-1 rounded"
+                  >
+                    + New
+                  </button>
+                </div>
+              ) : (
+                activeTasks.map((task) => (
+                  <ModuleCard
+                    key={task.name}
+                    info={task}
+                    loaded={loaded.find((m) => m.name === task.name) ?? null}
+                    onEdit={() => openEditor(task.name)}
+                    onArchive={() => archiveMutation.mutateAsync(task.name)}
+                    onDelete={() => {
+                      if (confirm(`Delete task "${task.name}"? This cannot be undone.`))
+                        return deleteMutation.mutateAsync(task.name);
+                    }}
+                  />
+                ))
+              )}
+            </div>
+
+            {/* ---- Divider ---- */}
             <div className="my-3 border-t border-border" />
 
-            <TaskZone
-              tasks={activeTasks}
-              archivedTasks={archivedTasks}
-              loaded={loaded}
-              selected={selected}
-              onToggleSelect={toggleModule}
-              onLoad={handleLoad}
-              isLoading={loadMutation.isPending}
-            />
+            {/* ---- Workspace Zone ---- */}
+            <div>
+              <div className="text-[9px] font-bold uppercase tracking-wider text-text-muted mb-2 px-1">
+                Workspace
+              </div>
+              <WorkspaceGroup
+                integrations={integrations}
+                loaded={loaded}
+                onToggleIntegration={handleToggleIntegration}
+                onRefreshSecrets={() => secretsMutation.mutate()}
+                isRefreshingSecrets={secretsMutation.isPending}
+                onEditModule={(name) => openEditor(name)}
+              />
+            </div>
 
+            {/* ---- Load Errors ---- */}
             {loadErrors.length > 0 && (
               <div className="mt-2 rounded-md border border-red-500/40 bg-red-500/10 p-2 text-xs text-red-300">
                 <div className="flex items-start justify-between gap-2">
@@ -349,6 +403,21 @@ export function ContextPanel() {
           v{import.meta.env.VITE_APP_VERSION}
         </span>
       </div>
+      {showArchiveModal && (
+        <ArchiveModal
+          archivedTasks={archivedTasks}
+          onClose={() => setShowArchiveModal(false)}
+          onUnarchive={async (name) => {
+            await unarchiveModule(name);
+            const currentNames = loaded.map((m) => m.name);
+            await loadMutation.mutateAsync([...currentNames, name]);
+            invalidateModuleQueries(queryClient);
+          }}
+        />
+      )}
+      {showCreateTask && (
+        <CreateTaskModal onClose={() => setShowCreateTask(false)} />
+      )}
     </aside>
   );
 }
