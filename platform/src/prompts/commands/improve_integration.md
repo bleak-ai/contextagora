@@ -106,37 +106,21 @@ SAVING
 
 When the user says `save`:
 
-1. Build the JSON body from the revised draft:
+1. Write the revised draft to `modules-repo/<name>/info.md` using the Write tool.
 
-   - `"content"`: the full improved markdown (must include a "Python packages" section — the API extracts dependencies from it)
-   - `"summary"`: the one-sentence description from the Purpose section
-   - `"secrets"`: ALL env var names from the "Auth & access" section (e.g. `["LINEAR_API_KEY"]`). NEVER leave this empty if the integration uses secrets.
+2. Read the existing `modules-repo/<name>/module.yaml`, update `summary`, `secrets`, and `dependencies` with values from your revised draft, and write it back. Preserve all other fields (`name`, `kind`, `archived`).
 
-       {
-         "content": "<the improved markdown>",
-         "summary": "<one-sentence description>",
-         "secrets": ["VAR_A", "VAR_B"]
-       }
+3. Register the module:
 
-   The API writes BOTH `info.md` (your markdown) AND `module.yaml` (with secrets and dependencies). Dependencies are extracted from the "Python packages" section of the markdown content.
+       curl -sS -X POST http://localhost:8080/api/modules/<name>/register
 
-2. Write to temp file and PUT:
-
-       cat > /tmp/improve_integration_body.json <<'JSON_EOF'
-       <the JSON>
-       JSON_EOF
-       curl -sS -X PUT http://localhost:8080/api/modules/<module_name> \
-         -H 'Content-Type: application/json' \
-         --data-binary @/tmp/improve_integration_body.json
-
-3. On success: tell the user the module was updated. Then:
+4. On success: tell the user the module was updated. Then:
    - Remind them to **Push** via Sync to persist it
-   - If NEW secrets were added (not in the original module.yaml), remind them to add each new secret to **Infisical** at path `/<module_name>/<SECRET_KEY>` (e.g. `/linear/LINEAR_API_KEY`). Each secret is its own entry inside the module's folder. Do NOT suggest `varlock set` or any local vault command.
-   - Only mention Infisical if new secrets were introduced — don't repeat it for existing ones.
+   - If NEW secrets were added (not in the original module.yaml), remind them to add each new secret to **Infisical** at path `/<module_name>/<SECRET_KEY>`. Only mention Infisical for new secrets.
 
    Emit ONE concrete starter prompt (see TRY marker syntax in Conventions below).
 
-4. On error: show the error.
+5. On error: show the error.
 
 ═══════════════════════════════════════════════════════════════
 SUPPLEMENTARY DOCS
@@ -147,11 +131,9 @@ Only create `docs/*.md` files when:
 - There's extensive API reference that would bloat `info.md`
 - The user explicitly asks for supplementary docs
 
-To create a supplementary doc:
+Write the doc to `modules-repo/<name>/docs/<filename>.md` using the Write tool, then register the module:
 
-    curl -sS -X PUT http://localhost:8080/api/modules/<module_name>/files/docs/<filename>.md \
-      -H 'Content-Type: application/json' \
-      -d '{"content": "<the doc content>"}'
+    curl -sS -X POST http://localhost:8080/api/modules/<name>/register
 
 ═══════════════════════════════════════════════════════════════
 CONVENTIONS

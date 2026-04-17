@@ -65,4 +65,44 @@ A context module folder contains:
 
 ## 6. Python Packages
 
-Listed in the "Python packages" section of `info.md`, one per line, no versions unless a specific version is required. Packages are pre-installed by the host.
+Declared in `module.yaml` under `dependencies:`, one per entry, no versions unless a specific version is required. Packages are pre-installed by the host. The `info.md` may list packages for documentation, but `module.yaml` is the authoritative source.
+
+## 7. Saving a Module
+
+To save a new or updated module:
+
+1. Write `info.md` to `modules-repo/<name>/info.md` using the Write tool
+2. Write `module.yaml` to `modules-repo/<name>/module.yaml`
+3. Register: `curl -sS -X POST http://localhost:8080/api/modules/<name>/register`
+
+### module.yaml fields
+
+| Field | Required | Description |
+|---|---|---|
+| `name` | yes | folder-safe slug |
+| `kind` | yes | `integration`, `task` |
+| `summary` | yes | one-sentence description |
+| `secrets` | if any | env var names needed to connect |
+| `dependencies` | if any | Python packages needed |
+
+Only include fields that apply. Examples:
+
+Integration:
+
+```yaml
+name: stripe
+kind: integration
+summary: Stripe billing API for SaaS subscriptions
+secrets:
+  - STRIPE_KEY_RO
+dependencies:
+  - stripe
+```
+
+Task:
+
+```yaml
+name: fix-billing-bug
+kind: task
+summary: Fix double-charge on plan upgrades
+```

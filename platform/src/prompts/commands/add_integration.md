@@ -74,55 +74,25 @@ SAVING
 
 When the user says `save`:
 
-1. Build the JSON body — extract each field directly from the draft you showed the user:
+1. Create the module directory if it doesn't exist:
 
-   - `"name"`: the normalized module slug
-   - `"content"`: the full markdown draft (must include a "Python packages" section — the API extracts dependencies from it)
-   - `"summary"`: the one-sentence description from the Purpose section
-   - `"secrets"`: ALL env var names from the "Auth & access" section (e.g. `["LINEAR_API_KEY"]`). NEVER leave this empty if the integration uses secrets.
+       mkdir -p modules-repo/<name>
 
-       {
-         "name": "<module_name>",
-         "content": "<the markdown you built>",
-         "summary": "<one-sentence description>",
-         "secrets": ["VAR_A", "VAR_B"]
-       }
+2. Write `info.md` — the full markdown draft — to `modules-repo/<name>/info.md` using the Write tool.
 
-   The API writes BOTH `info.md` (your markdown) AND `module.yaml` (with secrets and dependencies). Dependencies are extracted from the "Python packages" section of the markdown content. The `module.yaml` is what varlock uses to inject secrets at runtime — if secrets are missing from the JSON, the module will not work correctly.
+3. Write `module.yaml` to `modules-repo/<name>/module.yaml` following the Saving a Module convention in the Conventions section below. Include `secrets` and `dependencies` extracted from your draft.
 
-2. Write to temp file and POST:
+4. Register the module:
 
-       cat > /tmp/add_integration_body.json <<'JSON_EOF'
-       <the JSON>
-       JSON_EOF
-       curl -sS -X POST http://localhost:8080/api/modules \
-         -H 'Content-Type: application/json' \
-         --data-binary @/tmp/add_integration_body.json
+       curl -sS -X POST http://localhost:8080/api/modules/<name>/register
 
-3. On success: tell the user the module was created (both `info.md` and `module.yaml`), and remind them to:
+5. On success: tell the user the module was created, and remind them to:
    - **Push** via Sync to persist it
-   - **Load** it in the Workspace page
-   - Add each secret to **Infisical** at path `/<module_name>/<SECRET_KEY>` (e.g. `/linear/LINEAR_API_KEY`). Each secret is its own entry inside the module's folder — that is where varlock fetches them at runtime. Do NOT suggest `varlock set` or any local vault command.
+   - Add each secret to **Infisical** at path `/<module_name>/<SECRET_KEY>` (e.g. `/linear/LINEAR_API_KEY`). Each secret is its own entry inside the module's folder. Do NOT suggest `varlock set` or any local vault command.
 
    Emit ONE concrete starter prompt (see TRY marker syntax in Conventions below).
 
-4. On 409 (module already exists): offer to update via PUT instead. If the user agrees:
-
-       cat > /tmp/add_integration_body.json <<'JSON_EOF'
-       <the JSON without the "name" field>
-       JSON_EOF
-       curl -sS -X PUT http://localhost:8080/api/modules/<module_name> \
-         -H 'Content-Type: application/json' \
-         --data-binary @/tmp/add_integration_body.json
-
-   The PUT payload is the same as POST but without `"name"`:
-
-       {
-         "content": "<the markdown you built>",
-         "summary": "<one-sentence description>",
-         "secrets": ["VAR_A", "VAR_B"]
-       }
-5. On error: show the error.
+6. On error: show the error.
 
 ═══════════════════════════════════════════════════════════════
 CONVENTIONS

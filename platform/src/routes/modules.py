@@ -12,7 +12,6 @@ from src.llms import (
 )
 from src.models import (
     CreateModuleRequest,
-    CreateTaskRequest,
     FileContentRequest,
     GenerateModuleRequest,
     GenerateModuleResponse,
@@ -23,8 +22,6 @@ from src.config import settings
 from src.services import git_repo
 from src.services.manifest import (
     ModuleManifest,
-    extract_packages,
-    extract_secrets,
     read_manifest,
     write_manifest,
 )
@@ -57,62 +54,6 @@ async def api_list_modules():
             archived=manifest.archived,
         ))
     return {"modules": modules}
-
-
-@router.post("/create-task", status_code=201)
-async def api_create_task(body: CreateTaskRequest):
-    """Scaffold a new task module and auto-load it."""
-    slug = slugify_task_name(body.name)
-    slug = validate_module_name(slug)
-
-    try:
-        git_repo.create_module_dir(slug)
-    except FileExistsError:
-        return JSONResponse(
-            {"error": f"Module '{slug}' already exists"}, status_code=409
-        )
-
-    title = body.name.strip()
-    description = body.description.strip() if body.description else ""
-    summary = description or title
-
-    manifest = ModuleManifest(name=slug, kind="task", summary=summary)
-    write_manifest(git_repo.module_dir(slug), manifest)
-
-    info_lines = [f"# {title}", ""]
-    if description:
-        info_lines.append(description)
-    git_repo.write_file(slug, "info.md", "\n".join(info_lines) + "\n")
-
-    from datetime import date
-    status_lines = [
-        f"# {title} — Status",
-        "",
-        f"**Created:** {date.today().isoformat()}",
-        "",
-        "## Context",
-        summary,
-        "",
-        "## Next Steps",
-        "- ",
-    ]
-    git_repo.write_file(slug, "status.md", "\n".join(status_lines) + "\n")
-
-    llms_lines = [
-        f"# {title}",
-        f"> {summary}",
-        "",
-        "## Status",
-        f"- [status.md](status.md) — Current status and next steps",
-    ]
-    git_repo.write_file(slug, "llms.txt", "\n".join(llms_lines) + "\n")
-
-    current = get_loaded_module_names()
-    if slug not in current:
-        current.append(slug)
-    reload_workspace(current)
-
-    return {"name": slug}
 
 
 def _set_module_archived(name: str, archived: bool) -> None:
@@ -176,33 +117,148 @@ async def api_get_module(name: str):
     }
 
 
+def _scaffold_integration(slug: str, body: CreateModuleRequest) -> None:
+    """Scaffold files for an integration module."""
+    git_repo.write_file(slug, "info.md", body.content)
+    llms_txt = generate_module_llms_txt(slug, body.summary, ["info.md"])
+    git_repo.write_file(slug, "llms.txt", llms_txt)
+
+
+def _scaffold_task(slug: str, body: CreateModuleRequest) -> None:
+    """Scaffold files for a task module."""
+    from datetime import date
+
+    title = body.name.strip()
+    description = body.description.strip() if body.description else ""
+    summary = description or title
+
+    info_lines = [f"# {title}", ""]
+    if description:
+        info_lines.append(description)
+    git_repo.write_file(slug, "info.md", "\n".join(info_lines) + "\n")
+
+    status_lines = [
+        f"# {title} — Status",
+        "",
+        f"**Created:** {date.today().isoformat()}",
+        "",
+        "## Context",
+        summary,
+        "",
+        "## Next Steps",
+        "- ",
+    ]
+    git_repo.write_file(slug, "status.md", "\n".join(status_lines) + "\n")
+
+    llms_lines = [
+        f"# {title}",
+        f"> {summary}",
+        "",
+        "## Status",
+        f"- [status.md](status.md) — Current status and next steps",
+    ]
+    git_repo.write_file(slug, "llms.txt", "\n".join(llms_lines) + "\n")
+
+
+_SCAFFOLD_FN = {
+    "integration": _scaffold_integration,
+    "task": _scaffold_task,
+}
+
+VALID_KINDS = frozenset(_SCAFFOLD_FN.keys())
+
+
 @router.post("", status_code=201)
 async def api_create_module(body: CreateModuleRequest):
-    """Create a new module with info.md, llms.txt, and module.yaml."""
-    name = validate_module_name(body.name)
-
-    try:
-        git_repo.create_module_dir(name)
-    except FileExistsError:
+    """Create a new module. Scaffolded files depend on body.kind."""
+    if body.kind not in VALID_KINDS:
         return JSONResponse(
-            {"error": f"Module '{name}' already exists"}, status_code=409
+            {"error": f"Invalid kind '{body.kind}'. Must be one of: {', '.join(sorted(VALID_KINDS))}"},
+            status_code=400,
         )
 
-    git_repo.write_file(name, "info.md", body.content)
-    files = ["info.md"]
-
-    manifest = ModuleManifest(
-        name=name,
-        summary=body.summary,
-        secrets=extract_secrets(body.content),
-        dependencies=extract_packages(body.content),
+    slug = (
+        slugify_task_name(body.name) if body.kind != "integration"
+        else validate_module_name(body.name)
     )
-    write_manifest(git_repo.module_dir(name), manifest)
 
-    llms_txt = generate_module_llms_txt(name, body.summary, files)
-    git_repo.write_file(name, "llms.txt", llms_txt)
+    try:
+        git_repo.create_module_dir(slug)
+    except FileExistsError:
+        return JSONResponse(
+            {"error": f"Module '{slug}' already exists"}, status_code=409
+        )
 
-    return {"name": name}
+    summary = body.summary or body.description or ""
+    manifest = ModuleManifest(
+        name=slug,
+        kind=body.kind,
+        summary=summary,
+        secrets=body.secrets,
+        dependencies=body.requirements,
+    )
+    write_manifest(git_repo.module_dir(slug), manifest)
+
+    _SCAFFOLD_FN[body.kind](slug, body)
+
+    # Auto-load tasks into workspace
+    if body.kind != "integration":
+        current = get_loaded_module_names()
+        if slug not in current:
+            current.append(slug)
+        reload_workspace(current)
+
+    return {"name": slug}
+
+
+@router.post("/{name}/register")
+async def api_register_module(name: str):
+    """Register a module from files already written to disk.
+
+    Reads info.md and module.yaml from modules-repo/{name}/, generates
+    llms.txt, and optionally auto-loads non-integration modules.
+    """
+    if not git_repo.module_exists(name):
+        return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
+
+    module_dir = git_repo.module_dir(name)
+
+    # Validate info.md exists
+    try:
+        git_repo.read_file(name, "info.md")
+    except FileNotFoundError:
+        return JSONResponse(
+            {"error": f"Module '{name}' is missing info.md"}, status_code=400
+        )
+
+    # Validate and read module.yaml
+    manifest_path = module_dir / "module.yaml"
+    if not manifest_path.exists():
+        return JSONResponse(
+            {"error": f"Module '{name}' is missing module.yaml"}, status_code=400
+        )
+    try:
+        manifest = read_manifest(module_dir)
+    except Exception as exc:
+        return JSONResponse(
+            {"error": f"Module '{name}' has invalid module.yaml: {exc}"}, status_code=400
+        )
+
+    # Generate llms.txt
+    regenerate_module_llms_txt(name, settings.MANAGED_FILES, summary=manifest.summary)
+
+    # Auto-load non-integrations into workspace
+    if manifest.kind != "integration":
+        current = get_loaded_module_names()
+        if name not in current:
+            current.append(name)
+        reload_workspace(current)
+
+    return {
+        "name": manifest.name,
+        "kind": manifest.kind,
+        "summary": manifest.summary,
+    }
 
 
 @router.put("/{name}")
@@ -213,12 +269,12 @@ async def api_update_module(name: str, body: UpdateModuleRequest):
 
     git_repo.write_file(name, "info.md", body.content)
 
-    manifest = ModuleManifest(
-        name=name,
-        summary=body.summary,
-        secrets=extract_secrets(body.content),
-        dependencies=extract_packages(body.content),
-    )
+    existing = read_manifest(git_repo.module_dir(name))
+    manifest = existing.model_copy(update={
+        "summary": body.summary,
+        "secrets": body.secrets,
+        "dependencies": body.requirements,
+    })
     write_manifest(git_repo.module_dir(name), manifest)
 
     regenerate_module_llms_txt(name, settings.MANAGED_FILES, summary=body.summary)

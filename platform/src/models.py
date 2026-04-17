@@ -7,8 +7,10 @@ class FileContentRequest(BaseModel):
 
 class CreateModuleRequest(BaseModel):
     name: str
-    content: str
+    kind: str = "integration"
+    content: str = ""
     summary: str = ""
+    description: str = ""
     secrets: list[str] = []
     requirements: list[str] = []
 
@@ -42,11 +44,6 @@ class ModuleInfo(BaseModel):
     kind: str = "integration"
     summary: str = ""
     archived: bool = False
-
-
-class CreateTaskRequest(BaseModel):
-    name: str
-    description: str = ""
 
 
 class PushRequest(BaseModel):

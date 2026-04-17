@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createTask } from "../../api/modules";
+import { createModule } from "../../api/modules";
 import { invalidateModuleQueries } from "../../lib/queryClient";
 
 interface Props {
@@ -13,7 +13,7 @@ export function CreateTaskModal({ onClose }: Props) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: () => createTask({ name, description: description || undefined }),
+    mutationFn: () => createModule({ name, kind: "task", description: description || undefined }),
     onSuccess: () => {
       invalidateModuleQueries(queryClient);
       onClose();

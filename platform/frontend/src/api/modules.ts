@@ -25,22 +25,14 @@ export function fetchModule(name: string): Promise<ModuleDetail> {
 
 export function createModule(data: {
   name: string;
-  content: string;
-  summary: string;
-  secrets: string[];
-  requirements: string[];
+  kind?: "integration" | "task";
+  content?: string;
+  summary?: string;
+  description?: string;
+  secrets?: string[];
+  requirements?: string[];
 }): Promise<{ name: string }> {
   return apiFetch("/modules", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-
-export function createTask(data: {
-  name: string;
-  description?: string;
-}): Promise<{ name: string }> {
-  return apiFetch("/modules/create-task", {
     method: "POST",
     body: JSON.stringify(data),
   });

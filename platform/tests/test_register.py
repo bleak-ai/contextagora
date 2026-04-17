@@ -1,0 +1,103 @@
+import asyncio
+import yaml
+from unittest.mock import patch
+from src.routes.modules import api_register_module
+from src.services.manifest import ModuleManifest, write_manifest
+
+
+def test_register_reads_manifest_and_generates_llms(tmp_path):
+    """Register should read files from disk and generate llms.txt."""
+    (tmp_path / "info.md").write_text("# stripe\n\n## Purpose\nBilling API\n")
+    manifest = ModuleManifest(
+        name="stripe", kind="integration", summary="Billing API",
+        secrets=["STRIPE_KEY"], dependencies=["stripe"],
+    )
+    write_manifest(tmp_path, manifest)
+
+    with patch("src.routes.modules.git_repo") as mock_repo, \
+         patch("src.routes.modules.regenerate_module_llms_txt") as mock_regen:
+        mock_repo.module_dir.return_value = tmp_path
+        mock_repo.module_exists.return_value = True
+        mock_repo.read_file.return_value = "# stripe"  # info.md exists
+
+        result = asyncio.run(api_register_module("stripe"))
+
+    assert result["name"] == "stripe"
+    assert result["kind"] == "integration"
+    assert result["summary"] == "Billing API"
+    mock_regen.assert_called_once()
+
+
+def test_register_404_when_dir_missing():
+    """Register should return 404 if module directory doesn't exist."""
+    with patch("src.routes.modules.git_repo") as mock_repo:
+        mock_repo.module_exists.return_value = False
+
+        result = asyncio.run(api_register_module("nonexistent"))
+
+    assert result.status_code == 404
+
+
+def test_register_400_when_info_md_missing(tmp_path):
+    """Register should return 400 if info.md is missing."""
+    manifest = ModuleManifest(name="bad", summary="no info")
+    write_manifest(tmp_path, manifest)
+
+    with patch("src.routes.modules.git_repo") as mock_repo:
+        mock_repo.module_exists.return_value = True
+        mock_repo.module_dir.return_value = tmp_path
+        mock_repo.read_file.side_effect = FileNotFoundError
+
+        result = asyncio.run(api_register_module("bad"))
+
+    assert result.status_code == 400
+
+
+def test_register_400_when_manifest_missing(tmp_path):
+    """Register should return 400 if module.yaml is missing."""
+    (tmp_path / "info.md").write_text("# test\n")
+    # No module.yaml
+
+    with patch("src.routes.modules.git_repo") as mock_repo:
+        mock_repo.module_exists.return_value = True
+        mock_repo.module_dir.return_value = tmp_path
+        mock_repo.read_file.return_value = "# test"  # info.md exists
+
+        result = asyncio.run(api_register_module("bad"))
+
+    assert result.status_code == 400
+
+
+def test_register_400_when_manifest_invalid_yaml(tmp_path):
+    """Register should return 400 if module.yaml is malformed."""
+    (tmp_path / "info.md").write_text("# test\n")
+    (tmp_path / "module.yaml").write_text(": invalid: yaml: [broken")
+
+    with patch("src.routes.modules.git_repo") as mock_repo:
+        mock_repo.module_exists.return_value = True
+        mock_repo.module_dir.return_value = tmp_path
+        mock_repo.read_file.return_value = "# test"
+
+        result = asyncio.run(api_register_module("bad"))
+
+    assert result.status_code == 400
+
+
+def test_register_autoloads_non_integration(tmp_path):
+    """Register should auto-load tasks into workspace."""
+    (tmp_path / "info.md").write_text("# fix bug\n")
+    manifest = ModuleManifest(name="fix-bug", kind="task", summary="Fix it")
+    write_manifest(tmp_path, manifest)
+
+    with patch("src.routes.modules.git_repo") as mock_repo, \
+         patch("src.routes.modules.regenerate_module_llms_txt"), \
+         patch("src.routes.modules.get_loaded_module_names", return_value=["stripe"]), \
+         patch("src.routes.modules.reload_workspace") as mock_reload:
+        mock_repo.module_dir.return_value = tmp_path
+        mock_repo.module_exists.return_value = True
+        mock_repo.read_file.return_value = "# fix bug"
+
+        result = asyncio.run(api_register_module("fix-bug"))
+
+    assert result["name"] == "fix-bug"
+    mock_reload.assert_called_once_with(["stripe", "fix-bug"])
