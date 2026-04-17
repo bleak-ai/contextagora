@@ -11,16 +11,16 @@
 
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --color-bg: #1c1c1a;
-  --color-bg-raised: #252523;
-  --color-bg-hover: #2e2d2b;
-  --color-text: #d8d6d4;
-  --color-text-secondary: #b0aead;
-  --color-text-muted: #7a7876;
-  --color-accent: #c4a35a;
-  --color-accent-hover: #d4b36a;
-  --color-border: #403e3a;
-  --color-border-light: #4d4b46;
+  --color-bg: #1a1a18;
+  --color-bg-raised: #282826;
+  --color-bg-hover: #333330;
+  --color-text: #eeece9;
+  --color-text-secondary: #c4c2bf;
+  --color-text-muted: #908d89;
+  --color-accent: #dab44e;
+  --color-accent-hover: #e8c55c;
+  --color-border: #48463f;
+  --color-border-light: #5a5750;
 }
 
 html {
@@ -29,7 +29,7 @@ html {
 }
 
 ::selection {
-  background-color: rgba(196, 163, 90, 0.3);
+  background-color: rgba(218, 180, 78, 0.3);
 }
 
 /* Per-line wrappers inside <pre><code> — added by deploy.astro so we can

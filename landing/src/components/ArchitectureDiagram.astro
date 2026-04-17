@@ -13,12 +13,12 @@
         <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
       </filter>
       <radialGradient id="ad-center" cx="50%" cy="50%" r="50%">
-        <stop offset="0%"   stop-color="#c4a35a" stop-opacity="0.07"/>
-        <stop offset="100%" stop-color="#c4a35a" stop-opacity="0"/>
+        <stop offset="0%"   stop-color="#dab44e" stop-opacity="0.07"/>
+        <stop offset="100%" stop-color="#dab44e" stop-opacity="0"/>
       </radialGradient>
       <marker id="ad-arrow" viewBox="0 0 8 6" refX="7" refY="3"
               markerWidth="8" markerHeight="6" orient="auto-start-reverse">
-        <path d="M 0 0 L 8 3 L 0 6 z" fill="#c4a35a" opacity="0.7"/>
+        <path d="M 0 0 L 8 3 L 0 6 z" fill="#dab44e" opacity="0.7"/>
       </marker>
       <marker id="ad-arrow-amber" viewBox="0 0 8 6" refX="7" refY="3"
               markerWidth="8" markerHeight="6" orient="auto-start-reverse">
@@ -27,16 +27,16 @@
     </defs>
 
     <!-- ─── Background ─── -->
-    <rect width="820" height="340" fill="#1c1c1a" rx="8"/>
+    <rect width="820" height="340" fill="#1a1a18" rx="8"/>
     <ellipse cx="410" cy="160" rx="190" ry="130" fill="url(#ad-center)"/>
 
     <!-- ─── Flow labels ─── -->
     <text x="230" y="30" text-anchor="middle"
-          font-family="Inter, sans-serif" font-size="10.5" fill="#b0aea8" letter-spacing="0.5">you select &#x2192;</text>
+          font-family="Inter, sans-serif" font-size="10.5" fill="#c4c2bf" letter-spacing="0.5">you select &#x2192;</text>
     <text x="410" y="30" text-anchor="middle"
-          font-family="Inter, sans-serif" font-size="10.5" fill="#c4a35a" letter-spacing="0.5">agent loads &#x2192;</text>
+          font-family="Inter, sans-serif" font-size="10.5" fill="#dab44e" letter-spacing="0.5">agent loads &#x2192;</text>
     <text x="570" y="30" text-anchor="middle"
-          font-family="Inter, sans-serif" font-size="10.5" fill="#b0aea8" letter-spacing="0.5">agent connects</text>
+          font-family="Inter, sans-serif" font-size="10.5" fill="#c4c2bf" letter-spacing="0.5">agent connects</text>
 
     <!-- ══════════════════════════════════════════
          LEFT PANEL — Modules
@@ -44,64 +44,64 @@
 
     <text x="95" y="50" text-anchor="middle"
           font-family="Inter, ui-sans-serif, sans-serif"
-          font-size="10.5" font-weight="600" fill="#908e8c" letter-spacing="1.8">YOUR CONTEXT</text>
+          font-size="10.5" font-weight="600" fill="#908d89" letter-spacing="1.8">YOUR CONTEXT</text>
 
     <!-- linear (active) -->
-    <rect x="24" y="64" width="142" height="34" rx="3" fill="#252523" stroke="#c4a35a" stroke-width="1"/>
-    <circle cx="40" cy="81" r="3.5" fill="#c4a35a" filter="url(#ad-glow)">
+    <rect x="24" y="64" width="142" height="34" rx="3" fill="#282826" stroke="#dab44e" stroke-width="1"/>
+    <circle cx="40" cy="81" r="3.5" fill="#dab44e" filter="url(#ad-glow)">
       <animate attributeName="opacity" values="1;0.25;1" dur="4s" repeatCount="indefinite"/>
     </circle>
-    <text x="52" y="86" font-family="'SF Mono','Fira Code','Courier New',monospace" font-size="12.5" fill="#c4a35a">linear</text>
-    <text x="158" y="86" text-anchor="end" font-family="Inter, sans-serif" font-size="10" fill="#908e8c">loaded</text>
+    <text x="52" y="86" font-family="'SF Mono','Fira Code','Courier New',monospace" font-size="12.5" fill="#dab44e">linear</text>
+    <text x="158" y="86" text-anchor="end" font-family="Inter, sans-serif" font-size="10" fill="#908d89">loaded</text>
 
     <!-- supabase (active) -->
-    <rect x="24" y="108" width="142" height="34" rx="3" fill="#252523" stroke="#c4a35a" stroke-width="1"/>
-    <circle cx="40" cy="125" r="3.5" fill="#c4a35a" filter="url(#ad-glow)">
+    <rect x="24" y="108" width="142" height="34" rx="3" fill="#282826" stroke="#dab44e" stroke-width="1"/>
+    <circle cx="40" cy="125" r="3.5" fill="#dab44e" filter="url(#ad-glow)">
       <animate attributeName="opacity" values="1;0.25;1" dur="4s" begin="0.8s" repeatCount="indefinite"/>
     </circle>
-    <text x="52" y="130" font-family="'SF Mono','Fira Code','Courier New',monospace" font-size="12.5" fill="#c4a35a">supabase</text>
-    <text x="158" y="130" text-anchor="end" font-family="Inter, sans-serif" font-size="10" fill="#908e8c">loaded</text>
+    <text x="52" y="130" font-family="'SF Mono','Fira Code','Courier New',monospace" font-size="12.5" fill="#dab44e">supabase</text>
+    <text x="158" y="130" text-anchor="end" font-family="Inter, sans-serif" font-size="10" fill="#908d89">loaded</text>
 
     <!-- jira (not loaded) -->
-    <rect x="24" y="152" width="142" height="34" rx="3" fill="#252523" stroke="#403e3a" stroke-width="1"/>
-    <circle cx="40" cy="169" r="3.5" fill="#2e2d2b"/>
-    <text x="52" y="174" font-family="'SF Mono','Fira Code','Courier New',monospace" font-size="12.5" fill="#5a5856">jira</text>
+    <rect x="24" y="152" width="142" height="34" rx="3" fill="#282826" stroke="#48463f" stroke-width="1"/>
+    <circle cx="40" cy="169" r="3.5" fill="#333330"/>
+    <text x="52" y="174" font-family="'SF Mono','Fira Code','Courier New',monospace" font-size="12.5" fill="#6a6864">jira</text>
 
     <!-- notion (not loaded) -->
-    <rect x="24" y="196" width="142" height="34" rx="3" fill="#252523" stroke="#403e3a" stroke-width="1"/>
-    <circle cx="40" cy="213" r="3.5" fill="#2e2d2b"/>
-    <text x="52" y="218" font-family="'SF Mono','Fira Code','Courier New',monospace" font-size="12.5" fill="#5a5856">notion</text>
+    <rect x="24" y="196" width="142" height="34" rx="3" fill="#282826" stroke="#48463f" stroke-width="1"/>
+    <circle cx="40" cy="213" r="3.5" fill="#333330"/>
+    <text x="52" y="218" font-family="'SF Mono','Fira Code','Courier New',monospace" font-size="12.5" fill="#6a6864">notion</text>
 
-    <text x="95" y="250" text-anchor="middle" font-family="Inter, sans-serif" font-size="10.5" fill="#5a5856">+ yours</text>
+    <text x="95" y="250" text-anchor="middle" font-family="Inter, sans-serif" font-size="10.5" fill="#6a6864">+ yours</text>
 
     <!-- Safe Secrets for AI -->
-    <rect x="24" y="268" width="142" height="34" rx="3" fill="#252523" stroke="#e8a946" stroke-width="1"/>
+    <rect x="24" y="268" width="142" height="34" rx="3" fill="#282826" stroke="#e8a946" stroke-width="1"/>
     <g transform="translate(32, 274) scale(0.55)" fill="none" stroke="#e8a946" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
       <path d="m9 12 2 2 4-4"/>
     </g>
     <text x="52" y="283" font-family="'SF Mono','Fira Code','Courier New',monospace" font-size="10.5" fill="#e8a946">secrets</text>
-    <text x="158" y="283" text-anchor="end" font-family="Inter, sans-serif" font-size="9" fill="#908e8c">safe for AI</text>
-    <text x="52" y="296" font-family="Inter, sans-serif" font-size="8.5" fill="#908e8c">injected at runtime</text>
+    <text x="158" y="283" text-anchor="end" font-family="Inter, sans-serif" font-size="9" fill="#908d89">safe for AI</text>
+    <text x="52" y="296" font-family="Inter, sans-serif" font-size="8.5" fill="#908d89">injected at runtime</text>
 
     <!-- ══════════════════════════════════════════
          CONNECTIONS — inputs → workspace (solid arrows + animated dots)
     ══════════════════════════════════════════ -->
     <path d="M 166 81 C 240 81 260 168 310 168"
-          stroke="#c4a35a" stroke-width="1.2" fill="none" opacity="0.6"
+          stroke="#dab44e" stroke-width="1.2" fill="none" opacity="0.6"
           marker-end="url(#ad-arrow)"/>
     <path d="M 166 125 C 240 125 260 175 310 175"
-          stroke="#c4a35a" stroke-width="1.2" fill="none" opacity="0.6"
+          stroke="#dab44e" stroke-width="1.2" fill="none" opacity="0.6"
           marker-end="url(#ad-arrow)"/>
 
     <!-- linear → workspace animated dots -->
-    <circle r="2.8" fill="#c4a35a" filter="url(#ad-glow)">
+    <circle r="2.8" fill="#dab44e" filter="url(#ad-glow)">
       <animateMotion dur="3s" repeatCount="indefinite" begin="0s"
         path="M 166 81 C 240 81 260 168 310 168"/>
       <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.15;0.8;1"
                dur="3s" repeatCount="indefinite" begin="0s"/>
     </circle>
-    <circle r="2.8" fill="#c4a35a" filter="url(#ad-glow)">
+    <circle r="2.8" fill="#dab44e" filter="url(#ad-glow)">
       <animateMotion dur="3s" repeatCount="indefinite" begin="1.5s"
         path="M 166 81 C 240 81 260 168 310 168"/>
       <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.15;0.8;1"
@@ -109,13 +109,13 @@
     </circle>
 
     <!-- supabase → workspace animated dots -->
-    <circle r="2.8" fill="#c4a35a" filter="url(#ad-glow)">
+    <circle r="2.8" fill="#dab44e" filter="url(#ad-glow)">
       <animateMotion dur="3s" repeatCount="indefinite" begin="0.5s"
         path="M 166 125 C 240 125 260 175 310 175"/>
       <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.15;0.8;1"
                dur="3s" repeatCount="indefinite" begin="0.5s"/>
     </circle>
-    <circle r="2.8" fill="#c4a35a" filter="url(#ad-glow)">
+    <circle r="2.8" fill="#dab44e" filter="url(#ad-glow)">
       <animateMotion dur="3s" repeatCount="indefinite" begin="2s"
         path="M 166 125 C 240 125 260 175 310 175"/>
       <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.15;0.8;1"
@@ -146,31 +146,31 @@
          CENTER — Agent Workspace
     ══════════════════════════════════════════ -->
     <rect x="308" y="50" width="210" height="224" rx="7"
-          fill="none" stroke="#c4a35a" stroke-width="1.5" opacity="0.45"/>
-    <rect x="310" y="52" width="206" height="220" rx="6" fill="#252523"/>
+          fill="none" stroke="#dab44e" stroke-width="1.5" opacity="0.45"/>
+    <rect x="310" y="52" width="206" height="220" rx="6" fill="#282826"/>
 
-    <rect x="310" y="52" width="206" height="24" rx="6" fill="#2e2d2b"/>
-    <rect x="310" y="64" width="206" height="12" fill="#2e2d2b"/>
-    <circle cx="326" cy="64" r="3.5" fill="#403e3a"/>
-    <circle cx="339" cy="64" r="3.5" fill="#403e3a"/>
-    <circle cx="352" cy="64" r="3.5" fill="#403e3a"/>
+    <rect x="310" y="52" width="206" height="24" rx="6" fill="#333330"/>
+    <rect x="310" y="64" width="206" height="12" fill="#333330"/>
+    <circle cx="326" cy="64" r="3.5" fill="#48463f"/>
+    <circle cx="339" cy="64" r="3.5" fill="#48463f"/>
+    <circle cx="352" cy="64" r="3.5" fill="#48463f"/>
     <text x="413" y="66" text-anchor="middle"
-          font-family="Inter, sans-serif" font-size="10" font-weight="500" fill="#b0aea8">agent workspace</text>
+          font-family="Inter, sans-serif" font-size="10" font-weight="500" fill="#c4c2bf">agent workspace</text>
 
-    <text x="328" y="98"  font-family="'SF Mono',monospace" font-size="11" fill="#908e8c">$ context load</text>
-    <text x="328" y="116" font-family="'SF Mono',monospace" font-size="11" fill="#c4a35a">&#x2714; 2 modules loaded</text>
+    <text x="328" y="98"  font-family="'SF Mono',monospace" font-size="11" fill="#908d89">$ context load</text>
+    <text x="328" y="116" font-family="'SF Mono',monospace" font-size="11" fill="#dab44e">&#x2714; 2 modules loaded</text>
 
-    <line x1="328" y1="130" x2="498" y2="130" stroke="#403e3a" stroke-width="0.5"/>
+    <line x1="328" y1="130" x2="498" y2="130" stroke="#48463f" stroke-width="0.5"/>
 
-    <text x="328" y="148" font-family="'SF Mono',monospace" font-size="10.5" fill="#908e8c">context/</text>
-    <text x="328" y="165" font-family="'SF Mono',monospace" font-size="10.5" fill="#d8d6d4">&#x251C;&#x2500;&#x2500; linear/</text>
-    <text x="328" y="182" font-family="'SF Mono',monospace" font-size="10.5" fill="#d8d6d4">&#x2514;&#x2500;&#x2500; supabase/</text>
+    <text x="328" y="148" font-family="'SF Mono',monospace" font-size="10.5" fill="#908d89">context/</text>
+    <text x="328" y="165" font-family="'SF Mono',monospace" font-size="10.5" fill="#eeece9">&#x251C;&#x2500;&#x2500; linear/</text>
+    <text x="328" y="182" font-family="'SF Mono',monospace" font-size="10.5" fill="#eeece9">&#x2514;&#x2500;&#x2500; supabase/</text>
 
-    <line x1="328" y1="196" x2="498" y2="196" stroke="#403e3a" stroke-width="0.5"/>
+    <line x1="328" y1="196" x2="498" y2="196" stroke="#48463f" stroke-width="0.5"/>
 
-    <rect x="322" y="206" width="180" height="38" rx="4" fill="#2e2d2b"/>
-    <text x="336" y="230" font-family="Inter, sans-serif" font-size="11.5" font-weight="500" fill="#d8d6d4">Chat interface</text>
-    <rect x="430" y="220" width="5" height="10" rx="1" fill="#c4a35a">
+    <rect x="322" y="206" width="180" height="38" rx="4" fill="#333330"/>
+    <text x="336" y="230" font-family="Inter, sans-serif" font-size="11.5" font-weight="500" fill="#eeece9">Chat interface</text>
+    <rect x="430" y="220" width="5" height="10" rx="1" fill="#dab44e">
       <animate attributeName="opacity" values="0.9;0;0.9" dur="1.8s" repeatCount="indefinite"/>
     </rect>
 
@@ -179,26 +179,26 @@
     ══════════════════════════════════════════ -->
     <text x="700" y="50" text-anchor="middle"
           font-family="Inter, ui-sans-serif, sans-serif"
-          font-size="10.5" font-weight="600" fill="#908e8c" letter-spacing="1.8">LIVE SERVICES</text>
+          font-size="10.5" font-weight="600" fill="#908d89" letter-spacing="1.8">LIVE SERVICES</text>
 
-    <rect x="622" y="112" width="158" height="48" rx="3" fill="#252523" stroke="#403e3a" stroke-width="1"/>
-    <text x="636" y="138" font-family="Inter, sans-serif" font-size="12" font-weight="500" fill="#d8d6d4">Linear</text>
-    <text x="636" y="152" font-family="Inter, sans-serif" font-size="9.5" fill="#908e8c">Issues &#xB7; Projects &#xB7; Cycles</text>
+    <rect x="622" y="112" width="158" height="48" rx="3" fill="#282826" stroke="#48463f" stroke-width="1"/>
+    <text x="636" y="138" font-family="Inter, sans-serif" font-size="12" font-weight="500" fill="#eeece9">Linear</text>
+    <text x="636" y="152" font-family="Inter, sans-serif" font-size="9.5" fill="#908d89">Issues &#xB7; Projects &#xB7; Cycles</text>
 
-    <rect x="622" y="218" width="158" height="48" rx="3" fill="#252523" stroke="#403e3a" stroke-width="1"/>
-    <text x="636" y="244" font-family="Inter, sans-serif" font-size="12" font-weight="500" fill="#d8d6d4">Supabase</text>
-    <text x="636" y="258" font-family="Inter, sans-serif" font-size="9.5" fill="#908e8c">Database &#xB7; Auth &#xB7; Storage</text>
+    <rect x="622" y="218" width="158" height="48" rx="3" fill="#282826" stroke="#48463f" stroke-width="1"/>
+    <text x="636" y="244" font-family="Inter, sans-serif" font-size="12" font-weight="500" fill="#eeece9">Supabase</text>
+    <text x="636" y="258" font-family="Inter, sans-serif" font-size="9.5" fill="#908d89">Database &#xB7; Auth &#xB7; Storage</text>
 
-    <text x="700" y="296" text-anchor="middle" font-family="Inter, sans-serif" font-size="10.5" fill="#5a5856">+ any API</text>
+    <text x="700" y="296" text-anchor="middle" font-family="Inter, sans-serif" font-size="10.5" fill="#6a6864">+ any API</text>
 
     <!-- ══════════════════════════════════════════
          CONNECTIONS — workspace ↔ services (bidirectional arrows)
     ══════════════════════════════════════════ -->
     <path d="M 518 155 C 565 155 565 136 622 136"
-          stroke="#c4a35a" stroke-width="1.2" fill="none" opacity="0.6"
+          stroke="#dab44e" stroke-width="1.2" fill="none" opacity="0.6"
           marker-start="url(#ad-arrow)" marker-end="url(#ad-arrow)"/>
     <path d="M 518 220 C 565 220 565 242 622 242"
-          stroke="#c4a35a" stroke-width="1.2" fill="none" opacity="0.6"
+          stroke="#dab44e" stroke-width="1.2" fill="none" opacity="0.6"
           marker-start="url(#ad-arrow)" marker-end="url(#ad-arrow)"/>
 
   </svg>
