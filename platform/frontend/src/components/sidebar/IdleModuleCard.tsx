@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { fetchModule } from "../../api/modules";
+import { useModuleEditorStore } from "../../hooks/useModuleEditorStore";
 
 interface Props {
   name: string;
@@ -12,10 +14,13 @@ interface Props {
  * what it WILL bring (from /api/modules/{name}: secrets schema + requirements).
  * No package install status here — that only exists post-load. */
 export function IdleModuleCard({ name, selected, onToggleSelect }: Props) {
+  const openModuleEditor = useModuleEditorStore((s) => s.openModuleEditor);
+  const [expanded, setExpanded] = useState(false);
+
   const { data, isLoading } = useQuery({
     queryKey: ["module", name],
     queryFn: () => fetchModule(name),
-    enabled: selected,
+    enabled: expanded,
     staleTime: 60_000,
   });
 
@@ -27,7 +32,7 @@ export function IdleModuleCard({ name, selected, onToggleSelect }: Props) {
     <div
       className={`mb-1.5 overflow-hidden rounded-md border bg-bg-hover transition-colors ${selected ? borderClass : "border-border opacity-100"}`}
     >
-      <label className="flex w-full cursor-pointer items-center gap-2 px-2.5 py-2">
+      <div className="flex w-full items-center gap-2 px-2.5 py-2">
         <input
           type="checkbox"
           checked={selected}
@@ -35,15 +40,35 @@ export function IdleModuleCard({ name, selected, onToggleSelect }: Props) {
           className="h-3.5 w-3.5 accent-accent"
         />
         <span className="h-1.5 w-1.5 rounded-full bg-text-muted" />
-        <span className="flex-1 text-xs font-semibold text-text-secondary">
-          {name}
-        </span>
-        <span className="text-[9px] uppercase tracking-wider text-text-secondary">
-          {selected ? "pending" : "available"}
-        </span>
-      </label>
+        <button
+          type="button"
+          onClick={() => setExpanded((e) => !e)}
+          className="flex flex-1 items-center justify-between gap-2 text-left hover:opacity-80"
+        >
+          <span className="text-xs font-semibold text-text-secondary">
+            {name}
+          </span>
+          <span className="text-[10px] text-text-muted">
+            {expanded ? "▾" : "▸"}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            openModuleEditor(name);
+          }}
+          className="p-1 rounded hover:bg-accent/10 text-text-muted hover:text-accent transition-colors"
+          title="Edit module"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+        </button>
+      </div>
 
-      {selected && (
+      {expanded && (
         <div className="border-t border-dashed border-border bg-bg-raised px-3 py-2">
           {isLoading && (
             <p className="py-1 font-mono text-[10px] text-text-muted">

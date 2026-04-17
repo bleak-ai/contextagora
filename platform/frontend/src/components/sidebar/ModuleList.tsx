@@ -1,7 +1,9 @@
+import { useState } from "react";
 import type { ModuleInfo } from "../../api/modules";
 import type { LoadedModule } from "../../api/workspace";
 import { IdleModuleCard } from "./IdleModuleCard";
 import { ModuleCard } from "./ModuleCard";
+import { CreateModuleModal } from "./CreateModuleModal";
 
 interface Props {
   loaded: LoadedModule[];
@@ -24,6 +26,18 @@ export function ModuleList({
   onRefreshSecrets,
   isRefreshingSecrets,
 }: Props) {
+  const [showCreate, setShowCreate] = useState(false);
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+
+  const toggleExpand = (name: string) => {
+    setExpandedModules((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+
   const integrations = available.filter((m) => m.kind === "integration" && !m.archived);
   const integrationNames = new Set(integrations.map((m) => m.name));
   const loadedIntegrations = loaded.filter((m) => integrationNames.has(m.name));
@@ -38,9 +52,22 @@ export function ModuleList({
   return (
     <div>
       <div className="mb-1.5 flex items-center justify-between px-1">
-        <span className="text-[10px] tracking-wider text-text-muted">
-          INTEGRATIONS
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] tracking-wider text-text-muted">
+            INTEGRATIONS
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="w-4 h-4 rounded flex items-center justify-center text-text-muted hover:text-accent hover:bg-accent/10 transition-colors"
+            title="New integration"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+        </div>
         <button
           type="button"
           onClick={onRefreshSecrets}
@@ -53,15 +80,17 @@ export function ModuleList({
         </button>
       </div>
 
+      {showCreate && <CreateModuleModal onClose={() => setShowCreate(false)} />}
+
       {loadedIntegrations.map((m) => {
         const isSelected = selected.has(m.name);
         return (
           <ModuleCard
             key={m.name}
             module={m}
-            expanded={isSelected}
+            expanded={expandedModules.has(m.name)}
             selected={isSelected}
-            onToggleExpand={() => onToggleSelect(m.name)}
+            onToggleExpand={() => toggleExpand(m.name)}
             onToggleSelect={() => onToggleSelect(m.name)}
           />
         );

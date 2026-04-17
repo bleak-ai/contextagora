@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getRouteApi } from "@tanstack/react-router";
 import {
   fetchModule,
   fetchModuleFiles,
@@ -15,10 +14,13 @@ import { EditorSidebar } from "./modules/EditorSidebar";
 import { EditorContent } from "./modules/EditorContent";
 import type { OpenFile } from "./modules/types";
 
-const routeApi = getRouteApi("/modules/$name");
+interface ModuleEditorProps {
+  name: string;
+  onClose: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
+}
 
-export function ModuleEditor() {
-  const { name } = routeApi.useParams();
+export function ModuleEditor({ name, onClose, onDirtyChange }: ModuleEditorProps) {
   const queryClient = useQueryClient();
 
   const { data: detail, isLoading: detailLoading } = useQuery({
@@ -65,6 +67,10 @@ export function ModuleEditor() {
     JSON.stringify(requirements) !== JSON.stringify(serverRequirements.current);
   const filesDirty = Array.from(openFiles.values()).some((f) => f.dirty);
   const isDirty = summaryDirty || secretsDirty || requirementsDirty || filesDirty;
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   const handleSelectFile = useCallback(
     async (path: string) => {
@@ -248,6 +254,7 @@ export function ModuleEditor() {
         canGenerate={canGenerate}
         onSave={handleSave}
         onGenerate={handleGenerate}
+        onClose={onClose}
       />
 
       {/* Summary bar */}

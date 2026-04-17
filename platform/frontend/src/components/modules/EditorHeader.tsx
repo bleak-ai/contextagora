@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
 interface EditorHeaderProps {
@@ -9,6 +8,7 @@ interface EditorHeaderProps {
   canGenerate: boolean;
   onSave: () => void;
   onGenerate: () => void;
+  onClose: () => void;
 }
 
 export function EditorHeader({
@@ -19,17 +19,19 @@ export function EditorHeader({
   canGenerate,
   onSave,
   onGenerate,
+  onClose,
 }: EditorHeaderProps) {
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (
     <div className="flex items-center px-4 py-3 border-b border-border bg-bg-raised">
-      <Link
-        to="/modules"
+      <button
+        type="button"
+        onClick={onClose}
         className="text-xs text-text-muted hover:text-text-secondary"
       >
-        &larr; Back to Modules
-      </Link>
+        &larr; Close
+      </button>
       <span className="text-sm font-bold text-accent mx-auto">{name}</span>
       <div className="flex items-center gap-2">
         <div className="relative">

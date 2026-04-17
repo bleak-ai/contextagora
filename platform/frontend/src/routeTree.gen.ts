@@ -9,21 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from "./routes/__root"
-import { Route as ModulesRouteImport } from "./routes/modules"
 import { Route as BenchmarksRouteImport } from "./routes/benchmarks"
 import { Route as IndexRouteImport } from "./routes/index"
-import { Route as ModulesIndexRouteImport } from "./routes/modules.index"
 import { Route as BenchmarksIndexRouteImport } from "./routes/benchmarks.index"
-import { Route as ModulesNameRouteImport } from "./routes/modules.$name"
 import { Route as BenchmarksTaskIdRouteImport } from "./routes/benchmarks.$taskId"
 import { Route as BenchmarksTaskIdIndexRouteImport } from "./routes/benchmarks.$taskId.index"
 import { Route as BenchmarksTaskIdRunIdRouteImport } from "./routes/benchmarks.$taskId.$runId"
 
-const ModulesRoute = ModulesRouteImport.update({
-  id: "/modules",
-  path: "/modules",
-  getParentRoute: () => rootRouteImport,
-} as any).lazy(() => import("./routes/modules.lazy").then((d) => d.Route))
 const BenchmarksRoute = BenchmarksRouteImport.update({
   id: "/benchmarks",
   path: "/benchmarks",
@@ -34,21 +26,11 @@ const IndexRoute = IndexRouteImport.update({
   path: "/",
   getParentRoute: () => rootRouteImport,
 } as any).lazy(() => import("./routes/index.lazy").then((d) => d.Route))
-const ModulesIndexRoute = ModulesIndexRouteImport.update({
-  id: "/",
-  path: "/",
-  getParentRoute: () => ModulesRoute,
-} as any).lazy(() => import("./routes/modules.index.lazy").then((d) => d.Route))
 const BenchmarksIndexRoute = BenchmarksIndexRouteImport.update({
   id: "/",
   path: "/",
   getParentRoute: () => BenchmarksRoute,
 } as any)
-const ModulesNameRoute = ModulesNameRouteImport.update({
-  id: "/$name",
-  path: "/$name",
-  getParentRoute: () => ModulesRoute,
-} as any).lazy(() => import("./routes/modules.$name.lazy").then((d) => d.Route))
 const BenchmarksTaskIdRoute = BenchmarksTaskIdRouteImport.update({
   id: "/$taskId",
   path: "/$taskId",
@@ -70,19 +52,14 @@ const BenchmarksTaskIdRunIdRoute = BenchmarksTaskIdRunIdRouteImport.update({
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
   "/benchmarks": typeof BenchmarksRouteWithChildren
-  "/modules": typeof ModulesRouteWithChildren
   "/benchmarks/$taskId": typeof BenchmarksTaskIdRouteWithChildren
-  "/modules/$name": typeof ModulesNameRoute
   "/benchmarks/": typeof BenchmarksIndexRoute
-  "/modules/": typeof ModulesIndexRoute
   "/benchmarks/$taskId/$runId": typeof BenchmarksTaskIdRunIdRoute
   "/benchmarks/$taskId/": typeof BenchmarksTaskIdIndexRoute
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
-  "/modules/$name": typeof ModulesNameRoute
   "/benchmarks": typeof BenchmarksIndexRoute
-  "/modules": typeof ModulesIndexRoute
   "/benchmarks/$taskId/$runId": typeof BenchmarksTaskIdRunIdRoute
   "/benchmarks/$taskId": typeof BenchmarksTaskIdIndexRoute
 }
@@ -90,11 +67,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   "/": typeof IndexRoute
   "/benchmarks": typeof BenchmarksRouteWithChildren
-  "/modules": typeof ModulesRouteWithChildren
   "/benchmarks/$taskId": typeof BenchmarksTaskIdRouteWithChildren
-  "/modules/$name": typeof ModulesNameRoute
   "/benchmarks/": typeof BenchmarksIndexRoute
-  "/modules/": typeof ModulesIndexRoute
   "/benchmarks/$taskId/$runId": typeof BenchmarksTaskIdRunIdRoute
   "/benchmarks/$taskId/": typeof BenchmarksTaskIdIndexRoute
 }
@@ -103,30 +77,18 @@ export interface FileRouteTypes {
   fullPaths:
     | "/"
     | "/benchmarks"
-    | "/modules"
     | "/benchmarks/$taskId"
-    | "/modules/$name"
     | "/benchmarks/"
-    | "/modules/"
     | "/benchmarks/$taskId/$runId"
     | "/benchmarks/$taskId/"
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | "/"
-    | "/modules/$name"
-    | "/benchmarks"
-    | "/modules"
-    | "/benchmarks/$taskId/$runId"
-    | "/benchmarks/$taskId"
+  to: "/" | "/benchmarks" | "/benchmarks/$taskId/$runId" | "/benchmarks/$taskId"
   id:
     | "__root__"
     | "/"
     | "/benchmarks"
-    | "/modules"
     | "/benchmarks/$taskId"
-    | "/modules/$name"
     | "/benchmarks/"
-    | "/modules/"
     | "/benchmarks/$taskId/$runId"
     | "/benchmarks/$taskId/"
   fileRoutesById: FileRoutesById
@@ -134,18 +96,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BenchmarksRoute: typeof BenchmarksRouteWithChildren
-  ModulesRoute: typeof ModulesRouteWithChildren
 }
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    "/modules": {
-      id: "/modules"
-      path: "/modules"
-      fullPath: "/modules"
-      preLoaderRoute: typeof ModulesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     "/benchmarks": {
       id: "/benchmarks"
       path: "/benchmarks"
@@ -160,26 +114,12 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/modules/": {
-      id: "/modules/"
-      path: "/"
-      fullPath: "/modules/"
-      preLoaderRoute: typeof ModulesIndexRouteImport
-      parentRoute: typeof ModulesRoute
-    }
     "/benchmarks/": {
       id: "/benchmarks/"
       path: "/"
       fullPath: "/benchmarks/"
       preLoaderRoute: typeof BenchmarksIndexRouteImport
       parentRoute: typeof BenchmarksRoute
-    }
-    "/modules/$name": {
-      id: "/modules/$name"
-      path: "/$name"
-      fullPath: "/modules/$name"
-      preLoaderRoute: typeof ModulesNameRouteImport
-      parentRoute: typeof ModulesRoute
     }
     "/benchmarks/$taskId": {
       id: "/benchmarks/$taskId"
@@ -232,23 +172,9 @@ const BenchmarksRouteWithChildren = BenchmarksRoute._addFileChildren(
   BenchmarksRouteChildren,
 )
 
-interface ModulesRouteChildren {
-  ModulesNameRoute: typeof ModulesNameRoute
-  ModulesIndexRoute: typeof ModulesIndexRoute
-}
-
-const ModulesRouteChildren: ModulesRouteChildren = {
-  ModulesNameRoute: ModulesNameRoute,
-  ModulesIndexRoute: ModulesIndexRoute,
-}
-
-const ModulesRouteWithChildren =
-  ModulesRoute._addFileChildren(ModulesRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BenchmarksRoute: BenchmarksRouteWithChildren,
-  ModulesRoute: ModulesRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

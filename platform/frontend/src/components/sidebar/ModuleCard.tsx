@@ -5,6 +5,7 @@ import { fetchModuleFile } from "../../api/modules";
 import type { LoadedModule } from "../../api/workspace";
 import { installModuleDeps } from "../../api/workspace";
 import { FilePreviewModal } from "./FilePreviewModal";
+import { useModuleEditorStore } from "../../hooks/useModuleEditorStore";
 
 interface Props {
   module: LoadedModule;
@@ -31,18 +32,20 @@ export function ModuleCard({
   const borderClass = !selected
     ? "border-border opacity-60"
     : status === "warn"
-      ? "border-amber-500/60"
+      ? "border-red-500/60"
       : "border-accent/70";
   const cardBgClass = !selected
     ? "bg-bg-hover"
     : status === "warn"
-      ? "bg-amber-500/[0.08]"
+      ? "bg-red-500/[0.08]"
       : "bg-accent/[0.10]";
   const dotClass = !selected
     ? "bg-text-muted"
     : status === "warn"
-      ? "bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.6)]"
+      ? "bg-red-400 shadow-[0_0_6px_rgba(239,68,68,0.6)]"
       : "bg-accent shadow-[0_0_6px_rgba(107,138,253,0.6)]";
+
+  const openModuleEditor = useModuleEditorStore((s) => s.openModuleEditor);
 
   const [previewFile, setPreviewFile] = useState<string | null>(null);
 
@@ -95,6 +98,20 @@ export function ModuleCard({
           <span className="text-[10px] text-text-muted">
             {expanded ? "▾" : "▸"}
           </span>
+        </button>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            openModuleEditor(module.name);
+          }}
+          className="p-1 rounded hover:bg-accent/10 text-text-muted hover:text-accent transition-colors"
+          title="Edit module"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
         </button>
       </div>
 

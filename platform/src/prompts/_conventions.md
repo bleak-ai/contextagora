@@ -73,7 +73,7 @@ To save a new or updated module:
 
 1. Write `info.md` to `modules-repo/<name>/info.md` using the Write tool
 2. Write `module.yaml` to `modules-repo/<name>/module.yaml`
-3. Register: `curl -sS -X POST http://localhost:9090/api/modules/<name>/register`
+3. Register: `curl -sS -X POST {base_url}/api/modules/<name>/register`
 
 ### module.yaml fields
 
