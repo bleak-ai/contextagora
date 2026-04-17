@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useState } from "react";
 import { useModuleEditorStore } from "../hooks/useModuleEditorStore";
 import { ModuleEditor } from "./ModuleEditor";
+import { Modal } from "./Modal";
 
 export function ModuleEditorModal() {
   const editingModule = useModuleEditorStore((s) => s.editingModule);
@@ -21,7 +22,7 @@ export function ModuleEditorModal() {
     closeModuleEditor();
   }, [closeModuleEditor]);
 
-  // Escape key handler
+  // Custom Escape: dismiss confirm first, then attempt close
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -48,32 +49,33 @@ export function ModuleEditorModal() {
   if (!editingModule) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60" />
-
-      {/* Container */}
-      <div className="relative w-[85vw] h-[90vh] bg-bg-raised rounded-xl shadow-2xl border border-border flex flex-col overflow-hidden modal-enter">
-        {/* Close button */}
-        <button
-          type="button"
-          onClick={attemptClose}
-          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-md flex items-center justify-center text-text-muted hover:text-text hover:bg-bg-hover transition-colors"
-          title="Close editor"
+    <>
+      <Modal onClose={attemptClose} disableEscape backdropClass="bg-black/60">
+        <div
+          className="relative w-[85vw] h-[90vh] bg-bg-raised rounded-xl shadow-2xl border border-border flex flex-col overflow-hidden modal-enter"
+          onClick={(e) => e.stopPropagation()}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
+          {/* Close button */}
+          <button
+            type="button"
+            onClick={attemptClose}
+            className="absolute top-3 right-3 z-10 w-7 h-7 rounded-md flex items-center justify-center text-text-muted hover:text-text hover:bg-bg-hover transition-colors"
+            title="Close editor"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
 
-        {/* Editor */}
-        <ModuleEditor
-          name={editingModule}
-          onClose={attemptClose}
-          onDirtyChange={setIsDirty}
-        />
-      </div>
+          {/* Editor */}
+          <ModuleEditor
+            name={editingModule}
+            onClose={attemptClose}
+            onDirtyChange={setIsDirty}
+          />
+        </div>
+      </Modal>
 
       {/* Unsaved changes confirmation */}
       {showConfirm && (
@@ -103,6 +105,6 @@ export function ModuleEditorModal() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

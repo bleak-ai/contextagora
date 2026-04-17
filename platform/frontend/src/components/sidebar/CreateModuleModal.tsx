@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createModule } from "../../api/modules";
 import { invalidateModuleQueries } from "../../lib/queryClient";
 import { useModuleEditorStore } from "../../hooks/useModuleEditorStore";
+import { Modal } from "../Modal";
 
 interface Props {
   onClose: () => void;
@@ -36,10 +37,7 @@ export function CreateModuleModal({ onClose }: Props) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={onClose}
-    >
+    <Modal onClose={onClose}>
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={handleSubmit}
@@ -111,6 +109,6 @@ export function CreateModuleModal({ onClose }: Props) {
           </p>
         )}
       </form>
-    </div>
+    </Modal>
   );
 }

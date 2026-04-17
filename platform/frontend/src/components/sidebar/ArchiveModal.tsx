@@ -1,7 +1,7 @@
-import { useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { deleteModule, type ModuleInfo } from "../../api/modules";
 import { invalidateModuleQueries } from "../../lib/queryClient";
+import { Modal } from "../Modal";
 
 interface ArchiveModalProps {
   archivedTasks: ModuleInfo[];
@@ -14,14 +14,6 @@ export function ArchiveModal({
   onClose,
   onUnarchive,
 }: ArchiveModalProps) {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
   const queryClient = useQueryClient();
 
   const deleteMutation = useMutation({
@@ -30,10 +22,7 @@ export function ArchiveModal({
   });
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={onClose}
-    >
+    <Modal onClose={onClose}>
       <div
         className="bg-bg-raised border border-border rounded-lg w-full max-w-md max-h-[70vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
@@ -105,6 +94,6 @@ export function ArchiveModal({
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

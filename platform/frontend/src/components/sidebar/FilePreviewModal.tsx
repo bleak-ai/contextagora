@@ -1,3 +1,5 @@
+import { Modal } from "../Modal";
+
 interface Props {
   title: React.ReactNode;
   content: string | null;
@@ -14,10 +16,7 @@ export function FilePreviewModal({
   onClose,
 }: Props) {
   return (
-    <div
-      onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
-    >
+    <Modal onClose={onClose} backdropClass="bg-black/70 p-6">
       <div
         onClick={(e) => e.stopPropagation()}
         className="flex max-h-[80vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-border bg-bg-raised shadow-2xl"
@@ -43,6 +42,6 @@ export function FilePreviewModal({
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
