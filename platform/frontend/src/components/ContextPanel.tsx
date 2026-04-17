@@ -293,10 +293,10 @@ export function ContextPanel() {
                     info={task}
                     loaded={loaded.find((m) => m.name === task.name) ?? null}
                     onEdit={() => openEditor(task.name)}
-                    onArchive={() => archiveMutation.mutateAsync(task.name)}
-                    onDelete={() => {
+                    onArchive={async () => { await archiveMutation.mutateAsync(task.name); }}
+                    onDelete={async () => {
                       if (confirm(`Delete task "${task.name}"? This cannot be undone.`))
-                        return deleteMutation.mutateAsync(task.name);
+                        await deleteMutation.mutateAsync(task.name);
                     }}
                   />
                 ))

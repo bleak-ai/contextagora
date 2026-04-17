@@ -16,7 +16,7 @@ function isMarkdownTitle(title: React.ReactNode): boolean {
   if (typeof title === "string") return title.endsWith(".md");
   // ReactElement — extract text from children
   if (title && typeof title === "object" && "props" in title) {
-    const children = (title as React.ReactElement).props.children;
+    const children = (title as React.ReactElement<{ children?: React.ReactNode }>).props.children;
     if (Array.isArray(children)) {
       const last = children[children.length - 1];
       if (typeof last === "string") return last.endsWith(".md");

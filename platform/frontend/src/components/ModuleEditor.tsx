@@ -239,9 +239,9 @@ export function ModuleEditor({ name, onClose, onDirtyChange }: ModuleEditorProps
 
   const canGenerate = (openFiles.get("info.md")?.content ?? detail?.content ?? "").trim().length > 0 && !isGenerating && !isSaving;
 
-  const contentOpenFiles = new Map<string, { content: string; dirty: boolean }>();
+  const contentOpenFiles = new Map<string, OpenFile>();
   for (const [path, file] of openFiles) {
-    contentOpenFiles.set(path, { content: file.content, dirty: file.dirty });
+    contentOpenFiles.set(path, { content: file.content, dirty: file.dirty, original: file.original });
   }
 
   return (
