@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
+import Testimonial from '../components/Testimonial.astro';
 ---
 
 <Base title="ContextAgora: The AI support layer for startups">
@@ -20,6 +21,28 @@ import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
 		>
 			Join the waitlist
 		</button>
+	</section>
+
+	<!-- Value props -->
+	<section class="mb-20 sm:mb-32">
+		<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
+			<div class="border border-border bg-bg-raised px-8 py-12 text-center aspect-square sm:aspect-auto flex flex-col items-center justify-center">
+				<svg class="w-8 h-8 text-accent mb-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
+				<p class="text-lg text-text leading-snug">Resolve support tasks <span class="text-accent font-bold">90% faster</span></p>
+			</div>
+			<div class="border border-border bg-bg-raised px-8 py-12 text-center aspect-square sm:aspect-auto flex flex-col items-center justify-center">
+				<svg class="w-8 h-8 text-accent mb-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg>
+				<p class="text-lg text-text leading-snug"><span class="text-accent font-bold">One agent</span> to access all your integrations</p>
+			</div>
+			<div class="border border-border bg-bg-raised px-8 py-12 text-center aspect-square sm:aspect-auto flex flex-col items-center justify-center">
+				<svg class="w-8 h-8 text-accent mb-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+				<p class="text-lg text-text leading-snug">Add a new integration in <span class="text-accent font-bold">5 minutes</span></p>
+			</div>
+			<div class="border border-border bg-bg-raised px-8 py-12 text-center aspect-square sm:aspect-auto flex flex-col items-center justify-center">
+				<svg class="w-8 h-8 text-accent mb-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456Z" /></svg>
+				<p class="text-lg text-text leading-snug">Your AI answers from <span class="text-accent font-bold">real-time data</span></p>
+			</div>
+		</div>
 	</section>
 
 	<!-- Demo video -->
@@ -59,70 +82,123 @@ import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
 			<div class="flex gap-5">
 				<svg class="w-6 h-6 text-accent shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776" /></svg>
 				<div>
-					<dt class="text-lg font-semibold text-text mb-1">Direct AI access to all 3rd party tools</dt>
+					<dt class="text-lg font-semibold text-text mb-1"> Add all the integrations your Company uses  </dt>
 					<dd class="text-sm text-text-secondary leading-relaxed">Add any integration as a module. Your AI agent reads what it needs and acts on it, no custom wiring required.</dd>
 				</div>
 			</div>
 			<div class="flex gap-5">
 				<svg class="w-6 h-6 text-accent shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
 				<div>
-					<dt class="text-lg font-semibold text-text mb-1">Safe secrets with Infisical and Varlock</dt>
+					<dt class="text-lg font-semibold text-text mb-1">Safe secrets for your AI</dt>
 					<dd class="text-sm text-text-secondary leading-relaxed">API keys are resolved at runtime and discarded when the task ends. Never stored, never visible.</dd>
 				</div>
 			</div>
+		</dl>
+
+		<ArchitectureDiagram />
+
+		<dl class="space-y-10 mt-12">
 			<div class="flex gap-5">
 				<svg class="w-6 h-6 text-accent shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg>
 				<div>
-					<dt class="text-lg font-semibold text-text mb-1">Zero infrastructure work</dt>
+					<dt class="text-lg font-semibold text-text mb-1"> Easy Onboarding, like 30 min </dt>
 					<dd class="text-sm text-text-secondary leading-relaxed">One GitHub repo for your context modules. One Infisical project for secrets. One Docker deploy. You're live in 30 minutes, and adding a new integration can be done in two prompts.</dd>
 				</div>
 			</div>
 			<div class="flex gap-5">
 				<svg class="w-6 h-6 text-accent shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" /></svg>
 				<div>
-					<dt class="text-lg font-semibold text-text mb-1">Context is the base of AI</dt>
+					<dt class="text-lg font-semibold text-text mb-1">Context Context Context</dt>
 					<dd class="text-sm text-text-secondary leading-relaxed">Modules are the foundation. Every agent action is grounded in the context you've loaded, your docs, your tools, your data.</dd>
 				</div>
 			</div>
 		</dl>
-		<p class="text-sm text-text-secondary leading-relaxed mb-6">
-			Define what your agent can access as modules: database schemas, API docs, tool configs. It loads only what it needs and connects to your integrations live.
-		</p>
-		<ArchitectureDiagram />
 	</section>
 
-	<!-- Mid-page CTA -->
-	<section class="mb-16 sm:mb-24 text-center">
-		<p class="text-base text-text-secondary mb-5">Ready to give your AI the context it needs?</p>
-		<button
-			class="mid-cta bg-accent text-bg text-sm font-medium px-6 py-2.5 hover:bg-accent-hover transition-colors cursor-pointer"
-		>
-			Join the waitlist
-		</button>
-	</section>
 
 	<!-- Case studies -->
 	<section id="case-studies" class="mb-20 sm:mb-32">
 		<h2 class="text-xs font-medium text-text-muted uppercase tracking-widest mb-3">Case studies</h2>
 
-		<div class="flex flex-col gap-3">
+		<div class="flex flex-col gap-10">
+
+			<!-- MAAT -->
+			<div class="border border-border bg-bg-raised px-6 py-8 sm:px-8 sm:py-10 max-w-3xl mx-auto">
+				<!-- Company -->
+				<a href="https://maatapp.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-4 mb-6 group">
+					<img src="/logos/maat.svg" alt="MAAT logo" class="w-14 h-14 shrink-0" width="56" height="56" loading="lazy" />
+					<p class="text-sm text-text-muted group-hover:text-accent transition-colors">Gym management for BJJ, MMA & martial arts</p>
+					<svg class="w-4 h-4 text-text-muted group-hover:text-accent transition-colors ml-1 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
+				</a>
+
+				<!-- Testimonials -->
+				<div class="flex flex-col gap-5 mb-8">
+					<Testimonial
+						quote="This is so sick btw, it queried our db directly, figured out the credentials on its own, and pulled up the gym data I asked for."
+						name="Brando Rossi"
+						role="CEO & Co-Founder"
+						photo="/people/brando.jpg"
+						socials={[{ platform: 'linkedin', url: 'https://www.linkedin.com/in/brando-rossi/' }]}
+					/>
+					<Testimonial
+						quote="Amazing! Since we started using this most Support tasks are almost trivial"
+						name="Stefano Saitta"
+						role="CTO & Co-Founder"
+						photo="/people/stefano.jpg"
+						socials={[
+							{ platform: 'linkedin', url: 'https://www.linkedin.com/in/etcpasswd/' },
+							{ platform: 'x', url: 'https://x.com/nerder_' },
+						]}
+					/>
+				</div>
+
+				<!-- Video -->
+				<button
+					class="case-video-trigger relative w-full aspect-video bg-bg border border-border cursor-pointer group overflow-hidden"
+					data-webm="/maat-demo.webm"
+					data-mp4="/maat-demo.mp4"
+					aria-label="Play MAAT demo video"
+				>
+					<img src="/maat-demo-poster.webp" alt="" class="w-full h-full object-cover" />
+					<div class="absolute inset-0 bg-black/60 group-hover:bg-black/70 transition-colors flex flex-col items-center justify-center gap-3">
+						<div class="flex items-center gap-2.5">
+							<img src="/logos/maat.svg" alt="" class="w-8 h-8" width="32" height="32" />
+							<span class="text-white text-base sm:text-lg font-semibold tracking-tight">Demo</span>
+						</div>
+						<svg class="w-10 h-10 text-white/50" fill="currentColor" viewBox="0 0 24 24">
+							<path d="M8 5v14l11-7z"/>
+						</svg>
+					</div>
+				</button>
+			</div>
 
 			<!-- Soundmurai -->
-			<div class="border border-accent/20 bg-bg-raised px-6 py-8 sm:px-8">
-				<a href="https://soundmurai.com" target="_blank" rel="noopener noreferrer" class="group flex items-center gap-4 mb-5 w-fit hover:opacity-80 transition-opacity">
-					<img src="/logos/soundmurai.svg" alt="Soundmurai logo" class="w-14 h-14 shrink-0" width="56" height="56" loading="lazy" />
-					<span class="text-3xl sm:text-4xl font-bold text-text tracking-tight">Soundmurai</span>
-					<svg class="w-4 h-4 text-text-muted -mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
+			<div class="border border-border bg-bg-raised px-6 py-8 sm:px-8 sm:py-10 max-w-3xl mx-auto">
+				<!-- Company -->
+				<a href="https://soundmurai.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-4 mb-6 group">
+					<img src="/logos/soundmurai.svg" alt="Soundmurai logo" class="w-12 h-12 shrink-0" width="48" height="48" loading="lazy" />
+					<div>
+						<p class="text-lg font-bold text-text tracking-tight group-hover:text-accent transition-colors">Soundmurai</p>
+						<p class="text-xs text-text-muted">Live music marketplace</p>
+					</div>
+					<svg class="w-4 h-4 text-text-muted group-hover:text-accent transition-colors ml-1 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
 				</a>
-				<p class="text-sm text-text-muted uppercase tracking-widest mb-4">Live music marketplace</p>
-				<blockquote class="text-lg text-text-secondary leading-relaxed mb-3">
-					"ContextAgora lets our AI answer real questions about our marketplace, live, from our own database. No custom APIs, no manual queries."
-				</blockquote>
-				<p class="text-xs text-text-muted mb-6">— Eduard, Co-founder at Soundmurai</p>
-				<div class="bg-bg border border-border px-4 py-3 text-xs mb-6">
-					<span class="text-accent font-medium">User asks →</span>
-					<span class="text-text italic ml-1">"Which is the average price for independent artists in Berlin?"</span>
+
+				<!-- Testimonial -->
+				<div class="mb-8">
+					<Testimonial
+						quote="Our ContextAgora agent let's us access all of our data and generate insights from different live music opportunities around the world to show them then on our insights page at insights.soundmurai.com"
+						name="Eduard Aymerich"
+						role="Co-Founder"
+						photo="/people/eduard.jpg"
+						socials={[
+							{ platform: 'linkedin', url: 'https://www.linkedin.com/in/eduayme/' },
+							{ platform: 'x', url: 'https://x.com/eduardaymerich' },
+						]}
+					/>
 				</div>
+
+				<!-- Video -->
 				<button
 					class="case-video-trigger relative w-full aspect-video bg-bg border border-border cursor-pointer group overflow-hidden"
 					data-webm="/demo.webm"
@@ -130,39 +206,12 @@ import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
 					aria-label="Play Soundmurai demo video"
 				>
 					<img src="/demo-poster.webp" alt="" class="w-full h-full object-cover" />
-					<div class="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
-						<svg class="w-16 h-16 text-white/90 drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24">
-							<path d="M8 5v14l11-7z"/>
-						</svg>
-					</div>
-				</button>
-			</div>
-
-			<!-- MAAT -->
-			<div class="border border-accent/20 bg-bg-raised px-6 py-8 sm:px-8">
-				<a href="https://maatapp.com" target="_blank" rel="noopener noreferrer" class="group flex items-center gap-4 mb-5 w-fit hover:opacity-80 transition-opacity">
-					<img src="/logos/maat.svg" alt="MAAT logo" class="w-14 h-14 shrink-0" width="56" height="56" loading="lazy" />
-					<span class="text-3xl sm:text-4xl font-bold text-text tracking-tight">MAAT</span>
-					<svg class="w-4 h-4 text-text-muted -mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
-				</a>
-				<p class="text-sm text-text-muted uppercase tracking-widest mb-4">Gym management for BJJ, MMA & martial arts</p>
-				<blockquote class="text-lg text-text-secondary leading-relaxed mb-3">
-					"We went from spending hours digging through member data to having our AI surface exactly what we need in seconds. ContextAgora made that possible."
-				</blockquote>
-				<p class="text-xs text-text-muted mb-6">— Bernat, AI Engineer at MAAT</p>
-				<div class="bg-bg border border-border px-4 py-3 text-xs mb-6">
-					<span class="text-accent font-medium">User asks →</span>
-					<span class="text-text italic ml-1">"Which members haven't renewed their subscription this month?"</span>
-				</div>
-				<button
-					class="case-video-trigger relative w-full aspect-video bg-bg border border-border cursor-pointer group overflow-hidden"
-					data-webm="/demo.webm"
-					data-mp4="/demo.mp4"
-					aria-label="Play MAAT demo video"
-				>
-					<img src="/demo-poster.webp" alt="" class="w-full h-full object-cover" />
-					<div class="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
-						<svg class="w-16 h-16 text-white/90 drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24">
+					<div class="absolute inset-0 bg-black/60 group-hover:bg-black/70 transition-colors flex flex-col items-center justify-center gap-3">
+						<div class="flex items-center gap-2.5">
+							<img src="/logos/soundmurai.svg" alt="" class="w-8 h-8" width="32" height="32" />
+							<span class="text-white text-base sm:text-lg font-semibold tracking-tight">Soundmurai Demo</span>
+						</div>
+						<svg class="w-10 h-10 text-white/50" fill="currentColor" viewBox="0 0 24 24">
 							<path d="M8 5v14l11-7z"/>
 						</svg>
 					</div>
@@ -298,7 +347,6 @@ import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
 		});
 
 		document.getElementById('hero-cta')?.addEventListener('click', scrollToWaitlist);
-		document.querySelectorAll('.mid-cta').forEach(btn => btn.addEventListener('click', scrollToWaitlist));
 
 		setupForm('bottom-form', 'bottom-btn', 'bottom-success', 'bottom-error');
 	</script>
