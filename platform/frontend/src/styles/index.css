@@ -1,5 +1,11 @@
 @import "tailwindcss";
-@import "@fontsource-variable/space-grotesk";
+
+@font-face {
+  font-family: "Geist Sans";
+  src: url("/fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
 
 @theme {
   --color-bg: #1c1c1a;
@@ -30,7 +36,7 @@ body,
   overflow: hidden;
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: 'Space Grotesk Variable', sans-serif !important;
+  font-family: 'Geist Sans', sans-serif !important;
   font-size: 15px;
 }
 
