@@ -1,0 +1,91 @@
+---
+import {
+	siGithub, siStripe, siNotion, siSupabase, siPostgresql,
+	siJira, siLinear, siIntercom, siZendesk, siShopify,
+	siMongodb, siHubspot, siDatadog, siDocker, siRedis,
+	siFirebase, siVercel, siDiscord, siZapier, siAirtable,
+} from 'simple-icons';
+
+const icons = [
+	siGithub, siStripe, siNotion, siSupabase, siPostgresql,
+	siJira, siLinear, siIntercom, siZendesk, siShopify,
+	siMongodb, siHubspot, siDatadog, siDocker, siRedis,
+	siFirebase, siVercel, siDiscord, siZapier, siAirtable,
+];
+---
+
+<div class="mt-10">
+	<p class="text-center text-sm text-text-muted mb-6 tracking-wide">
+		Connect any service. Any API. Any database.
+	</p>
+	<div class="marquee-wrapper">
+		<div class="marquee-track">
+			{icons.map(icon => (
+				<span class="flex items-center gap-2.5 shrink-0">
+					<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" class="text-text-muted shrink-0" aria-label={icon.title}>
+						<path d={icon.path} />
+					</svg>
+					<span class="text-[15px] text-text-muted">{icon.title}</span>
+				</span>
+			))}
+			{icons.map(icon => (
+				<span class="flex items-center gap-2.5 shrink-0" aria-hidden="true">
+					<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" class="text-text-muted shrink-0">
+						<path d={icon.path} />
+					</svg>
+					<span class="text-[15px] text-text-muted">{icon.title}</span>
+				</span>
+			))}
+		</div>
+	</div>
+</div>
+
+<style>
+	.marquee-wrapper {
+		overflow: hidden;
+		-webkit-mask-image: linear-gradient(
+			to right,
+			transparent 0%,
+			black 8%,
+			black 92%,
+			transparent 100%
+		);
+		mask-image: linear-gradient(
+			to right,
+			transparent 0%,
+			black 8%,
+			black 92%,
+			transparent 100%
+		);
+	}
+
+	.marquee-track {
+		display: flex;
+		align-items: center;
+		gap: 3rem;
+		width: max-content;
+		animation: marquee 40s linear infinite;
+	}
+
+	.marquee-track:hover {
+		animation-play-state: paused;
+	}
+
+	@keyframes marquee {
+		from {
+			transform: translateX(0);
+		}
+		to {
+			transform: translateX(-50%);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.marquee-track {
+			animation: none;
+			flex-wrap: wrap;
+			justify-content: center;
+			gap: 1.5rem 2.5rem;
+		}
+	}
+</style>
