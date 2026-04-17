@@ -34,9 +34,11 @@
 - [platform/frontend/src/api/sessions.ts](platform/frontend/src/api/sessions.ts) — Sessions API client (fetchSessions only; SessionInfo type)
 - [platform/frontend/src/hooks/useSessionStore.ts](platform/frontend/src/hooks/useSessionStore.ts) — Zustand store holding only `activeClaudeSessionId` (localStorage-persisted); session list comes from the server
 - [platform/frontend/src/components/](platform/frontend/src/components/) — React components (Chat, ModuleRegistry, IconRail, ContextPanel, etc.)
+- [platform/frontend/src/components/sidebar/ModuleCard.tsx](platform/frontend/src/components/sidebar/ModuleCard.tsx) — Unified card component for tasks and integrations; renders name, summary, files, secrets, packages with expand/collapse
+- [platform/frontend/src/components/sidebar/WorkspaceGroup.tsx](platform/frontend/src/components/sidebar/WorkspaceGroup.tsx) — Collapsible integrations group with root files (CLAUDE.md, llms.txt), integration cards with ON/OFF toggles, and create/refresh actions
+- [platform/frontend/src/components/Modal.tsx](platform/frontend/src/components/Modal.tsx) — Shared modal wrapper: backdrop, click-outside, Escape-key handling with opt-out props
+- [platform/frontend/src/components/sidebar/ArchiveModal.tsx](platform/frontend/src/components/sidebar/ArchiveModal.tsx) — Modal for managing archived tasks with unarchive and delete actions
 - [platform/frontend/src/components/sidebar/CreateTaskModal.tsx](platform/frontend/src/components/sidebar/CreateTaskModal.tsx) — Modal dialog for creating a new task module; posts to createTask API and invalidates modules/workspace queries on success
-- [platform/frontend/src/components/sidebar/ArchivedSection.tsx](platform/frontend/src/components/sidebar/ArchivedSection.tsx) — Collapsible "ARCHIVED" section listing archived tasks with unarchive action; hidden when list is empty
-- [platform/frontend/src/components/sidebar/TaskZone.tsx](platform/frontend/src/components/sidebar/TaskZone.tsx) — Task zone sidebar section: renders active task cards, "Apply Changes" button, archived section, and create-task modal trigger
 - [platform/frontend/src/routes/](platform/frontend/src/routes/) — TanStack Router file-based routes
 - [platform/frontend/src/utils/humanizeToolCall.ts](platform/frontend/src/utils/humanizeToolCall.ts) — Utility to translate raw tool call names/args into human-readable labels with module resolution
 - [platform/Dockerfile](platform/Dockerfile) — Multi-stage container image (Node build + Python runtime)
