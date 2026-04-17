@@ -112,7 +112,7 @@ When the user says `save`:
 
 3. Register the module:
 
-       curl -sS -X POST http://localhost:8080/api/modules/<name>/register
+       curl -sS -X POST http://localhost:9090/api/modules/<name>/register
 
 4. On success: tell the user the module was updated. Then:
    - Remind them to **Push** via Sync to persist it
@@ -133,7 +133,7 @@ Only create `docs/*.md` files when:
 
 Write the doc to `modules-repo/<name>/docs/<filename>.md` using the Write tool, then register the module:
 
-    curl -sS -X POST http://localhost:8080/api/modules/<name>/register
+    curl -sS -X POST http://localhost:9090/api/modules/<name>/register
 
 ═══════════════════════════════════════════════════════════════
 CONVENTIONS

@@ -2,7 +2,7 @@
 
 ## What it is
 
-A **Context Management System**. Users create, edit, and load context modules into the system, then interact with an AI agent (Claude Code) that can read and act on the loaded context. Self-hosted as a Docker service, all interaction happens via the web UI at `:8080`.
+A **Context Management System**. Users create, edit, and load context modules into the system, then interact with an AI agent (Claude Code) that can read and act on the loaded context. Self-hosted as a Docker service, all interaction happens via the web UI at `:9090`.
 
 The system has three parts:
 

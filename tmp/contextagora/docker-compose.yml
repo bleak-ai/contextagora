@@ -2,7 +2,7 @@ services:
   contextagora:
     image: ghcr.io/bleak-ai/contextagora:latest
     ports:
-      - "8080:8080"
+      - "9090:9090"
     env_file:
       - .env
     restart: unless-stopped

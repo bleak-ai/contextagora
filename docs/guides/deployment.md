@@ -15,10 +15,10 @@ cd contextagora && nano .env   # fill in your credentials
 docker compose up -d
 
 # 4. Verify
-curl http://localhost:8080/health   # should return 200
+curl http://localhost:9090/health   # should return 200
 ```
 
-Open [http://localhost:8080](http://localhost:8080) and you're ready to go.
+Open [http://localhost:9090](http://localhost:9090) and you're ready to go.
 
 ---
 
@@ -100,7 +100,7 @@ Provider reference:
 docker compose up -d
 ```
 
-Open [http://localhost:8080](http://localhost:8080).
+Open [http://localhost:9090](http://localhost:9090).
 
 ## Updating
 
@@ -176,7 +176,7 @@ INFISICAL_SITE_URL=https://app.infisical.com
 
 ## Reverse Proxy / HTTPS
 
-For production, put ContextAgora behind a reverse proxy (Caddy, Nginx, etc.) that terminates TLS and forwards to `localhost:8080`. Bind the container to `127.0.0.1` so it's only reachable through the proxy — change `"8080:8080"` to `"127.0.0.1:8080:8080"` in `docker-compose.yml`.
+For production, put ContextAgora behind a reverse proxy (Caddy, Nginx, etc.) that terminates TLS and forwards to `localhost:9090`. Bind the container to `127.0.0.1` so it's only reachable through the proxy — change `"9090:9090"` to `"127.0.0.1:9090:9090"` in `docker-compose.yml`.
 
 ## Troubleshooting
 

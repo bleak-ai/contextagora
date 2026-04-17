@@ -2,7 +2,7 @@
 # Usage:
 #   1. Copy .env.example to .env and fill in your credentials
 #   2. docker compose up -d
-#   3. Open http://localhost:8080
+#   3. Open http://localhost:9090
 # Update:
 #   docker compose pull && docker compose up -d
 # Dev (build from source):
@@ -13,7 +13,7 @@ services:
     image: ghcr.io/bleak-ai/contextagora:latest
     build: platform/
     ports:
-      - "8080:8080"
+      - "9090:9090"
     env_file:
       - platform/.env
     environment:

@@ -12,7 +12,7 @@ const appVersion = pyproject.match(/^version\s*=\s*"([^"]+)"/m)?.[1] ?? "unknown
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const backendPort = env.PORT || "8080";
+  const backendPort = env.PORT || "9090";
 
   return {
     plugins: [tanstackRouter({ quoteStyle: "double" }), react(), tailwindcss()],

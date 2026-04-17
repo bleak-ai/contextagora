@@ -7,7 +7,7 @@ cp .env.example platform/.env   # fill in your credentials
 docker compose up -d
 ```
 
-Open http://localhost:8080
+Open http://localhost:9090
 
 Update to latest version:
 
@@ -30,13 +30,13 @@ To build from source with Docker:
 ```bash
 cd platform 
 docker build -t contextagora:local .  
-docker run --rm -p 8080:8080 --env-file .env.demo contextagora:local
+docker run --rm -p 9090:9090 --env-file .env.demo contextagora:local
 ```
 
 ## Test with Claude Code
 
 1. Start the server (locally or with Docker)
-2. Open http://localhost:8080 and select the modules you want to load
+2. Open http://localhost:9090 and select the modules you want to load
 3. Open Claude Code from the context directory:
    ```bash
    cd platform/src/context

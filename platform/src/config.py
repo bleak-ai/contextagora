@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     LLM_MODEL: str = ""
 
     # Server
-    PORT: int = 8080
+    PORT: int = 9090
 
     # Infisical (bootstrap credentials for varlock subprocesses)
     INFISICAL_SITE_URL: str = "https://app.infisical.com"

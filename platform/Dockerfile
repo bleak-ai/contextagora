@@ -54,9 +54,9 @@ ENV CLAUDE_CODE_ENABLE_TELEMETRY="0"
 ENV CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC="1"
 ENV CLAUDE_CODE_ATTRIBUTION_HEADER="0"
 
-EXPOSE 8080
+EXPOSE 9090
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+    CMD curl -f http://localhost:9090/health || exit 1
 
-CMD ["uv", "run", "uvicorn", "src.server:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uv", "run", "uvicorn", "src.server:app", "--host", "0.0.0.0", "--port", "9090"]

@@ -33,7 +33,7 @@ services:
   contextagora:
     image: ghcr.io/bleak-ai/contextagora:latest
     ports:
-      - "8080:8080"
+      - "9090:9090"
     env_file:
       - .env
     restart: unless-stopped
@@ -58,4 +58,4 @@ echo "Next steps:"
 echo "  1. cd ${INSTALL_DIR}"
 echo "  2. Edit .env with your credentials"
 echo "  3. docker compose up -d"
-echo "  4. Open http://localhost:8080"
+echo "  4. Open http://localhost:9090"
