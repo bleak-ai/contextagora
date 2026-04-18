@@ -22,11 +22,9 @@ def validate_module_file_path(file_path: str, managed_files: frozenset[str]) -> 
         raise ValueError("File path cannot contain '..'")
     if file_path in managed_files:
         raise ValueError(f"'{file_path}' is managed automatically and cannot be edited directly")
-    if file_path in ("info.md", "status.md"):
-        return file_path
-    if file_path.startswith("docs/") and file_path.endswith(".md"):
-        return file_path
-    raise ValueError("Only info.md and .md files under docs/ are allowed")
+    if not file_path.endswith(".md"):
+        raise ValueError("Only .md files are allowed")
+    return file_path
 
 
 def generate_global_schema(modules_with_secrets: dict[str, list[str]]) -> str:
