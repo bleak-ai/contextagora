@@ -96,8 +96,8 @@ const faqItems = [
 				Close
 			</button>
 			<video id="video-player" controls preload="none" aria-label="Context Agora demo walkthrough" class="w-full aspect-video bg-black">
-				<source src="/demo.webm" type="video/webm" />
-				<source src="/demo.mp4" type="video/mp4" />
+				<source src="/demo.webm?v=2" type="video/webm" />
+				<source src="/demo.mp4?v=2" type="video/mp4" />
 			</video>
 		</div>
 	</div>
@@ -390,7 +390,7 @@ const faqItems = [
 		}
 
 		document.getElementById('video-trigger')?.addEventListener('click', () => {
-			openVideoWithSrc('/demo.webm', '/demo.mp4');
+			openVideoWithSrc('/demo.webm?v=2', '/demo.mp4?v=2');
 		});
 
 		document.querySelectorAll('.case-video-trigger').forEach(btn => {
