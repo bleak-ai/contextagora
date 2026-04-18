@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { fetchWorkspace } from "../api/workspace";
@@ -15,6 +15,7 @@ export function Chat() {
   const queryClient = useQueryClient();
   const moduleToolCount = useChatStore((s) => s.moduleToolCompletedCount);
   const prevCount = useRef(moduleToolCount);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (moduleToolCount > prevCount.current) {
@@ -51,6 +52,20 @@ export function Chat() {
     <AssistantRuntimeProvider runtime={runtime}>
       <div className="flex h-full">
         <div className="flex-1 flex flex-col min-w-0">
+          {/* Mobile top bar */}
+          <div className="md:hidden flex items-center justify-between px-3 py-2 border-b border-border bg-bg-raised flex-shrink-0">
+            <span className="text-sm font-medium text-text">Context Agora</span>
+            <button
+              onClick={() => setMobileSidebarOpen(true)}
+              aria-label="Open context panel"
+              className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-bg-hover"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <line x1="15" y1="3" x2="15" y2="21" />
+              </svg>
+            </button>
+          </div>
           {/* Thread */}
           <Thread
             emptyState={
@@ -67,7 +82,10 @@ export function Chat() {
             onNewSession={hasMessages ? startNewSession : undefined}
           />
         </div>
-        <ContextPanel />
+        <ContextPanel
+          mobileOpen={mobileSidebarOpen}
+          onMobileClose={() => setMobileSidebarOpen(false)}
+        />
       </div>
     </AssistantRuntimeProvider>
   );

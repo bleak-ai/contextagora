@@ -25,8 +25,28 @@ import { ModuleCard } from "./sidebar/ModuleCard";
 import { ArchiveModal } from "./sidebar/ArchiveModal";
 import { CreateTaskModal } from "./sidebar/CreateTaskModal";
 
-export function ContextPanel() {
+interface ContextPanelProps {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}
+
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== "undefined" &&
+    window.matchMedia("(min-width: 768px)").matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return isDesktop;
+}
+
+export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanelProps = {}) {
   const queryClient = useQueryClient();
+  const isDesktop = useIsDesktop();
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [showCreateTask, setShowCreateTask] = useState(false);
   const openEditor = useModuleEditorStore((s) => s.openModuleEditor);
@@ -154,36 +174,8 @@ export function ContextPanel() {
     loadMutation.mutate(nextNames);
   };
 
-  if (collapsed) {
-    return (
-      <aside className="w-10 flex-shrink-0 border-l border-border bg-bg-raised flex flex-col items-center h-full">
-        <button
-          onClick={toggleCollapsed}
-          className="mt-3 p-1.5 rounded hover:bg-bg-hover text-text-muted hover:text-text transition-colors"
-          title="Expand sidebar"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </button>
-        {loaded.length > 0 && (
-          <span className="mt-2 text-accent text-[9px] font-medium">{loaded.length}</span>
-        )}
-      </aside>
-    );
-  }
-
-  return (
-    <aside
-      style={{ width }}
-      className="relative flex-shrink-0 border-l border-border bg-bg-raised flex flex-col h-full"
-    >
-      {/* Resize handle */}
-      <div
-        onMouseDown={startResize}
-        className="absolute left-0 top-0 h-full w-1 -translate-x-1/2 cursor-ew-resize hover:bg-accent/40 transition-colors z-10"
-        title="Drag to resize"
-      />
+  const panelBody = (
+    <>
       {/* Header */}
       <div className="px-3.5 py-3 border-b border-border">
         <div className="flex items-center justify-between">
@@ -203,15 +195,29 @@ export function ContextPanel() {
                 {loaded.length} loaded
               </span>
             )}
-            <button
-              onClick={toggleCollapsed}
-              className="p-1 rounded hover:bg-bg-hover text-text-muted hover:text-text transition-colors"
-              title="Collapse sidebar"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </button>
+            {isDesktop ? (
+              <button
+                onClick={toggleCollapsed}
+                className="p-1 rounded hover:bg-bg-hover text-text-muted hover:text-text transition-colors"
+                title="Collapse sidebar"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            ) : (
+              <button
+                onClick={onMobileClose}
+                aria-label="Close"
+                className="p-1 rounded hover:bg-bg-hover text-text-muted hover:text-text transition-colors"
+                title="Close"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -403,6 +409,11 @@ export function ContextPanel() {
           v{import.meta.env.VITE_APP_VERSION}
         </span>
       </div>
+    </>
+  );
+
+  const modals = (
+    <>
       {showArchiveModal && (
         <ArchiveModal
           archivedTasks={archivedTasks}
@@ -418,6 +429,70 @@ export function ContextPanel() {
       {showCreateTask && (
         <CreateTaskModal onClose={() => setShowCreateTask(false)} />
       )}
-    </aside>
+    </>
+  );
+
+  // Mobile: slide-in drawer from the right
+  if (!isDesktop) {
+    return (
+      <>
+        <div
+          onClick={onMobileClose}
+          className={`fixed inset-0 bg-black/60 z-30 transition-opacity duration-300 ${
+            mobileOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
+        />
+        <aside
+          className={`fixed inset-y-0 right-0 z-40 w-[85vw] max-w-[360px] border-l border-border bg-bg-raised flex flex-col shadow-2xl transition-transform duration-300 ${
+            mobileOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
+          {panelBody}
+        </aside>
+        {modals}
+      </>
+    );
+  }
+
+  // Desktop collapsed: mini rail
+  if (collapsed) {
+    return (
+      <>
+        <aside className="w-10 flex-shrink-0 border-l border-border bg-bg-raised flex flex-col items-center h-full">
+          <button
+            onClick={toggleCollapsed}
+            className="mt-3 p-1.5 rounded hover:bg-bg-hover text-text-muted hover:text-text transition-colors"
+            title="Expand sidebar"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          {loaded.length > 0 && (
+            <span className="mt-2 text-accent text-[9px] font-medium">{loaded.length}</span>
+          )}
+        </aside>
+        {modals}
+      </>
+    );
+  }
+
+  // Desktop expanded: resizable panel
+  return (
+    <>
+      <aside
+        style={{ width }}
+        className="relative flex-shrink-0 border-l border-border bg-bg-raised flex flex-col h-full"
+      >
+        {/* Resize handle */}
+        <div
+          onMouseDown={startResize}
+          className="absolute left-0 top-0 h-full w-1 -translate-x-1/2 cursor-ew-resize hover:bg-accent/40 transition-colors z-10"
+          title="Drag to resize"
+        />
+        {panelBody}
+      </aside>
+      {modals}
+    </>
   );
 }

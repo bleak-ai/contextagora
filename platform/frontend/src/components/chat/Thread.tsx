@@ -33,7 +33,7 @@ export const Thread: FC<ThreadProps> = ({ emptyState, onNewSession }) => {
           <AuiIf condition={(s) => s.thread.isEmpty}>
             <div className="flex-1 flex flex-col items-center justify-center">
               {emptyState}
-              <div className="w-full max-w-[900px] px-8 sm:px-16 mt-8">
+              <div className="w-full max-w-[900px] px-4 sm:px-8 md:px-16 mt-8">
                 <Composer />
               </div>
             </div>
@@ -41,7 +41,7 @@ export const Thread: FC<ThreadProps> = ({ emptyState, onNewSession }) => {
         )}
 
         {/* Messages */}
-        <div className="mx-auto w-full max-w-[900px] px-8 sm:px-16 py-8 space-y-8">
+        <div className="mx-auto w-full max-w-[900px] px-4 sm:px-8 md:px-16 py-8 space-y-8">
           <ThreadPrimitive.Messages
             components={{
               UserMessage,
@@ -226,7 +226,7 @@ const Composer: FC<{ onNewSession?: () => void }> = ({ onNewSession }) => {
   });
 
   return (
-    <div className="border-t border-border bg-bg px-8 sm:px-16 py-4">
+    <div className="border-t border-border bg-bg px-4 sm:px-8 md:px-16 py-4">
       <div className="relative max-w-[900px] mx-auto">
         {showSelector && filtered.length > 0 && (
           <SlashCommandSelector
