@@ -28,15 +28,37 @@ def get_loaded_module_names() -> list[str]:
     return list_loaded_modules(settings.CONTEXT_DIR)
 
 
+def _active_task_names() -> list[str]:
+    """Return names of all non-archived tasks in the modules repo.
+
+    Tasks are loaded iff `archived=False`; this invariant is owned by the
+    server so that incomplete client-supplied module lists cannot silently
+    orphan active tasks.
+    """
+    out: list[str] = []
+    for name in git_repo.list_modules():
+        try:
+            manifest = read_manifest(git_repo.module_dir(name))
+        except (OSError, ValueError):
+            continue
+        if manifest.kind == "task" and not manifest.archived:
+            out.append(name)
+    return out
+
+
 def reload_workspace(module_names: list[str]) -> dict[str, list[str] | list[dict[str, str]]]:
     """Clear workspace and (re)link selected modules into context/.
 
     Each loaded module becomes a symlink context/<name> -> modules-repo/<name>.
+    Non-archived tasks are always preserved regardless of `module_names` —
+    the loaded-ness of a task is derived from its manifest, not client input.
     A global context/.env.schema is generated with Infisical config for all
     modules so varlock resolves secrets directly from the workspace root.
 
     Returns a dict with 'modules' (loaded names) and optionally 'errors'.
     """
+    # Merge active tasks with requested list (deduped, preserving first-seen order).
+    module_names = list(dict.fromkeys([*module_names, *_active_task_names()]))
     # 1. Clear context/: unlink symlinks, delete real subdirs (legacy copies),
     #    delete loose files except settings.PRESERVED_FILES.
     for p in settings.CONTEXT_DIR.iterdir():

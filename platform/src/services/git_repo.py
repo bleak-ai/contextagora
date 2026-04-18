@@ -62,27 +62,27 @@ def init_repo(
     branch: str | None = None,
     clone_dir: Path | None = None,
 ) -> None:
-    """Delete any existing clone and perform a fresh single-branch clone."""
-    url = remote_url or _default_remote_url()
-    br = branch or settings.GH_BRANCH
+    """Ensure a git clone exists at the target path.
+
+    If the target already contains a git repo, leave it untouched — the
+    operator owns its state (uncommitted module work, divergent commits)
+    and the server must never destroy it. Only perform a fresh clone when
+    no clone exists. Users can update the clone via the sync/pull endpoint.
+    """
     target = Path(clone_dir) if clone_dir else settings.MODULES_REPO_DIR
 
-    # rmtree safety guard: only remove `target` if it looks like a previous
-    # clone (contains a .git subdir) OR it's the default path. Protects
-    # against wiping unrelated directories if MODULES_REPO_DIR is misconfigured
-    # (e.g. typo, stale env var, bad Docker mount).
-    default_dir = (Path(__file__).resolve().parent.parent / "modules-repo").resolve()
-    if target.exists():
-        resolved = target.resolve()
-        is_default = resolved == default_dir
-        looks_like_clone = (resolved / ".git").is_dir()
-        if not (is_default or looks_like_clone):
-            raise GitRepoError(
-                f"Refusing to remove {resolved}: not the default clone dir "
-                f"and does not contain a .git directory. Set MODULES_REPO_DIR "
-                f"to an empty or default path."
-            )
-        shutil.rmtree(target)
+    if (target / ".git").is_dir():
+        return
+
+    if target.exists() and any(target.iterdir()):
+        raise GitRepoError(
+            f"Refusing to clone into {target}: path exists and is non-empty "
+            f"but contains no .git directory. Remove it manually or point "
+            f"MODULES_REPO_DIR at a fresh path."
+        )
+
+    url = remote_url or _default_remote_url()
+    br = branch or settings.GH_BRANCH
     target.parent.mkdir(parents=True, exist_ok=True)
 
     try:

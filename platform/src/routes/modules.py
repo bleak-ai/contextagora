@@ -81,11 +81,13 @@ async def api_archive_module(name: str):
 
 @router.post("/{name}/unarchive")
 async def api_unarchive_module(name: str):
-    """Set archived=false on a module."""
+    """Set archived=false on a module and reload so the task invariant
+    (non-archived tasks are always loaded) takes effect."""
     if not git_repo.module_exists(name):
         return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
 
     _set_module_archived(name, False)
+    reload_workspace(get_loaded_module_names())
 
     return {"status": "ok"}
 
@@ -288,12 +290,15 @@ async def api_delete_module(name: str):
     if not git_repo.module_exists(name):
         return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
 
+    # Remove the module dir first so reload_workspace's task invariant
+    # (non-archived tasks always loaded) can't resurrect its symlink.
+    git_repo.delete_module_dir(name)
+
     current = get_loaded_module_names()
     if name in current:
         current.remove(name)
-        reload_workspace(current)
+    reload_workspace(current)
 
-    git_repo.delete_module_dir(name)
     return {"status": "ok"}
 
 

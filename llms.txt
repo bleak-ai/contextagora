@@ -61,6 +61,7 @@
 
 ## Guides
 - [docs/guides/deployment.md](docs/guides/deployment.md) — End-user deployment guide (Docker, env vars, HTTPS, troubleshooting)
+- [docs/guides/additional-instance-cloudflare.md](docs/guides/additional-instance-cloudflare.md) — Internal ops: deploy another ContextAgora instance behind the shared Cloudflare tunnel + Zero Trust Access, including clean decommission steps
 - [docs/guides/varlock.md](docs/guides/varlock.md) — Varlock secret management system explained
 - [docs/guides/writing-efficient-scripts.md](docs/guides/writing-efficient-scripts.md) — Guidelines for writing network-efficient scripts
 - [docs/guides/debugging-claude-timing.md](docs/guides/debugging-claude-timing.md) — Methodology for measuring Claude Code chat timing

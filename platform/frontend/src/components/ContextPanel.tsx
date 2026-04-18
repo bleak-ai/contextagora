@@ -420,8 +420,6 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
           onClose={() => setShowArchiveModal(false)}
           onUnarchive={async (name) => {
             await unarchiveModule(name);
-            const currentNames = loaded.map((m) => m.name);
-            await loadMutation.mutateAsync([...currentNames, name]);
             invalidateModuleQueries(queryClient);
           }}
         />
