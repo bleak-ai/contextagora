@@ -40,6 +40,24 @@ The local clone is not persisted via Docker volume. A fresh `git clone` runs on 
 
 **Why:** Modules are text — cloning is fast. Avoids stale state from a volume surviving across image upgrades. The remote repo is always the durable source of truth.
 
+### Tasks are modules with a different scaffold, not a separate concept
+
+A task is a `module.yaml` with `kind: task`. It lives in the same `modules-repo/`, uses the same symlink workflow, is edited through the same editor. The only forks are the scaffolded files (`status.md` instead of richer integration docs) and the auto-load-on-create behavior.
+
+**Why:** One storage model, one sync path, one editor. Introducing a separate "tasks" collection would have duplicated every code path — listing, editing, syncing, archiving. Tasks auto-load because a task the agent can't act on is dead weight. **Rejected:** tasks table / separate directory / separate API — all considered when adding the feature, all rejected as duplication.
+
+### Two-step module save: write files, then register
+
+Module creation and updates from chat follow a two-step pattern: the agent uses `Write` to put `info.md` and `module.yaml` on disk under `modules-repo/<name>/`, then calls `POST /api/modules/<name>/register`. The register endpoint reads the files back, generates `llms.txt`, and auto-loads non-integration modules.
+
+**Why:** Keeps JSON payloads small even for long `info.md` files, lets the agent edit module files exactly like any other workspace file (no special API), and unifies the "register-from-disk" path between chat commands and offline CLI flows like `validate_modules.py`. **Rejected:** single `POST /api/modules` endpoint with the entire module content in the body.
+
+### Archive state lives in the manifest
+
+A module is archived by flipping `archived: true` in its `module.yaml`, not by moving it to a separate directory.
+
+**Why:** Keeps `module.yaml` as the single source of truth for a module's state. Archival is portable (git-synced), reversible with a one-line manifest edit, and doesn't add a new storage location that other code paths need to know about.
+
 ## Secret management
 
 ### Varlock + Infisical, not env injection
@@ -84,6 +102,18 @@ Each module declares secrets and Python dependencies in `module.yaml`. At worksp
 
 **Why:** Modules using SDKs (stripe, google-cloud-firestore) were downloading dependencies on every script execution via `uv run --with`. The module should declare deps once, installed at load time. **Superseded:** The original approach used separate `.env.schema` (for secrets) and `requirements.txt` (for deps) files per module. These were consolidated into `module.yaml` for simplicity. **Accepted tradeoff:** single shared venv, no per-module isolation, no cleanup on unload.
 
+### `.env.schema` is pruned on secrets refresh
+
+After each Infisical re-check, `prune_schema_for_resolved` rewrites `context/.env.schema` to exclude any variables that failed to resolve. The UI still shows "missing" state because that display is driven by module manifests, not the schema.
+
+**Why:** A single missing secret used to break `varlock run` for every command, even for modules whose own secrets were fine. Pruning the schema lets `varlock run` succeed for the resolved subset while the UI keeps surfacing the missing ones so the user can fix them in Infisical.
+
+### Install deps is explicit, not automatic on load
+
+Loading a module only creates the symlink. Installing the module's Python dependencies is a separate button backed by `POST /api/workspace/<name>/install-deps`.
+
+**Why:** Load should be instant — it's how the user tells the agent what's in scope. Coupling it to a pip install turned "tick a checkbox" into "wait 30 seconds while the backend downloads wheels." Explicit install also gives the user visible feedback and avoids reinstalling on every reload.
+
 ## Chat and commands
 
 ### Chat is a subprocess, not SDK
@@ -109,6 +139,32 @@ Commands like `/download` and `/add-integration` are backend-intercepted slash c
 New modules are created through the `/add-integration` chat command — a conversational flow where the agent asks questions and builds the module.
 
 **Why:** The user explicitly rejected a web UI form for module creation: "I would just go for the chat for now, do not create the web ui." The chat flow is more natural for the exploratory process of defining a new integration.
+
+**Superseded:** A `CreateModuleModal` in the sidebar now lets users scaffold an integration directly from the UI. The chat flow remains for conversational/exploratory creation, but the "no web UI, ever" stance was relaxed because a minimal scaffold form is faster for users who already know what they want.
+
+### CLAUDE.md injected as `--append-system-prompt`, not relied on as an on-disk file
+
+For new (non-resumed) chats, the backend reads `context/CLAUDE.md` and passes it to the `claude` subprocess via `--append-system-prompt`.
+
+**Why:** The Claude CLI picks up `CLAUDE.md` automatically, but some Claude-compatible backends routed via `LLM_BASE_URL` do not. Explicit injection makes the root system prompt guaranteed-present regardless of backend. Resumed sessions already have it in context, so injection is skipped there.
+
+### TRY markers — streaming parser, not a structured tool call
+
+Clickable "try this prompt" suggestions are transmitted as `<<TRY: prompt>>` markers embedded in the assistant's own text. A stateful buffer (`SuggestionBuffer`) extracts complete markers from streaming deltas before the text reaches the UI, emitting them as separate `suggestion` SSE events. Partial markers at end-of-stream are silently dropped.
+
+**Why:** Using a structured tool call for suggestions would have added a round-trip per pill and required the agent to break its own reply flow. Inline markers let the prompt author place suggestions right next to the context that produced them, and they work with any model that follows instructions. The rare cost — an unterminated `<<TRY:` at stream end — is acceptable because leaking a partial marker to the user is worse than dropping it.
+
+### LLM backend is pluggable via env vars, not hard-coded to Anthropic
+
+`LLM_API_KEY`, `LLM_BASE_URL`, and `LLM_MODEL` are mapped to `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL`, and the three `ANTHROPIC_DEFAULT_*_MODEL` env vars at chat subprocess spawn time.
+
+**Why:** Self-hosted deployers may want to route the CLI through OpenRouter, LiteLLM, or an internal proxy. The existing "chat is a subprocess, not SDK" decision would have otherwise locked the platform to direct Anthropic endpoints. Mapping at spawn time keeps the subprocess unchanged while giving deployers a single-env-var override.
+
+### Prompts externalized to markdown, with convention injection
+
+Slash-command prompts moved from inline Python strings (~194 lines in `commands.py`) to `src/prompts/commands/*.md`. Shared conventions (varlock invocation, secret paths, TRY syntax, `module.yaml` fields) live in `_conventions.md` and are injected into any prompt with a `{conventions}` placeholder. The server base URL is injected via `{base_url}`.
+
+**Why:** Prompts are the product's primary surface for agent behavior — they needed to be diffable, editable by non-devs, and free of Python-string escaping overhead. Centralizing conventions means a change to (say) the varlock command shape propagates to every prompt automatically. **Rejected:** per-prompt duplication of convention blocks (worked for ~2 prompts, broke as soon as we hit 5).
 
 ## UI decisions
 
