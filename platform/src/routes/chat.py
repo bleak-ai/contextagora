@@ -73,7 +73,7 @@ async def api_chat(body: ChatRequest):
             "--verbose",
             "--output-format", "stream-json",
             "--include-partial-messages",
-            "--allowedTools", "Bash(*)", "Read(*)", "Write(*)", "Edit(*)", "Glob(*)", "Grep(*)",
+            "--allowedTools", "Bash(*)", "Read(*)", "Write(*)", "Edit(*)", "Glob(*)", "Grep(*)", "WebFetch(*)", "WebSearch(*)", "Agent(*)",
         ]
 
         if body.claude_session_id:

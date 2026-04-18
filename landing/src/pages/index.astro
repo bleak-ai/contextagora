@@ -3,6 +3,30 @@ import Base from '../layouts/Base.astro';
 import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
 import IntegrationMarquee from '../components/IntegrationMarquee.astro';
 import Testimonial from '../components/Testimonial.astro';
+import FAQ from '../components/FAQ.astro';
+
+const faqItems = [
+	{
+		question: 'Do I bring my own agent?',
+		answer: 'We provide the agent. Your modules, integrations, and rules live in your GitHub repo.',
+	},
+	{
+		question: "Isn't this just MCP with extra steps?",
+		answer: 'MCP is a protocol for exposing tools to an LLM. ContextAgora modules bundle tools, docs, and secrets together in your GitHub repo, so the agent has the context it needs to use them correctly.',
+	},
+	{
+		question: 'Self-hosted or SaaS?',
+		answer: 'Both. Run the Docker container on your own infrastructure, or let us host it for you.',
+	},
+	{
+		question: 'Where does my data live?',
+		answer: 'Your modules live in your GitHub. Runtime data stays in the Docker container only while a task runs and is wiped on restart. Nothing is persisted on our side.',
+	},
+	{
+		question: 'Can the agent write, or only read?',
+		answer: 'Both. API keys are loaded per task and discarded when the task ends, so the agent has no standing access between runs.',
+	},
+];
 ---
 
 <Base title="ContextAgora: The AI support layer for startups">
@@ -12,7 +36,7 @@ import Testimonial from '../components/Testimonial.astro';
 		<h1 class="text-5xl sm:text-7xl font-semibold text-accent tracking-tight mb-4 leading-none">
 			ContextAgora
 		</h1>
-		<p class="text-lg sm:text-xl text-text font-medium mb-3">AI support that knows your product.</p>
+		<p class="text-lg sm:text-xl text-text font-medium mb-3">Stop re-explaining your product to AI.</p>
 		<p class="text-base text-text-secondary leading-relaxed max-w-md mx-auto mb-8">
 			Connect your AI agents to all your integrations and 3rd parties. Feed the right context to your AI every time, so your Agent can understand the whole picture.
 		</p>
@@ -104,7 +128,7 @@ import Testimonial from '../components/Testimonial.astro';
 			<div class="flex gap-5">
 				<svg class="w-6 h-6 text-accent shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg>
 				<div>
-					<dt class="text-lg font-semibold text-text mb-1"> Easy Onboarding, like 30 min </dt>
+					<dt class="text-lg font-semibold text-text mb-1"> Easy Setup </dt>
 					<dd class="text-sm text-text-secondary leading-relaxed">One GitHub repo for your context modules. One Infisical project for secrets. One Docker deploy. You're live in 30 minutes, and adding a new integration can be done in two prompts.</dd>
 				</div>
 			</div>
@@ -224,12 +248,25 @@ import Testimonial from '../components/Testimonial.astro';
 		</div>
 	</section>
 
+	<!-- FAQ -->
+	<section id="faq" class="mb-20 sm:mb-32">
+		<h2 class="text-xs font-medium text-text-muted uppercase tracking-widest mb-10">Before you ask</h2>
+		<FAQ items={faqItems} />
+	</section>
+
 	<!-- Bottom CTA -->
 	<section id="waitlist" class="mb-20 sm:mb-32">
 		<div class="border border-accent/20 bg-bg-raised px-6 py-8 sm:px-8 max-w-lg mx-auto text-center">
-			<h2 class="text-lg font-medium text-text mb-1">Join the waitlist.</h2>
-			<p class="text-sm text-text-secondary mb-6">We're opening up to a small group of teams. We'll be in touch.</p>
+			<h2 class="text-lg font-medium text-text mb-1">Apply for access.</h2>
+			<p class="text-sm text-text-secondary mb-6">We review every application personally.</p>
 			<form id="bottom-form" class="flex flex-col gap-3 text-left">
+				<input
+					type="text"
+					name="name"
+					required
+					placeholder="Your name"
+					class="w-full bg-bg border border-border text-text text-sm px-3 py-2 outline-none focus:border-accent/50 placeholder:text-text-muted transition-colors"
+				/>
 				<input
 					type="email"
 					name="email"
@@ -237,15 +274,30 @@ import Testimonial from '../components/Testimonial.astro';
 					placeholder="your@email.com"
 					class="w-full bg-bg border border-border text-text text-sm px-3 py-2 outline-none focus:border-accent/50 placeholder:text-text-muted transition-colors"
 				/>
+				<input
+					type="text"
+					name="company"
+					required
+					placeholder="Your company"
+					class="w-full bg-bg border border-border text-text text-sm px-3 py-2 outline-none focus:border-accent/50 placeholder:text-text-muted transition-colors"
+				/>
+				<input
+					type="text"
+					name="social"
+					required
+					placeholder="linkedin.com/in/you or x.com/you"
+					class="w-full bg-bg border border-border text-text text-sm px-3 py-2 outline-none focus:border-accent/50 placeholder:text-text-muted transition-colors"
+				/>
 				<div>
 					<label for="bottom-usecase" class="block text-xs text-text-muted mb-1.5">
-						What's your AI missing today?
+						What's the first thing you want your AI to do?
 					</label>
 					<textarea
 						id="bottom-usecase"
 						name="useCase"
 						rows="3"
-						placeholder="e.g. We want our agent to query our database in Supabase to answer customer support questions..."
+						required
+						placeholder="e.g. Query our Supabase DB to answer customer support questions."
 						class="w-full bg-bg border border-border text-text text-sm px-3 py-2 outline-none focus:border-accent/50 placeholder:text-text-muted transition-colors resize-none"
 					></textarea>
 				</div>
@@ -254,10 +306,10 @@ import Testimonial from '../components/Testimonial.astro';
 					id="bottom-btn"
 					class="bg-accent text-bg text-sm font-medium px-4 py-2 hover:bg-accent-hover transition-colors cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed w-full"
 				>
-					Join the waitlist
+					Apply
 				</button>
 			</form>
-			<p id="bottom-success" class="hidden text-sm text-text-secondary mt-3">You're on the list. We'll be in touch.</p>
+			<p id="bottom-success" class="hidden text-sm text-text-secondary mt-3">Application received. We'll review it personally and be in touch.</p>
 			<p id="bottom-error" class="hidden text-sm text-red-400 mt-3">Something went wrong. Try emailing us directly at <a href="mailto:hello@contextagora.com" class="underline">hello@contextagora.com</a>.</p>
 		</div>
 	</section>
@@ -275,12 +327,18 @@ import Testimonial from '../components/Testimonial.astro';
 			form.addEventListener('submit', async (e) => {
 				e.preventDefault();
 				btn.disabled = true;
-				btn.textContent = 'Joining the waitlist...';
+				btn.textContent = 'Submitting...';
 
-				const email = (form.elements.namedItem('email') as HTMLInputElement).value;
-				const useCaseEl = form.elements.namedItem('useCase') as HTMLTextAreaElement | null;
-				const params: Record<string, string> = { email };
-				if (useCaseEl?.value) params.useCase = useCaseEl.value;
+				const getValue = (field: string) =>
+					(form.elements.namedItem(field) as HTMLInputElement | HTMLTextAreaElement | null)?.value.trim() ?? '';
+
+				const params: Record<string, string> = {
+					email: getValue('email'),
+					name: getValue('name'),
+					company: getValue('company'),
+					social: getValue('social'),
+					useCase: getValue('useCase'),
+				};
 
 				try {
 					const res = await fetch(`https://app.loops.so/api/newsletter-form/${LOOPS_FORM_ID}`, {
@@ -293,7 +351,7 @@ import Testimonial from '../components/Testimonial.astro';
 					success.classList.remove('hidden');
 				} catch {
 					btn.disabled = false;
-					btn.textContent = 'Join the waitlist';
+					btn.textContent = 'Apply';
 					error.classList.remove('hidden');
 				}
 			});
@@ -302,7 +360,8 @@ import Testimonial from '../components/Testimonial.astro';
 		function scrollToWaitlist() {
 			document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth' });
 			setTimeout(() => {
-				(document.getElementById('bottom-form')?.elements.namedItem('email') as HTMLInputElement)?.focus();
+				const bottomForm = document.getElementById('bottom-form') as HTMLFormElement | null;
+				(bottomForm?.elements.namedItem('name') as HTMLInputElement | null)?.focus();
 			}, 500);
 		}
 
