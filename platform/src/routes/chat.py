@@ -76,13 +76,6 @@ async def api_chat(body: ChatRequest):
             "--allowedTools", "Bash(*)", "Read(*)", "Write(*)", "Edit(*)", "Glob(*)", "Grep(*)",
         ]
 
-        # For new conversations, inject CLAUDE.md as system prompt so it's
-        # always present regardless of the LLM backend being used.
-        if not body.claude_session_id:
-            claude_md = settings.CONTEXT_DIR / "CLAUDE.md"
-            if claude_md.is_file():
-                cmd.extend(["--append-system-prompt", claude_md.read_text()])
-
         if body.claude_session_id:
             cmd.extend(["--resume", body.claude_session_id])
 
