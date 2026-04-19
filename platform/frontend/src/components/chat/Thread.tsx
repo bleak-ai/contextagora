@@ -125,11 +125,9 @@ const StreamSuggestions: FC = () => {
   const sendMessage = useChatStore((s) => s.sendMessage);
   const suggestions = useChatStore((s) => {
     const msgs = s.messagesBySession[key] ?? [];
-    for (let i = msgs.length - 1; i >= 0; i--) {
-      const m = msgs[i];
-      if (m.role === "assistant" && m.suggestions && m.suggestions.length > 0) {
-        return m.suggestions;
-      }
+    const last = msgs[msgs.length - 1];
+    if (last?.role === "assistant" && last.suggestions?.length) {
+      return last.suggestions;
     }
     return null;
   });
