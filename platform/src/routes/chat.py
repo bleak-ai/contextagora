@@ -1,7 +1,5 @@
 import json
 import logging
-import os
-import subprocess
 from pathlib import Path
 
 from fastapi import APIRouter
@@ -10,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from src.commands import COMMANDS
 from src.models import ChatRequest
 from src.config import settings
+from src.services import claude
 from src.services.claude_sessions import list_sessions
 from src.services.suggestion_parser import SuggestionBuffer
 
@@ -56,37 +55,15 @@ async def api_chat(body: ChatRequest):
 
     def generate():
       try:
-        env = {**os.environ}
-
-        # Map simplified LLM config to Claude CLI env vars
-        if settings.LLM_API_KEY:
-            env.setdefault("ANTHROPIC_AUTH_TOKEN", settings.LLM_API_KEY)
-        if settings.LLM_BASE_URL:
-            env.setdefault("ANTHROPIC_BASE_URL", settings.LLM_BASE_URL)
-        if settings.LLM_MODEL:
-            env.setdefault("ANTHROPIC_DEFAULT_OPUS_MODEL", settings.LLM_MODEL)
-            env.setdefault("ANTHROPIC_DEFAULT_SONNET_MODEL", settings.LLM_MODEL)
-            env.setdefault("ANTHROPIC_DEFAULT_HAIKU_MODEL", settings.LLM_MODEL)
-
-        cmd = [
-            "claude", "-p", _expand_slash_command(body.prompt),
-            "--verbose",
-            "--output-format", "stream-json",
-            "--include-partial-messages",
-            "--allowedTools", "Bash(*)", "Read(*)", "Write(*)", "Edit(*)", "Glob(*)", "Grep(*)", "WebFetch(*)", "WebSearch(*)", "Agent(*)",
-        ]
-
-        if body.claude_session_id:
-            cmd.extend(["--resume", body.claude_session_id])
-
         try:
-            proc = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                cwd=str(settings.CONTEXT_DIR),
-                env=env,
-                text=True,
+            proc = claude.stream(
+                prompt=_expand_slash_command(body.prompt),
+                session_id=body.claude_session_id,
+                cwd=settings.CONTEXT_DIR,
+                allowed_tools=[
+                    "Bash(*)", "Read(*)", "Write(*)", "Edit(*)",
+                    "Glob(*)", "Grep(*)", "WebFetch(*)", "WebSearch(*)", "Agent(*)",
+                ],
             )
         except FileNotFoundError:
             yield f"event: error\ndata: {json.dumps({'message': 'claude CLI not found on server'})}\n\n"
@@ -203,8 +180,8 @@ async def api_chat(body: ChatRequest):
             stderr = (proc.stderr.read() if proc.stderr else "").strip()
             extra = "\n".join(non_json_stdout[-20:]).strip()
             log.error(
-                "claude exited rc=%s cmd=%s stderr=%r stdout_tail=%r",
-                proc.returncode, cmd, stderr, extra,
+                "claude exited rc=%s args=%s stderr=%r stdout_tail=%r",
+                proc.returncode, proc.args, stderr, extra,
             )
             msg = stderr or extra or f"claude exited with code {proc.returncode}"
             yield f"event: error\ndata: {json.dumps({'message': msg, 'returncode': proc.returncode, 'stderr': stderr, 'stdout_tail': extra})}\n\n"

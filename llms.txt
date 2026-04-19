@@ -16,6 +16,7 @@
 - [platform/src/commands.py](platform/src/commands.py) — Thin slash-command registry (CommandDef + COMMANDS list); loads prompts from .md files, no inline prompts
 - [platform/src/prompts/llms.txt](platform/src/prompts/llms.txt) — Prompt directory: commands/ (user-facing slash commands) and templates/ (internal prompts)
 - [platform/src/prompts/_conventions.md](platform/src/prompts/_conventions.md) — Single source of truth for varlock, TRY markers, secret naming, and execution conventions; auto-injected into all prompts
+- [platform/src/services/claude.py](platform/src/services/claude.py) — Single source of truth for spawning the claude CLI (run_headless, stream); unified env build (telemetry-off + LLM_* → ANTHROPIC_* mapping)
 - [platform/src/services/claude_sessions.py](platform/src/services/claude_sessions.py) — Reads Claude Code's on-disk session transcripts (~/.claude/projects/<encoded-cwd>/*.jsonl); pure functions claude_project_dir, first_user_message, list_sessions; no state
 - [platform/src/services/git_repo.py](platform/src/services/git_repo.py) — Local git clone wrapper (clone, read/write, sync_status/pull/push)
 - [platform/src/routes/sync.py](platform/src/routes/sync.py) — Sync API endpoints (GET /api/sync/status, POST /api/sync/pull, POST /api/sync/push)

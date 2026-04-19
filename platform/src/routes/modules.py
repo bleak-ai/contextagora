@@ -1,4 +1,3 @@
-import os
 import re as _re
 import subprocess
 import time
@@ -21,6 +20,7 @@ from src.models import (
 )
 from src.config import settings
 from src.services import git_repo
+from src.services.claude import run_headless
 from src.services.manifest import (
     ModuleManifest,
     read_manifest,
@@ -359,28 +359,6 @@ async def api_delete_module(name: str):
     return {"status": "ok"}
 
 
-_CLAUDE_HEADLESS_ENV = {
-    "DISABLE_AUTOUPDATER": "1",
-    "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
-    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
-}
-
-
-def _run_claude_headless(prompt: str, *, timeout: int = 120) -> subprocess.CompletedProcess:
-    """Run a single-turn headless Claude CLI call with telemetry disabled.
-
-    Returns the CompletedProcess so callers can inspect returncode/stdout/stderr.
-    """
-    env = {**os.environ, **_CLAUDE_HEADLESS_ENV}
-    return subprocess.run(
-        ["claude", "-p", prompt, "--output-format", "text", "--max-turns", "1"],
-        capture_output=True,
-        text=True,
-        env=env,
-        timeout=timeout,
-    )
-
-
 _GENERATE_PROMPT_TEMPLATE = (
     "You are writing a summary for a context module — a package of documentation"
     " that a coding agent loads to understand a tool or service.\n"
@@ -415,7 +393,7 @@ def api_generate_module(name: str, body: GenerateModuleRequest):
         raw_content=body.content,
     )
 
-    proc = _run_claude_headless(prompt)
+    proc = run_headless(prompt)
 
     if proc.returncode != 0:
         return JSONResponse(
@@ -454,7 +432,7 @@ def api_detect_packages(name: str, body: GenerateModuleRequest):
 
     prompt = _DETECT_PACKAGES_PROMPT.format(raw_content=body.content)
 
-    proc = _run_claude_headless(prompt)
+    proc = run_headless(prompt)
 
     if proc.returncode != 0:
         return JSONResponse(
