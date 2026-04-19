@@ -4,10 +4,17 @@ Each module can have a module.yaml declaring its name, summary, secrets,
 and dependencies.  This replaces the previous per-module .env.schema and
 requirements.txt files.
 """
+import re
+from datetime import date
+from enum import Enum
 from pathlib import Path
 
 import yaml
 from pydantic import BaseModel
+
+from src.llms import generate_module_llms_txt
+from src.models import CreateModuleRequest
+from src.services import git_repo
 
 
 class ModuleManifest(BaseModel):
@@ -49,3 +56,92 @@ def write_manifest(module_dir: Path, manifest: ModuleManifest) -> None:
     (module_dir / "module.yaml").write_text(
         yaml.dump(data, default_flow_style=False, sort_keys=False)
     )
+
+
+class ModuleKind(str, Enum):
+    """The two kinds of modules the system knows about.
+
+    `INTEGRATION` — a context package describing a tool/service. Never
+    auto-loaded — users toggle them manually.
+    `TASK` — a time-bound piece of work; always loaded into the workspace
+    while unarchived.
+    """
+
+    INTEGRATION = "integration"
+    TASK = "task"
+
+    @property
+    def auto_load(self) -> bool:
+        return self is ModuleKind.TASK
+
+    @property
+    def label(self) -> str:
+        return self.value.capitalize()
+
+    def scaffold(self, slug: str, body: CreateModuleRequest) -> None:
+        """Write kind-specific starter files into the module directory."""
+        if self is ModuleKind.INTEGRATION:
+            _scaffold_integration(slug, body)
+        else:
+            _scaffold_task(slug, body)
+
+
+_SLUG_NON_ALPHANUM = re.compile(r"[^a-z0-9-]")
+_SLUG_DASH_RUN = re.compile(r"-+")
+
+
+def slugify_task_name(name: str) -> str:
+    """Convert a human task name to a folder-safe slug."""
+    slug = name.strip().lower().replace("_", "-")
+    slug = _SLUG_NON_ALPHANUM.sub("-", slug)
+    slug = _SLUG_DASH_RUN.sub("-", slug)
+    return slug.strip("-")
+
+
+def set_archived(name: str, archived: bool) -> None:
+    """Flip the archived flag on a module's manifest."""
+    module_dir = git_repo.module_dir(name)
+    manifest = read_manifest(module_dir)
+    manifest = manifest.model_copy(update={"archived": archived})
+    write_manifest(module_dir, manifest)
+
+
+def _scaffold_integration(slug: str, body: CreateModuleRequest) -> None:
+    """Scaffold files for an integration module."""
+    git_repo.write_file(slug, "info.md", body.content)
+    llms_txt = generate_module_llms_txt(slug, body.summary, ["info.md"])
+    git_repo.write_file(slug, "llms.txt", llms_txt)
+
+
+def _scaffold_task(slug: str, body: CreateModuleRequest) -> None:
+    """Scaffold files for a task module."""
+    title = body.name.strip()
+    description = body.description.strip() if body.description else ""
+    summary = description or title
+
+    info_lines = [f"# {title}", ""]
+    if description:
+        info_lines.append(description)
+    git_repo.write_file(slug, "info.md", "\n".join(info_lines) + "\n")
+
+    status_lines = [
+        f"# {title} — Status",
+        "",
+        f"**Created:** {date.today().isoformat()}",
+        "",
+        "## Context",
+        summary,
+        "",
+        "## Next Steps",
+        "- ",
+    ]
+    git_repo.write_file(slug, "status.md", "\n".join(status_lines) + "\n")
+
+    llms_lines = [
+        f"# {title}",
+        f"> {summary}",
+        "",
+        "- [info.md](info.md) — Task description",
+        "- [status.md](status.md) — Current status and next steps",
+    ]
+    git_repo.write_file(slug, "llms.txt", "\n".join(llms_lines) + "\n")

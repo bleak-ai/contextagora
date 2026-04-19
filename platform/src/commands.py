@@ -32,6 +32,12 @@ def _load_prompt(name: str, inject_conventions: bool = False,
     return raw
 
 
+# Internal prompts — not user-facing slash commands, so NOT added to COMMANDS.
+# Used by routes/modules.py for module-summary / package-detection calls.
+_SUMMARY_PROMPT = _load_prompt("templates/summary.md", inject_conventions=True)
+_DETECT_PACKAGES_PROMPT = _load_prompt("templates/detect_packages.md", inject_conventions=True)
+
+
 @dataclass(frozen=True)
 class CommandDef:
     name: str

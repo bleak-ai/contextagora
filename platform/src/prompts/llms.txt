@@ -18,3 +18,5 @@ Prompt templates for chat slash commands and module-building flows.
 
 - [templates/add_module.md](templates/add_module.md) — Template prompt for generating a module's info.md from codebase analysis
 - [templates/adapt_examples.md](templates/adapt_examples.md) — Rules for rewriting code examples to match varlock execution conventions
+- [templates/summary.md](templates/summary.md) — Prompt for `/api/modules/{name}/generate` — generates 1-2 sentence module summary from info.md
+- [templates/detect_packages.md](templates/detect_packages.md) — Prompt for `/api/modules/{name}/detect-packages` — extracts PyPI package names from info.md

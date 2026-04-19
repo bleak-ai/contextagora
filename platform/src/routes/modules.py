@@ -1,4 +1,3 @@
-import re as _re
 import subprocess
 import time
 
@@ -7,7 +6,6 @@ from fastapi.responses import JSONResponse
 
 from src.llms import (
     extract_module_summary,
-    generate_module_llms_txt,
     regenerate_module_llms_txt,
 )
 from src.models import (
@@ -18,28 +16,22 @@ from src.models import (
     ModuleInfo,
     UpdateModuleRequest,
 )
+from src.commands import _SUMMARY_PROMPT, _DETECT_PACKAGES_PROMPT
 from src.config import settings
 from src.services import git_repo
 from src.services.claude import run_headless
 from src.services.manifest import (
+    ModuleKind,
     ModuleManifest,
     read_manifest,
+    set_archived,
+    slugify_task_name,
     write_manifest,
 )
 from src.services.schemas import validate_module_file_path, validate_module_name
 from src.services.workspace import get_loaded_module_names, reload_workspace
 
 router = APIRouter(prefix="/api/modules", tags=["modules"])
-
-
-def slugify_task_name(name: str) -> str:
-    """Convert a human task name to a folder-safe slug."""
-    slug = name.strip().lower()
-    slug = slug.replace("_", "-")
-    slug = _re.sub(r"[^a-z0-9-]", "-", slug)
-    slug = _re.sub(r"-+", "-", slug)
-    slug = slug.strip("-")
-    return slug
 
 
 @router.get("")
@@ -57,20 +49,13 @@ async def api_list_modules():
     return {"modules": modules}
 
 
-def _set_module_archived(name: str, archived: bool) -> None:
-    """Update the archived flag in a module's manifest."""
-    manifest = read_manifest(git_repo.module_dir(name))
-    manifest = manifest.model_copy(update={"archived": archived})
-    write_manifest(git_repo.module_dir(name), manifest)
-
-
 @router.post("/{name}/archive")
 async def api_archive_module(name: str):
     """Set archived=true on a module and unload it if loaded."""
     if not git_repo.module_exists(name):
         return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
 
-    _set_module_archived(name, True)
+    set_archived(name, True)
 
     current = get_loaded_module_names()
     if name in current:
@@ -87,7 +72,7 @@ async def api_unarchive_module(name: str):
     if not git_repo.module_exists(name):
         return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
 
-    _set_module_archived(name, False)
+    set_archived(name, False)
     reload_workspace(get_loaded_module_names())
 
     return {"status": "ok"}
@@ -120,68 +105,19 @@ async def api_get_module(name: str):
     }
 
 
-def _scaffold_integration(slug: str, body: CreateModuleRequest) -> None:
-    """Scaffold files for an integration module."""
-    git_repo.write_file(slug, "info.md", body.content)
-    llms_txt = generate_module_llms_txt(slug, body.summary, ["info.md"])
-    git_repo.write_file(slug, "llms.txt", llms_txt)
-
-
-def _scaffold_task(slug: str, body: CreateModuleRequest) -> None:
-    """Scaffold files for a task module."""
-    from datetime import date
-
-    title = body.name.strip()
-    description = body.description.strip() if body.description else ""
-    summary = description or title
-
-    info_lines = [f"# {title}", ""]
-    if description:
-        info_lines.append(description)
-    git_repo.write_file(slug, "info.md", "\n".join(info_lines) + "\n")
-
-    status_lines = [
-        f"# {title} — Status",
-        "",
-        f"**Created:** {date.today().isoformat()}",
-        "",
-        "## Context",
-        summary,
-        "",
-        "## Next Steps",
-        "- ",
-    ]
-    git_repo.write_file(slug, "status.md", "\n".join(status_lines) + "\n")
-
-    llms_lines = [
-        f"# {title}",
-        f"> {summary}",
-        "",
-        "- [info.md](info.md) — Task description",
-        "- [status.md](status.md) — Current status and next steps",
-    ]
-    git_repo.write_file(slug, "llms.txt", "\n".join(llms_lines) + "\n")
-
-
-_SCAFFOLD_FN = {
-    "integration": _scaffold_integration,
-    "task": _scaffold_task,
-}
-
-VALID_KINDS = frozenset(_SCAFFOLD_FN.keys())
-
-
 @router.post("", status_code=201)
 async def api_create_module(body: CreateModuleRequest):
     """Create a new module. Scaffolded files depend on body.kind."""
-    if body.kind not in VALID_KINDS:
+    try:
+        kind = ModuleKind(body.kind)
+    except ValueError:
         return JSONResponse(
-            {"error": f"Invalid kind '{body.kind}'. Must be one of: {', '.join(sorted(VALID_KINDS))}"},
+            {"error": f"Invalid kind '{body.kind}'. Must be one of: {', '.join(k.value for k in ModuleKind)}"},
             status_code=400,
         )
 
     slug = (
-        slugify_task_name(body.name) if body.kind != "integration"
+        slugify_task_name(body.name) if kind is not ModuleKind.INTEGRATION
         else validate_module_name(body.name)
     )
 
@@ -195,17 +131,16 @@ async def api_create_module(body: CreateModuleRequest):
     summary = body.summary or body.description or ""
     manifest = ModuleManifest(
         name=slug,
-        kind=body.kind,
+        kind=kind.value,
         summary=summary,
         secrets=body.secrets,
         dependencies=body.requirements,
     )
     write_manifest(git_repo.module_dir(slug), manifest)
 
-    _SCAFFOLD_FN[body.kind](slug, body)
+    kind.scaffold(slug, body)
 
-    # Auto-load tasks into workspace
-    if body.kind != "integration":
+    if kind.auto_load:
         current = get_loaded_module_names()
         if slug not in current:
             current.append(slug)
@@ -250,8 +185,8 @@ async def api_register_module(name: str):
     # Generate llms.txt
     regenerate_module_llms_txt(name, settings.MANAGED_FILES, summary=manifest.summary)
 
-    # Auto-load non-integrations into workspace
-    if manifest.kind != "integration":
+    kind = ModuleKind(manifest.kind)
+    if kind.auto_load:
         current = get_loaded_module_names()
         if name not in current:
             current.append(name)
@@ -359,69 +294,27 @@ async def api_delete_module(name: str):
     return {"status": "ok"}
 
 
-_GENERATE_PROMPT_TEMPLATE = (
-    "You are writing a summary for a context module — a package of documentation"
-    " that a coding agent loads to understand a tool or service.\n"
-    "\n"
-    'Read the info.md content below for the module named "{module_name}" and write'
-    " a summary of 1-2 sentences. The summary should describe:\n"
-    "- What this tool/service is and what the team uses it for\n"
-    "- Key details like account structure, environments, or integration points\n"
-    "\n"
-    "Write ONLY the summary text. No markdown formatting, no headings, no bullet"
-    " points — just plain sentences.\n"
-    "\n"
-    "---\n"
-    "\n"
-    "{raw_content}"
-)
-
-
 @router.post("/{name}/generate")
 def api_generate_module(name: str, body: GenerateModuleRequest):
     """Use Claude to generate a summary from raw info.md content.
 
-    NOTE: This is a sync `def` (not `async def`) so FastAPI runs it in a
-    threadpool automatically — subprocess.run blocks for up to 120s and
-    must not block the async event loop.
+    Sync ``def`` so FastAPI runs it in a threadpool (run_headless blocks).
     """
     if not body.content.strip():
         return JSONResponse({"error": "Content is empty"}, status_code=400)
 
-    prompt = _GENERATE_PROMPT_TEMPLATE.format(
-        module_name=name,
-        raw_content=body.content,
+    prompt = (
+        _SUMMARY_PROMPT
+        .replace("{module_name}", name)
+        .replace("{raw_content}", body.content)
     )
-
     proc = run_headless(prompt)
 
     if proc.returncode != 0:
         return JSONResponse(
             {"error": f"Claude failed: {proc.stderr.strip()}"}, status_code=502
         )
-
-    summary = proc.stdout.strip()
-
-    return GenerateModuleResponse(summary=summary)
-
-
-_DETECT_PACKAGES_PROMPT = (
-    "Read the info.md content below for a context module. Identify all Python"
-    " packages (PyPI names) that are needed to run the scripts described in the"
-    " module.\n"
-    "\n"
-    "Only include packages that need to be installed via pip — not standard library"
-    " modules.\n"
-    "\n"
-    "Return ONLY a comma-separated list of package names, nothing else."
-    " Example: stripe,python-dotenv,httpx\n"
-    "\n"
-    "If no packages are needed, return the word NONE.\n"
-    "\n"
-    "---\n"
-    "\n"
-    "{raw_content}"
-)
+    return GenerateModuleResponse(summary=proc.stdout.strip())
 
 
 @router.post("/{name}/detect-packages")
@@ -430,8 +323,7 @@ def api_detect_packages(name: str, body: GenerateModuleRequest):
     if not body.content.strip():
         return JSONResponse({"error": "Content is empty"}, status_code=400)
 
-    prompt = _DETECT_PACKAGES_PROMPT.format(raw_content=body.content)
-
+    prompt = _DETECT_PACKAGES_PROMPT.replace("{raw_content}", body.content)
     proc = run_headless(prompt)
 
     if proc.returncode != 0:
@@ -442,7 +334,6 @@ def api_detect_packages(name: str, body: GenerateModuleRequest):
     raw = proc.stdout.strip()
     if raw.upper() == "NONE":
         return {"packages": []}
-
     packages = [p.strip().strip("`").lower() for p in raw.split(",") if p.strip().strip("`")]
     return {"packages": packages}
 

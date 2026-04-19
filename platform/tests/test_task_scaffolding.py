@@ -1,4 +1,4 @@
-from src.routes.modules import slugify_task_name
+from src.services.manifest import slugify_task_name
 
 
 def test_slugify_basic():
