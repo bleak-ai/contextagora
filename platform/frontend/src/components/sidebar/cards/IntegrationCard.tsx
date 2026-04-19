@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FileText, Zap, Key, Package, ChevronDown, ChevronRight } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchModule, type ModuleInfo } from "../../../api/modules";
 import { installModuleDeps, type LoadedModule } from "../../../api/workspace";
@@ -78,6 +79,10 @@ export function IntegrationCard({
 
   const missingCount = isOn ? countMissing(loaded) : 0;
 
+  /* --- partition files into docs (.md) and scripts (.py) --- */
+  const docFiles = isOn ? loaded.files.filter((f) => !f.endsWith(".py")) : [];
+  const scriptFiles = isOn ? loaded.files.filter((f) => f.endsWith(".py")) : [];
+
   const okSecretCount = isOn
     ? Object.values(loaded.secrets).filter((v) => v !== null).length
     : 0;
@@ -113,9 +118,9 @@ export function IntegrationCard({
             {missingCount} missing
           </span>
         )}
-        <span className="text-[10px] text-text-muted">
-          {expanded ? "▾" : "▸"}
-        </span>
+        {expanded
+          ? <ChevronDown className="w-3 h-3 text-text-muted shrink-0" />
+          : <ChevronRight className="w-3 h-3 text-text-muted shrink-0" />}
       </span>
     </button>
   );
@@ -152,14 +157,14 @@ export function IntegrationCard({
           {isOn && (
             <>
               <Section
-                title="📄 FILES"
-                count={`${loaded.files.length}`}
+                title={<><FileText className="w-3.5 h-3.5 shrink-0" /> FILES</>}
+                count={`${docFiles.length}`}
                 defaultOpen={false}
               >
-                {loaded.files.length === 0 ? (
+                {docFiles.length === 0 ? (
                   <Empty>no files</Empty>
                 ) : (
-                  loaded.files.map((f) => (
+                  docFiles.map((f) => (
                     <Item
                       key={f}
                       name={f}
@@ -170,8 +175,25 @@ export function IntegrationCard({
                 )}
               </Section>
 
+              {scriptFiles.length > 0 && (
+                <Section
+                  title={<><Zap className="w-3.5 h-3.5 text-accent shrink-0" /> SCRIPTS</>}
+                  count={`${scriptFiles.length}`}
+                  defaultOpen={false}
+                >
+                  {scriptFiles.map((f) => (
+                    <Item
+                      key={f}
+                      name={f}
+                      bullet="text-accent/60"
+                      onClick={() => setPreviewFile(f)}
+                    />
+                  ))}
+                </Section>
+              )}
+
               <Section
-                title="🔑 SECRETS"
+                title={<><Key className="w-3.5 h-3.5 text-accent shrink-0" /> SECRETS</>}
                 count={totalSecretCount === 0 ? "0" : secretCountLabel}
                 warn={secretCountWarn}
                 defaultOpen={secretCountWarn}
@@ -201,7 +223,7 @@ export function IntegrationCard({
               </Section>
 
               <Section
-                title="📦 PACKAGES"
+                title={<><Package className="w-3.5 h-3.5 text-accent shrink-0" /> PACKAGES</>}
                 count={`${loaded.packages.length}`}
                 warn={loaded.packages.some((p) => !p.installed)}
                 defaultOpen={loaded.packages.some((p) => !p.installed)}
@@ -270,7 +292,7 @@ export function IntegrationCard({
               {!detailLoading && detail && (
                 <>
                   <Section
-                    title="🔑 SECRETS"
+                    title={<><Key className="w-3.5 h-3.5 text-accent shrink-0" /> SECRETS</>}
                     count={`${detail.secrets.length}`}
                     defaultOpen={false}
                   >
@@ -284,7 +306,7 @@ export function IntegrationCard({
                   </Section>
 
                   <Section
-                    title="📦 PACKAGES"
+                    title={<><Package className="w-3.5 h-3.5 text-accent shrink-0" /> PACKAGES</>}
                     count={`${detail.requirements.length}`}
                     defaultOpen={false}
                   >
@@ -325,7 +347,7 @@ function Section({
   defaultOpen = false,
   children,
 }: {
-  title: string;
+  title: React.ReactNode;
   count: string;
   warn?: boolean;
   defaultOpen?: boolean;
@@ -340,9 +362,9 @@ function Section({
         className="flex w-full items-center justify-between gap-2 rounded border-l-2 border-accent py-1 pl-2 pr-1.5 text-[10px] font-bold uppercase tracking-wider text-text hover:bg-accent/5"
       >
         <span className="flex items-center gap-1.5">
-          <span className="text-[9px] text-text-muted">
-            {open ? "▾" : "▸"}
-          </span>
+          {open
+            ? <ChevronDown className="w-3 h-3 text-text-muted shrink-0" />
+            : <ChevronRight className="w-3 h-3 text-text-muted shrink-0" />}
           {title}
         </span>
         <span

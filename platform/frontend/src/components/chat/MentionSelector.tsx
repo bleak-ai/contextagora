@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+import { FileText } from "lucide-react";
 import { fetchWorkspaceFiles, type WorkspaceFile } from "../../api/workspace";
 
 /**
@@ -147,7 +148,7 @@ export function MentionSelector({
               onSelect(file);
             }}
           >
-            <span>📄</span>
+            <FileText className="w-3 h-3 text-text-muted shrink-0" />
             <span className="text-text-muted">{modulePart}</span>
             <span className="truncate">{pathPart}</span>
           </button>

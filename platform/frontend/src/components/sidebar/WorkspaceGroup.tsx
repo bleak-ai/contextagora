@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { ChevronDown, ChevronRight, RotateCw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchRootContext } from "../../api/rootContext";
 import type { ModuleInfo } from "../../api/modules";
@@ -120,9 +121,9 @@ export function WorkspaceGroup({
         <span className="text-[9px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full font-semibold">
           {integrations.length}
         </span>
-        <span className="text-[10px] text-text-muted">
-          {expanded ? "▾" : "▸"}
-        </span>
+        {expanded
+          ? <ChevronDown className="w-3 h-3 text-text-muted" />
+          : <ChevronRight className="w-3 h-3 text-text-muted" />}
       </button>
 
       {/* ---- Expanded body ---- */}
@@ -200,11 +201,7 @@ export function WorkspaceGroup({
               className="text-[9px] text-text-muted hover:text-accent disabled:opacity-50 flex items-center gap-0.5"
             >
               Re-check{" "}
-              <span
-                className={isRefreshingSecrets ? "animate-spin inline-block" : ""}
-              >
-                ↻
-              </span>
+              <RotateCw className={`w-3 h-3 inline-block ${isRefreshingSecrets ? "animate-spin" : ""}`} />
             </button>
           </div>
         </div>

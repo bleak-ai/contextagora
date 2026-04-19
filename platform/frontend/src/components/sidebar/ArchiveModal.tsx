@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { X } from "lucide-react";
 import { deleteModule, type ModuleInfo } from "../../api/modules";
 import { invalidateModuleQueries } from "../../lib/queryClient";
 import { Modal } from "../Modal";
@@ -35,9 +36,9 @@ export function ArchiveModal({
           <button
             type="button"
             onClick={onClose}
-            className="text-text-muted hover:text-text cursor-pointer text-sm"
+            className="text-text-muted hover:text-text cursor-pointer"
           >
-            ✕
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
 

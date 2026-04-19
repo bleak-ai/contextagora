@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Zap, FileText, Archive, Trash2 } from "lucide-react";
 import type { ModuleInfo } from "../../../api/modules";
 import type { LoadedModule } from "../../../api/workspace";
 import { useModuleEditorStore } from "../../../hooks/useModuleEditorStore";
@@ -52,20 +53,7 @@ export function TaskCard({
           className="p-1 rounded text-text-muted hover:text-text hover:bg-bg-hover transition-colors disabled:opacity-50"
           title="Archive task"
         >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="21 8 21 21 3 21 3 8" />
-            <rect x="1" y="3" width="22" height="5" />
-            <line x1="10" y1="12" x2="14" y2="12" />
-          </svg>
+          <Archive className="w-3 h-3" />
         </button>
       )}
       {onDelete && (
@@ -80,19 +68,7 @@ export function TaskCard({
           className="p-1 rounded text-text-muted hover:text-red-400 hover:bg-bg-hover transition-colors disabled:opacity-50"
           title="Delete task"
         >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="3 6 5 6 21 6" />
-            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-          </svg>
+          <Trash2 className="w-3 h-3" />
         </button>
       )}
     </>
@@ -118,7 +94,9 @@ export function TaskCard({
                 onClick={() => setPreviewFile(f)}
                 className="group flex w-full items-center gap-1.5 rounded px-1.5 py-1 text-left font-mono text-[11px] transition-colors hover:bg-accent/10"
               >
-                <span className="text-[10px] leading-none shrink-0">📄</span>
+                {f.endsWith(".py")
+                  ? <Zap className="w-3 h-3 text-accent shrink-0" />
+                  : <FileText className="w-3 h-3 text-text-muted shrink-0" />}
                 <span className="flex-1 truncate text-text font-medium">
                   {f}
                 </span>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import type { TaskBody } from "../api/benchmarks";
 
 const SUGGESTION_PROMPT = `I want to define a benchmark task for a coding agent. Generate three things in YAML format:
@@ -118,10 +119,12 @@ export function BenchmarkTaskForm({ initial, onSubmit, onCancel }: Props) {
               <button
                 type="button"
                 onClick={() => setShowHelper((s) => !s)}
-                className="text-xs text-text-muted hover:text-text-secondary"
+                className="text-xs text-text-muted hover:text-text-secondary flex items-center gap-1"
               >
-                {showHelper ? "▾" : "▸"} Need help writing this? Copy a prompt
-                to paste in any chat
+                {showHelper
+                  ? <ChevronDown className="w-3 h-3" />
+                  : <ChevronRight className="w-3 h-3" />}
+                Need help writing this? Copy a prompt to paste in any chat
               </button>
               {showHelper && (
                 <button

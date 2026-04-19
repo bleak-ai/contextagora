@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
+import { Download, Pencil, X } from "lucide-react";
 import {
   createBenchmarkTask,
   deleteBenchmarkTask,
@@ -127,7 +128,7 @@ export function BenchmarkDashboard() {
                       className="text-[10px] px-2 py-1 border border-border rounded hover:bg-bg-hover text-text-muted"
                       title="Download yaml"
                     >
-                      ↓
+                      <Download className="w-3.5 h-3.5" />
                     </a>
                     <button
                       onClick={(e) => {
@@ -145,7 +146,7 @@ export function BenchmarkDashboard() {
                       className="text-[10px] px-2 py-1 border border-border rounded hover:bg-bg-hover text-text-muted"
                       title="Edit"
                     >
-                      ✎
+                      <Pencil className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={(e) => {
@@ -155,7 +156,7 @@ export function BenchmarkDashboard() {
                       className="text-[10px] px-2 py-1 border border-border rounded hover:bg-bg-hover hover:text-danger text-text-muted"
                       title="Delete"
                     >
-                      ✕
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>

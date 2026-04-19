@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { Download, X } from "lucide-react";
 import {
   deleteBenchmarkRun,
   downloadBenchmarkRunUrl,
@@ -226,14 +227,14 @@ export function BenchmarkTaskDetail() {
                     className="text-[10px] px-2 py-1 border border-border rounded hover:bg-bg-hover text-text-muted"
                     title="Download"
                   >
-                    ↓
+                    <Download className="w-3.5 h-3.5" />
                   </a>
                   <button
                     onClick={() => handleDelete(r.id)}
                     className="text-[10px] px-2 py-1 border border-border rounded hover:bg-bg-hover hover:text-danger text-text-muted"
                     title="Delete"
                   >
-                    ✕
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 </li>
               ))}

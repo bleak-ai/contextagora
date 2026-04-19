@@ -30,6 +30,7 @@ export function ModuleFilePreview({
       content={data?.content ?? null}
       isLoading={isLoading}
       error={!!error}
+      runnable={{ moduleName, path }}
       onClose={onClose}
     />
   );

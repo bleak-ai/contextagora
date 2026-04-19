@@ -1,5 +1,5 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { Search, FileCheck } from "lucide-react";
+import { Search, FileCheck, Folder, FolderOpen } from "lucide-react";
 import { fetchModuleFiles } from "../../api/modules";
 import { fetchWorkspace } from "../../api/workspace";
 import { useChatStore } from "../../hooks/useChatStore";
@@ -75,7 +75,9 @@ function TreeNodeView({
       <div>
         <div className={`flex items-center gap-1 text-[13px] font-medium ${hasReadChildren ? "text-text" : "text-text-secondary"}`}>
           <TreeBranch depth={depth} />
-          <span>{hasReadChildren ? "📂" : "📁"}</span>
+          {hasReadChildren
+            ? <FolderOpen className="w-3.5 h-3.5 shrink-0" />
+            : <Folder className="w-3.5 h-3.5 shrink-0" />}
           <span className="truncate">{node.name}</span>
         </div>
         <div className="space-y-0.5">
@@ -168,7 +170,9 @@ export function DecisionTreePanel() {
                       : "text-text-secondary"
                 }`}
               >
-                <span>{hasReadFiles ? "📂" : "📁"}</span>
+                {hasReadFiles
+                  ? <FolderOpen className="w-3.5 h-3.5 shrink-0" />
+                  : <Folder className="w-3.5 h-3.5 shrink-0" />}
                 <span className="truncate">{module}</span>
               </div>
               <div className="space-y-0.5 ml-1">

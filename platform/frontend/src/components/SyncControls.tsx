@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import {
   fetchSyncStatus,
   pullSync,
@@ -54,20 +55,32 @@ export function SyncControls() {
       <button
         type="button"
         disabled={!canPull || pull.isPending}
-        className="flex-1 text-[11px] font-medium py-1 rounded border transition-colors border-border text-text-secondary hover:text-text hover:border-accent/50 hover:bg-accent/5 disabled:opacity-30 disabled:pointer-events-none"
+        className="flex-1 text-[11px] font-medium py-1 rounded border transition-colors border-border text-text-secondary hover:text-text hover:border-accent/50 hover:bg-accent/5 disabled:opacity-30 disabled:pointer-events-none inline-flex items-center justify-center gap-1"
         onClick={() => pull.mutate()}
         title={canPull ? "Pull latest from remote" : "Up to date"}
       >
-        {pull.isPending ? "Pulling…" : "↓ Pull"}
+        {pull.isPending ? (
+          "Pulling…"
+        ) : (
+          <>
+            <ArrowDown className="w-3 h-3" /> Pull
+          </>
+        )}
       </button>
       <button
         type="button"
         disabled={!canPush || push.isPending}
-        className="flex-1 text-[11px] font-medium py-1 rounded border transition-colors border-border text-text-secondary hover:text-text hover:border-accent/50 hover:bg-accent/5 disabled:opacity-30 disabled:pointer-events-none"
+        className="flex-1 text-[11px] font-medium py-1 rounded border transition-colors border-border text-text-secondary hover:text-text hover:border-accent/50 hover:bg-accent/5 disabled:opacity-30 disabled:pointer-events-none inline-flex items-center justify-center gap-1"
         onClick={handlePush}
         title={canPush ? "Push local changes" : "Nothing to push"}
       >
-        {push.isPending ? "Pushing…" : "↑ Push"}
+        {push.isPending ? (
+          "Pushing…"
+        ) : (
+          <>
+            <ArrowUp className="w-3 h-3" /> Push
+          </>
+        )}
       </button>
       {(pull.isError || push.isError) && (
         <span className="text-[10px] text-red-400">

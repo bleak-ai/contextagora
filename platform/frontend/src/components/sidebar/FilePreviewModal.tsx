@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { X, Check } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Modal } from "../Modal";
@@ -58,7 +59,7 @@ export function FilePreviewModal({
             className="rounded p-1 text-text-muted hover:bg-bg-hover hover:text-text"
             aria-label="Close"
           >
-            ✕
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
         <div className="overflow-auto bg-black/40 px-4 py-3">
@@ -137,9 +138,9 @@ function RunPanel({ moduleName, path }: { moduleName: string; path: string }) {
           }`}
         >
           <div className="flex items-center gap-2">
-            <span className={ok ? "text-accent" : "text-red-400"}>
-              {ok ? "✓" : "✗"}
-            </span>
+            {ok
+              ? <Check className="w-3.5 h-3.5 text-accent" />
+              : <X className="w-3.5 h-3.5 text-red-400" />}
             <span className="flex-1 truncate">{firstLine}</span>
             <span className="text-[10px] text-text-muted">
               {result.duration_ms}ms
