@@ -21,7 +21,7 @@ import { invalidateModuleQueries } from "../lib/queryClient";
 import { DecisionTreePanel } from "./chat/DecisionTreePanel";
 import { SyncControls } from "./SyncControls";
 import { WorkspaceGroup } from "./sidebar/WorkspaceGroup";
-import { ModuleCard } from "./sidebar/ModuleCard";
+import { TaskCard } from "./sidebar/cards/TaskCard";
 import { ArchiveModal } from "./sidebar/ArchiveModal";
 import { CreateTaskModal } from "./sidebar/CreateTaskModal";
 
@@ -294,7 +294,7 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
                 </div>
               ) : (
                 activeTasks.map((task) => (
-                  <ModuleCard
+                  <TaskCard
                     key={task.name}
                     info={task}
                     loaded={loaded.find((m) => m.name === task.name) ?? null}

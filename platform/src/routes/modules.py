@@ -157,8 +157,8 @@ def _scaffold_task(slug: str, body: CreateModuleRequest) -> None:
         f"# {title}",
         f"> {summary}",
         "",
-        "## Status",
-        f"- [status.md](status.md) — Current status and next steps",
+        "- [info.md](info.md) — Task description",
+        "- [status.md](status.md) — Current status and next steps",
     ]
     git_repo.write_file(slug, "llms.txt", "\n".join(llms_lines) + "\n")
 

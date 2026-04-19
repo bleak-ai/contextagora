@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchRootContext } from "../../api/rootContext";
 import type { ModuleInfo } from "../../api/modules";
 import type { LoadedModule } from "../../api/workspace";
-import { ModuleCard } from "./ModuleCard";
+import { IntegrationCard } from "./cards/IntegrationCard";
 import { FilePreviewModal } from "./FilePreviewModal";
 import { CreateModuleModal } from "./CreateModuleModal";
 
@@ -174,7 +174,7 @@ export function WorkspaceGroup({
           {/* ---- Module cards ---- */}
           <div className="space-y-0">
             {sortedIntegrations.map((m) => (
-              <ModuleCard
+              <IntegrationCard
                 key={m.name}
                 info={m}
                 loaded={loaded.find((l) => l.name === m.name) ?? null}

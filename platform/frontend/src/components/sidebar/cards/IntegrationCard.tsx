@@ -1,26 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  fetchModule,
-  fetchModuleFile,
-  type ModuleInfo,
-} from "../../api/modules";
-import { installModuleDeps, type LoadedModule } from "../../api/workspace";
-import { FilePreviewModal } from "./FilePreviewModal";
-import { useModuleEditorStore } from "../../hooks/useModuleEditorStore";
-
-/* ------------------------------------------------------------------ */
-/*  Props                                                              */
-/* ------------------------------------------------------------------ */
-
-interface ModuleCardProps {
-  info: ModuleInfo;
-  loaded: LoadedModule | null;
-  onToggle?: (enabled: boolean) => void;
-  onArchive?: () => void | Promise<void>;
-  onDelete?: () => void | Promise<void>;
-  onEdit?: () => void;
-}
+import { fetchModule, type ModuleInfo } from "../../../api/modules";
+import { installModuleDeps, type LoadedModule } from "../../../api/workspace";
+import { useModuleEditorStore } from "../../../hooks/useModuleEditorStore";
+import { ModuleCardShell } from "./ModuleCardShell";
+import { ModuleFilePreview } from "./ModuleFilePreview";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -41,42 +25,42 @@ function countMissing(m: LoadedModule): number {
 }
 
 /* ------------------------------------------------------------------ */
-/*  ModuleCard                                                         */
+/*  Props                                                              */
 /* ------------------------------------------------------------------ */
 
-export function ModuleCard({
+interface IntegrationCardProps {
+  info: ModuleInfo;
+  loaded: LoadedModule | null;
+  onToggle?: (enabled: boolean) => void;
+  onEdit?: () => void;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                          */
+/* ------------------------------------------------------------------ */
+
+export function IntegrationCard({
   info,
   loaded,
   onToggle,
-  onArchive,
-  onDelete,
   onEdit,
-}: ModuleCardProps) {
-  const isTask = info.kind === "task";
+}: IntegrationCardProps) {
   const isOn = loaded !== null;
   const status = isOn ? statusOf(loaded) : null;
+  const tone = isOn ? (status === "warn" ? "warn" : "ok") : "idle";
 
   const openModuleEditor = useModuleEditorStore((s) => s.openModuleEditor);
 
-  /* --- expand state (integrations only) --- */
   const [expanded, setExpanded] = useState(false);
-
-  /* --- file preview state --- */
   const [previewFile, setPreviewFile] = useState<string | null>(null);
 
-  /* --- action guards (prevent double-click) --- */
-  const [archiving, setArchiving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  /* --- lazy detail fetch for unloaded integrations --- */
   const { data: detail, isLoading: detailLoading } = useQuery({
     queryKey: ["module", info.name],
     queryFn: () => fetchModule(info.name),
-    enabled: expanded && !isTask && !isOn,
+    enabled: expanded && !isOn,
     staleTime: 60_000,
   });
 
-  /* --- install packages mutation (loaded integrations) --- */
   const queryClient = useQueryClient();
   const [installError, setInstallError] = useState<string | null>(null);
 
@@ -92,47 +76,12 @@ export function ModuleCard({
     },
   });
 
-  /* --- styling --- */
-  const borderClass = isTask
-    ? "border-accent/70"
-    : isOn
-      ? status === "warn"
-        ? "border-red-500/60"
-        : "border-accent/50"
-      : "border-border opacity-60";
-
-  const cardBgClass = isTask
-    ? "bg-accent/[0.10]"
-    : isOn
-      ? status === "warn"
-        ? "bg-red-500/[0.08]"
-        : "bg-accent/[0.10]"
-      : "bg-bg-hover";
-
-  const dotClass = isTask
-    ? isOn
-      ? "bg-accent shadow-[0_0_6px_rgba(107,138,253,0.6)]"
-      : "bg-text-muted"
-    : isOn
-      ? status === "warn"
-        ? "bg-red-400 shadow-[0_0_6px_rgba(239,68,68,0.6)]"
-        : "bg-accent shadow-[0_0_6px_rgba(107,138,253,0.6)]"
-      : "bg-text-muted";
-
-  /* --- warning badge for collapsed integrations --- */
   const missingCount = isOn ? countMissing(loaded) : 0;
 
-  /* --- partition files into docs (.md) and scripts (.py) --- */
-  const docFiles = isOn ? loaded.files.filter((f) => !f.endsWith(".py")) : [];
-  const scriptFiles = isOn ? loaded.files.filter((f) => f.endsWith(".py")) : [];
-
-  /* --- secrets counts (for loaded integrations) --- */
   const okSecretCount = isOn
     ? Object.values(loaded.secrets).filter((v) => v !== null).length
     : 0;
-  const totalSecretCount = isOn
-    ? Object.keys(loaded.secrets).length
-    : 0;
+  const totalSecretCount = isOn ? Object.keys(loaded.secrets).length : 0;
   const secretCountLabel =
     okSecretCount === totalSecretCount
       ? `${totalSecretCount}`
@@ -147,199 +96,70 @@ export function ModuleCard({
     }
   };
 
-  return (
-    <div
-      className={`mb-1.5 overflow-hidden rounded-md border ${cardBgClass} ${borderClass}`}
+  const headerMiddle = (
+    <button
+      type="button"
+      onClick={() => setExpanded((e) => !e)}
+      className="flex flex-1 items-center justify-between gap-2 text-left hover:opacity-80 min-w-0"
     >
-      {/* ---- Header row ---- */}
-      <div className="flex w-full items-center gap-2 px-2.5 py-2">
-        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dotClass}`} />
-
-        {/* Name + optional summary (tasks) / expand toggle (integrations) */}
-        {isTask ? (
-          <div className="flex-1 min-w-0">
-            <span className="text-xs font-semibold text-text block truncate">
-              {info.name}
-            </span>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setExpanded((e) => !e)}
-            className="flex flex-1 items-center justify-between gap-2 text-left hover:opacity-80 min-w-0"
-          >
-            <span
-              className={`text-xs font-semibold truncate ${isOn ? "text-text" : "text-text-secondary"}`}
-            >
-              {info.name}
-            </span>
-            <span className="flex items-center gap-1.5 shrink-0">
-              {/* Warning badge when collapsed */}
-              {!expanded && missingCount > 0 && (
-                <span className="text-[10px] font-semibold text-red-400">
-                  {missingCount} missing
-                </span>
-              )}
-              <span className="text-[10px] text-text-muted">
-                {expanded ? "▾" : "▸"}
-              </span>
-            </span>
-          </button>
+      <span
+        className={`text-xs font-semibold truncate ${isOn ? "text-text" : "text-text-secondary"}`}
+      >
+        {info.name}
+      </span>
+      <span className="flex items-center gap-1.5 shrink-0">
+        {!expanded && missingCount > 0 && (
+          <span className="text-[10px] font-semibold text-red-400">
+            {missingCount} missing
+          </span>
         )}
+        <span className="text-[10px] text-text-muted">
+          {expanded ? "▾" : "▸"}
+        </span>
+      </span>
+    </button>
+  );
 
-        {/* Toggle switch (integrations only) */}
-        {!isTask && onToggle && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggle(!isOn);
-            }}
-            className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${
-              isOn ? "bg-accent" : "bg-text-muted/40"
-            }`}
-            title={isOn ? "Turn off" : "Turn on"}
-          >
-            <span
-              className={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${
-                isOn ? "translate-x-3.5" : "translate-x-0.5"
-              }`}
-            />
-          </button>
-        )}
+  const headerRight = onToggle ? (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle(!isOn);
+      }}
+      className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${
+        isOn ? "bg-accent" : "bg-text-muted/40"
+      }`}
+      title={isOn ? "Turn off" : "Turn on"}
+    >
+      <span
+        className={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${
+          isOn ? "translate-x-3.5" : "translate-x-0.5"
+        }`}
+      />
+    </button>
+  ) : undefined;
 
-        {/* Edit button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleEdit();
-          }}
-          className={`p-1 rounded hover:bg-accent/10 transition-colors ${
-            isOn ? "text-text-muted hover:text-accent" : "text-text-muted/50 hover:text-accent/70"
-          }`}
-          title="Edit module"
-        >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-          </svg>
-        </button>
-
-        {/* Task actions: Archive + Delete */}
-        {isTask && onArchive && (
-          <button
-            type="button"
-            disabled={archiving}
-            onClick={(e) => {
-              e.stopPropagation();
-              setArchiving(true);
-              Promise.resolve(onArchive()).finally(() => setArchiving(false));
-            }}
-            className="p-1 rounded text-text-muted hover:text-text hover:bg-bg-hover transition-colors disabled:opacity-50"
-            title="Archive task"
-          >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="21 8 21 21 3 21 3 8" />
-              <rect x="1" y="3" width="22" height="5" />
-              <line x1="10" y1="12" x2="14" y2="12" />
-            </svg>
-          </button>
-        )}
-        {isTask && onDelete && (
-          <button
-            type="button"
-            disabled={deleting}
-            onClick={(e) => {
-              e.stopPropagation();
-              setDeleting(true);
-              Promise.resolve(onDelete()).finally(() => setDeleting(false));
-            }}
-            className="p-1 rounded text-text-muted hover:text-red-400 hover:bg-bg-hover transition-colors disabled:opacity-50"
-            title="Delete task"
-          >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-            </svg>
-          </button>
-        )}
-      </div>
-
-      {/* ---- Task body: summary + files (always visible) ---- */}
-      {isTask && (
-        <div className="border-t border-border/50 bg-bg-raised px-3 py-2.5">
-          {info.summary && (
-            <p className="text-[11px] text-text-muted mb-2">{info.summary}</p>
-          )}
-          {isOn && loaded.files.length > 0 && (
-            <div className="space-y-px">
-              {loaded.files.map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => setPreviewFile(f)}
-                  className="group flex w-full items-center gap-1.5 rounded px-1.5 py-1 text-left font-mono text-[11px] transition-colors hover:bg-accent/10"
-                >
-                  <span className="text-[10px] leading-none shrink-0">📄</span>
-                  <span className="flex-1 truncate text-text font-medium">
-                    {f}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-          {isTask && !isOn && (
-            <div className="space-y-1.5 animate-pulse">
-              <div className="h-3 w-3/4 rounded bg-text-muted/20" />
-              <div className="h-3 w-1/2 rounded bg-text-muted/20" />
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ---- Integration body (collapsible) ---- */}
-      {!isTask && expanded && (
+  return (
+    <ModuleCardShell
+      tone={tone}
+      headerMiddle={headerMiddle}
+      headerRight={headerRight}
+      onEdit={handleEdit}
+    >
+      {expanded && (
         <div className="border-t border-border bg-bg-raised px-3 py-2.5">
-          {/* --- Loaded integration: full detail --- */}
           {isOn && (
             <>
               <Section
                 title="📄 FILES"
-                count={`${docFiles.length}`}
+                count={`${loaded.files.length}`}
                 defaultOpen={false}
               >
-                {docFiles.length === 0 ? (
+                {loaded.files.length === 0 ? (
                   <Empty>no files</Empty>
                 ) : (
-                  docFiles.map((f) => (
+                  loaded.files.map((f) => (
                     <Item
                       key={f}
                       name={f}
@@ -349,23 +169,6 @@ export function ModuleCard({
                   ))
                 )}
               </Section>
-
-              {scriptFiles.length > 0 && (
-                <Section
-                  title="⚡ SCRIPTS"
-                  count={`${scriptFiles.length}`}
-                  defaultOpen={false}
-                >
-                  {scriptFiles.map((f) => (
-                    <Item
-                      key={f}
-                      name={f}
-                      bullet="text-accent/60"
-                      onClick={() => setPreviewFile(f)}
-                    />
-                  ))}
-                </Section>
-              )}
 
               <Section
                 title="🔑 SECRETS"
@@ -456,7 +259,6 @@ export function ModuleCard({
             </>
           )}
 
-          {/* --- Unloaded integration: schema-only preview --- */}
           {!isOn && (
             <>
               {detailLoading && (
@@ -501,7 +303,6 @@ export function ModuleCard({
         </div>
       )}
 
-      {/* ---- File preview modal ---- */}
       {previewFile && (
         <ModuleFilePreview
           moduleName={info.name}
@@ -509,45 +310,13 @@ export function ModuleCard({
           onClose={() => setPreviewFile(null)}
         />
       )}
-    </div>
+    </ModuleCardShell>
   );
 }
 
 /* ------------------------------------------------------------------ */
 /*  Sub-components                                                     */
 /* ------------------------------------------------------------------ */
-
-function ModuleFilePreview({
-  moduleName,
-  path,
-  onClose,
-}: {
-  moduleName: string;
-  path: string;
-  onClose: () => void;
-}) {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["module-file", moduleName, path],
-    queryFn: () => fetchModuleFile(moduleName, path),
-    staleTime: 30_000,
-  });
-
-  return (
-    <FilePreviewModal
-      title={
-        <>
-          <span className="text-text-muted">{moduleName}/</span>
-          {path}
-        </>
-      }
-      content={data?.content ?? null}
-      isLoading={isLoading}
-      error={!!error}
-      runnable={{ moduleName, path }}
-      onClose={onClose}
-    />
-  );
-}
 
 function Section({
   title,
@@ -645,4 +414,3 @@ function Pill({
     </span>
   );
 }
-
