@@ -20,6 +20,7 @@ from src.routes.root_context import router as root_context_router
 from src.routes.sync import router as sync_router
 from src.routes.workspace import router as workspace_router
 from src.services import git_repo
+from src.services.workspace import list_loaded_modules, reload_workspace
 
 log = logging.getLogger(__name__)
 
@@ -46,6 +47,14 @@ def _bootstrap_modules_repo() -> None:
         log.info("Modules repo cloned at %s", settings.MODULES_REPO_DIR)
     except git_repo.GitRepoError as exc:
         log.error("Failed to init modules repo: %s", exc)
+        return
+    # Enforce the "non-archived tasks are always loaded" invariant on boot:
+    # reload the workspace with whatever is currently symlinked, which merges
+    # in active tasks via reload_workspace's own logic.
+    try:
+        reload_workspace(list_loaded_modules(settings.CONTEXT_DIR))
+    except Exception:
+        log.exception("Initial workspace sync failed")
 
 
 if settings.STATIC_DIR.exists():

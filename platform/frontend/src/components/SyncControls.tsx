@@ -7,6 +7,7 @@ import {
   type SyncStatus,
 } from "../api/sync";
 import { ApiError } from "../api/client";
+import { invalidateModuleQueries } from "../lib/queryClient";
 
 export function SyncControls() {
   const qc = useQueryClient();
@@ -21,7 +22,7 @@ export function SyncControls() {
     mutationFn: pullSync,
     onSuccess: (data) => {
       qc.setQueryData(["sync-status"], data.sync);
-      qc.invalidateQueries({ queryKey: ["modules"] });
+      invalidateModuleQueries(qc);
     },
     onError: () => {
       setTimeout(() => pull.reset(), 4000);

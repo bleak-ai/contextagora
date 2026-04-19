@@ -3,8 +3,10 @@ import logging
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
+from src.config import settings
 from src.models import PushRequest
 from src.services import git_repo
+from src.services.workspace import list_loaded_modules, reload_workspace
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/sync", tags=["sync"])
@@ -29,6 +31,10 @@ def api_sync_pull():
         git_repo.pull()
     except git_repo.GitRepoError as exc:
         return JSONResponse({"error": str(exc)}, status_code=502)
+    try:
+        reload_workspace(list_loaded_modules(settings.CONTEXT_DIR))
+    except Exception:
+        log.exception("Post-pull workspace sync failed")
     return {"status": "ok", "sync": _CLEAN_SYNC}
 
 
