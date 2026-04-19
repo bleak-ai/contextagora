@@ -68,4 +68,9 @@ COMMANDS: list[CommandDef] = [
         description="Improve an existing context module",
         prompt=_load_prompt("commands/improve_integration.md", inject_conventions=True),
     ),
+    CommandDef(
+        name="add-verify",
+        description="Add a read-only smoke test (verify.py) to an existing module",
+        prompt=_load_prompt("commands/add_verify.md", inject_conventions=True),
+    ),
 ]

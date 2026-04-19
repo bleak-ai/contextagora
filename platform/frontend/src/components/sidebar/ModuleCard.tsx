@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchModule, fetchModuleFile, type ModuleInfo } from "../../api/modules";
+import {
+  fetchModule,
+  fetchModuleFile,
+  type ModuleInfo,
+} from "../../api/modules";
 import { installModuleDeps, type LoadedModule } from "../../api/workspace";
 import { FilePreviewModal } from "./FilePreviewModal";
 import { useModuleEditorStore } from "../../hooks/useModuleEditorStore";
@@ -117,6 +121,10 @@ export function ModuleCard({
 
   /* --- warning badge for collapsed integrations --- */
   const missingCount = isOn ? countMissing(loaded) : 0;
+
+  /* --- partition files into docs (.md) and scripts (.py) --- */
+  const docFiles = isOn ? loaded.files.filter((f) => !f.endsWith(".py")) : [];
+  const scriptFiles = isOn ? loaded.files.filter((f) => f.endsWith(".py")) : [];
 
   /* --- secrets counts (for loaded integrations) --- */
   const okSecretCount = isOn
@@ -325,13 +333,13 @@ export function ModuleCard({
             <>
               <Section
                 title="📄 FILES"
-                count={`${loaded.files.length}`}
+                count={`${docFiles.length}`}
                 defaultOpen={false}
               >
-                {loaded.files.length === 0 ? (
+                {docFiles.length === 0 ? (
                   <Empty>no files</Empty>
                 ) : (
-                  loaded.files.map((f) => (
+                  docFiles.map((f) => (
                     <Item
                       key={f}
                       name={f}
@@ -341,6 +349,23 @@ export function ModuleCard({
                   ))
                 )}
               </Section>
+
+              {scriptFiles.length > 0 && (
+                <Section
+                  title="⚡ SCRIPTS"
+                  count={`${scriptFiles.length}`}
+                  defaultOpen={false}
+                >
+                  {scriptFiles.map((f) => (
+                    <Item
+                      key={f}
+                      name={f}
+                      bullet="text-accent/60"
+                      onClick={() => setPreviewFile(f)}
+                    />
+                  ))}
+                </Section>
+              )}
 
               <Section
                 title="🔑 SECRETS"
@@ -518,6 +543,7 @@ function ModuleFilePreview({
       content={data?.content ?? null}
       isLoading={isLoading}
       error={!!error}
+      runnable={{ moduleName, path }}
       onClose={onClose}
     />
   );
@@ -619,3 +645,4 @@ function Pill({
     </span>
   );
 }
+

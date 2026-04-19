@@ -1,6 +1,7 @@
 import os
 import re as _re
 import subprocess
+import time
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
@@ -261,6 +262,62 @@ async def api_register_module(name: str):
         "kind": manifest.kind,
         "summary": manifest.summary,
     }
+
+
+
+@router.post("/{name}/files/{file_path:path}/run")
+def api_run_module_file(name: str, file_path: str):
+    """Run a .py file inside a module using varlock.
+
+    NOTE: Sync ``def`` so FastAPI runs it in a threadpool — subprocess.run
+    blocks and must not block the async event loop.
+    """
+    # Validate path (schema: .md or .py, no .., no managed files)
+    try:
+        file_path = validate_module_file_path(file_path, settings.MANAGED_FILES)
+    except ValueError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+
+    # Only .py files are runnable
+    if not file_path.endswith(".py"):
+        return JSONResponse({"error": "Only .py files can be run"}, status_code=400)
+
+    # 404 if module doesn't exist
+    if not git_repo.module_exists(name):
+        return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
+
+    # 400 if file doesn't exist on disk
+    absolute_path = git_repo.module_dir(name) / file_path
+    if not absolute_path.exists():
+        return JSONResponse(
+            {"error": f"File '{file_path}' not found in module '{name}'"},
+            status_code=400,
+        )
+
+    start = time.perf_counter()
+    try:
+        proc = subprocess.run(
+            ["varlock", "run", "--", "uv", "run", "python", str(absolute_path)],
+            cwd=settings.CONTEXT_DIR,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        duration_ms = int((time.perf_counter() - start) * 1000)
+        return JSONResponse({
+            "exit_code": proc.returncode,
+            "stdout": proc.stdout,
+            "stderr": proc.stderr,
+            "duration_ms": duration_ms,
+        })
+    except subprocess.TimeoutExpired:
+        duration_ms = int((time.perf_counter() - start) * 1000)
+        return JSONResponse({
+            "exit_code": -1,
+            "stdout": "",
+            "stderr": "timeout after 30s",
+            "duration_ms": duration_ms,
+        })
 
 
 @router.put("/{name}")

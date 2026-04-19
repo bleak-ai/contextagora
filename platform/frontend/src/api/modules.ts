@@ -46,6 +46,19 @@ export function unarchiveModule(name: string): Promise<{ status: string }> {
   return apiFetch(`/modules/${name}/unarchive`, { method: "POST" });
 }
 
+export interface RunResult {
+  exit_code: number;
+  stdout: string;
+  stderr: string;
+  duration_ms: number;
+}
+
+export function runModuleFile(
+  name: string,
+  path: string,
+): Promise<RunResult> {
+  return apiFetch(`/modules/${name}/files/${path}/run`, { method: "POST" });
+}
 
 export function updateModule(
   name: string,

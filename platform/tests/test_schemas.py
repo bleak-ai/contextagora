@@ -21,7 +21,7 @@ def test_top_level_md_allowed():
 
 
 def test_non_md_file_rejected():
-    with pytest.raises(ValueError, match="Only .md files are allowed"):
+    with pytest.raises(ValueError, match="Only .md and .py files are allowed"):
         validate_module_file_path("random.txt", MANAGED_FILES)
 
 
