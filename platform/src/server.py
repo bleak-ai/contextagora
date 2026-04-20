@@ -66,6 +66,23 @@ def _bootstrap_modules_repo() -> None:
         log.exception("Initial workspace sync failed")
 
 
+@app.on_event("startup")
+async def _bootstrap_install_module_deps() -> None:
+    """Reinstall module Python deps on boot.
+
+    Container recreates wipe the writable layer, so packages that were
+    installed at runtime via /api/workspace/{module}/install-deps are
+    gone. Re-run the install in a background thread so server boot
+    isn't blocked; package-status endpoints will reflect reality as
+    the installs complete.
+    """
+    import asyncio
+
+    from src.services.deps import install_all_module_deps
+
+    asyncio.create_task(asyncio.to_thread(install_all_module_deps))
+
+
 if settings.STATIC_DIR.exists():
     from fastapi.responses import FileResponse
 
