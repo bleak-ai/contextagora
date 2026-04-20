@@ -46,6 +46,19 @@ def _active_task_names() -> list[str]:
     return out
 
 
+def all_integration_names() -> list[str]:
+    """Return names of every integration module in the repo."""
+    out: list[str] = []
+    for name in git_repo.list_modules():
+        try:
+            manifest = read_manifest(git_repo.module_dir(name))
+        except (OSError, ValueError):
+            continue
+        if manifest.kind == "integration":
+            out.append(name)
+    return out
+
+
 def reload_workspace(module_names: list[str]) -> dict[str, list[str] | list[dict[str, str]]]:
     """Clear workspace and (re)link selected modules into context/.
 

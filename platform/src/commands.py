@@ -79,4 +79,9 @@ COMMANDS: list[CommandDef] = [
         description="Add a read-only smoke test (verify.py) to an existing module",
         prompt=_load_prompt("commands/add_verify.md", inject_conventions=True),
     ),
+    CommandDef(
+        name="add-script",
+        description="Add a Python script (read or write) to an existing module's scripts/",
+        prompt=_load_prompt("commands/add_script.md", inject_conventions=True),
+    ),
 ]

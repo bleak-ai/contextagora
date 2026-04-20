@@ -20,7 +20,11 @@ from src.routes.root_context import router as root_context_router
 from src.routes.sync import router as sync_router
 from src.routes.workspace import router as workspace_router
 from src.services import git_repo
-from src.services.workspace import list_loaded_modules, reload_workspace
+from src.services.workspace import (
+    all_integration_names,
+    list_loaded_modules,
+    reload_workspace,
+)
 
 log = logging.getLogger(__name__)
 
@@ -50,9 +54,14 @@ def _bootstrap_modules_repo() -> None:
         return
     # Enforce the "non-archived tasks are always loaded" invariant on boot:
     # reload the workspace with whatever is currently symlinked, which merges
-    # in active tasks via reload_workspace's own logic.
+    # in active tasks via reload_workspace's own logic. On a fresh install
+    # (no symlinks yet), default to enabling all integrations so users land
+    # on a populated workspace instead of an empty one.
     try:
-        reload_workspace(list_loaded_modules(settings.CONTEXT_DIR))
+        current = list_loaded_modules(settings.CONTEXT_DIR)
+        if not current:
+            current = all_integration_names()
+        reload_workspace(current)
     except Exception:
         log.exception("Initial workspace sync failed")
 

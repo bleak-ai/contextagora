@@ -26,7 +26,7 @@ HOW THIS WORKS
 4. Draft `verify.py` following the contract and template in the Verify Script section of Conventions below. Show it. Iterate on user feedback.
 5. On `save`, write the file.
 
-The full script contract (rules, exit codes, template, invocation) lives in the **Verify Script** section under Conventions below. Follow it exactly.
+The full script contract lives in the **Script Contract** section under Conventions below (generic rules, exit codes, template, invocation). The **Verify Script** section narrows it with read-only specifics (single-line output, ≤5 items, real-value examples, concrete template). Follow both exactly.
 
 ═══════════════════════════════════════════════════════════════
 SAVING

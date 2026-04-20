@@ -62,7 +62,8 @@ A context module folder contains:
 - `info.md` — integration description, entities, operations, examples
 - `module.yaml` — declares `secrets:` and `dependencies:`
 - `docs/*.md` — optional supplementary documentation
-- `*.py` — optional runnable scripts (e.g. `verify.py` for a read-only smoke test); open the file from the sidebar to preview and hit **Run** to execute under varlock
+- `verify.py` — optional read-only smoke test at module root; open from the sidebar and hit **Run** to execute under varlock
+- `scripts/*.py` — optional additional runnable scripts (read or write) for the integration; authored via `/add-script`; open from the sidebar and hit **Run** to execute under varlock
 
 ## 6. Python Packages
 
@@ -108,9 +109,40 @@ kind: task
 summary: Fix double-charge on plan upgrades
 ```
 
-## 8. Verify Script (`verify.py`)
+## 8. Script Contract
 
-A minimal, **read-only** Python script that demonstrates the integration's **real value** — not just that auth works, but that it actually fetches something the user cares about.
+Universal rules for any `.py` file inside a module (`verify.py`, `scripts/*.py`, or any other runnable). Verify scripts inherit these rules and add the read-only specifics in §9.
+
+**Rules:**
+
+- Secrets via `os.environ["VAR"]` — never hardcode, never `load_dotenv`, never write secrets to the script.
+- Use only secrets already declared in `module.yaml`. Do not invent new env vars.
+- Exit codes: `0` OK, `2` missing secret (`KeyError` on `os.environ[...]`), `1` any other failure.
+- Error handling: wrap the body in `try` / `except KeyError` (exit 2, stderr) / `except Exception` (exit 1, stderr).
+- Success output: print at least one concrete line to stdout identifying what the script did — e.g. `OK — 5 items: DEMO-7, DEMO-6, DEMO-5`, `Created issue DEMO-42`, `Updated 3 rows`. Multi-line output is permitted.
+- No CLI args, no stdin, no retries unless the task genuinely needs them.
+
+**Generic template:**
+
+```python
+import os, sys
+
+try:
+    # <do the thing, reading secrets via os.environ["VAR_NAME"]>
+    print("OK — <what happened, with concrete values>")
+except KeyError as e:
+    print(f"MISSING SECRET: {e}", file=sys.stderr)
+    sys.exit(2)
+except Exception as e:
+    print(f"FAIL: {e}", file=sys.stderr)
+    sys.exit(1)
+```
+
+**Invocation.** The backend runs any module `.py` via `varlock run -- uv run python modules-repo/<name>/<path>.py` from `platform/src/context/`. Scripts must be standalone Python — no CLI args, no stdin.
+
+## 9. Verify Script (`verify.py`)
+
+A minimal, **read-only** Python script at module root that demonstrates the integration's **real value** — not just that auth works, but that it actually fetches something the user cares about. Inherits all rules from §8 Script Contract; narrowing rules below.
 
 **Good (real value):**
 
@@ -125,15 +157,12 @@ A minimal, **read-only** Python script that demonstrates the integration's **rea
 - `GET /me`, `GET /health`, `viewer { id }` — proves auth, shows nothing useful
 - Generic "ping" / "who am I" endpoints
 
-**Rules:**
+**Narrowing rules (on top of §8):**
 
 - **Read-only only.** No POST/PUT/DELETE that creates or modifies data.
-- Secrets via `os.environ["VAR"]` — never hardcode, never `load_dotenv`, never write secrets to the script.
-- Use secrets already declared in `module.yaml`. Do not invent new env vars.
-- Print a single-line success message with **concrete values** (e.g. `OK — 2 open issues: DEMO-7, DEMO-6`). Not just `OK`.
-- Failures go to stderr with non-zero exit.
-- Exit codes: `0` OK, `2` missing secret (`KeyError` on `os.environ[...]`), `1` any other failure.
-- No retries, no pagination, no CLI args, no stdin, no extra features. Limit to 3–5 items.
+- Single-line stdout success with concrete values (e.g. `OK — 2 open issues: DEMO-7, DEMO-6`). Not just `OK`.
+- Limit to 3–5 items.
+- No pagination.
 
 **Template:**
 
@@ -157,7 +186,5 @@ except Exception as e:
     print(f"FAIL: {e}", file=sys.stderr)
     sys.exit(1)
 ```
-
-**Invocation.** The backend runs it via `varlock run -- uv run python modules-repo/<name>/verify.py` from `platform/src/context/`. Must be standalone Python — no CLI args, no stdin.
 
 **When to skip drafting one.** If the integration has no clear read-only "list something real" operation (e.g. write-only webhooks, OAuth flows requiring interactive token refresh), skip the draft and suggest `/add-verify` for later.
