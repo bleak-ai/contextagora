@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { fetchWorkspace } from "../api/workspace";
 import { fetchModules } from "../api/modules";
 import { useSessionStore } from "../hooks/useSessionStore";
-import { useChatStore } from "../hooks/useChatStore";
 import { useContextChatRuntime } from "../hooks/useContextChatRuntime";
 import { Thread } from "./chat/Thread";
 import { ContextPanel } from "./ContextPanel";
@@ -12,17 +11,7 @@ import { EmptyStateCard } from "./chat/EmptyStateCard";
 
 export function Chat() {
   const activeClaudeSessionId = useSessionStore((s) => s.activeClaudeSessionId);
-  const queryClient = useQueryClient();
-  const moduleToolCount = useChatStore((s) => s.moduleToolCompletedCount);
-  const prevCount = useRef(moduleToolCount);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-
-  useEffect(() => {
-    if (moduleToolCount > prevCount.current) {
-      queryClient.invalidateQueries({ queryKey: ["modules"] });
-    }
-    prevCount.current = moduleToolCount;
-  }, [moduleToolCount, queryClient]);
 
   const { data: workspace } = useQuery({
     queryKey: ["workspace"],

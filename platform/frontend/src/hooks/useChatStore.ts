@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { streamChat, type ChatEvent } from "../api/chat";
 import { useSessionStore } from "./useSessionStore";
-import { queryClient } from "../lib/queryClient";
+import { queryClient, invalidateModuleQueries } from "../lib/queryClient";
 
 export const NEW_CHAT_KEY = "__new_chat__";
 
@@ -39,7 +39,6 @@ interface ChatState {
   messagesBySession: Record<string, ChatMessage[]>;
   streamingSessionId: string | null;
   abortController: AbortController | null;
-  moduleToolCompletedCount: number;
   model: string | null;
   // Live, ephemeral. Belongs to whatever stream is currently running (or
   // whatever just finished). Never persisted, never keyed by session — when
@@ -60,7 +59,6 @@ export const useChatStore = create<ChatState>()(
       messagesBySession: {},
       streamingSessionId: null,
       abortController: null,
-      moduleToolCompletedCount: 0,
       model: null,
       currentTreeState: null,
 
@@ -162,31 +160,21 @@ export const useChatStore = create<ChatState>()(
                 }));
                 break;
               case "tool_result":
-                updateAssistant((m) => {
-                  let isModuleTool = false;
-                  const parts = m.parts.map((p) => {
-                    if (p.type === "tool_call" && p.toolCall.id === event.tool_id) {
-                      if (p.toolCall.name.startsWith("mcp__modules__")) {
-                        isModuleTool = true;
-                      }
-                      return {
-                        ...p,
-                        toolCall: {
-                          ...p.toolCall,
-                          output: event.output,
-                          completedAt: Date.now(),
-                        },
-                      };
-                    }
-                    return p;
-                  });
-                  if (isModuleTool) {
-                    setTimeout(() => {
-                      set((s) => ({ moduleToolCompletedCount: s.moduleToolCompletedCount + 1 }));
-                    }, 0);
-                  }
-                  return { ...m, parts };
-                });
+                updateAssistant((m) => ({
+                  ...m,
+                  parts: m.parts.map((p) =>
+                    p.type === "tool_call" && p.toolCall.id === event.tool_id
+                      ? {
+                          ...p,
+                          toolCall: {
+                            ...p.toolCall,
+                            output: event.output,
+                            completedAt: Date.now(),
+                          },
+                        }
+                      : p,
+                  ),
+                }));
                 break;
               case "tool_input":
                 break;
@@ -242,11 +230,13 @@ export const useChatStore = create<ChatState>()(
                 }));
                 set({ streamingSessionId: null, abortController: null });
                 queryClient.invalidateQueries({ queryKey: ["sessions"] });
+                invalidateModuleQueries(queryClient);
                 break;
               case "done":
                 updateAssistant((m) => ({ ...m, streaming: false }));
                 set({ streamingSessionId: null, abortController: null });
                 queryClient.invalidateQueries({ queryKey: ["sessions"] });
+                invalidateModuleQueries(queryClient);
                 break;
             }
           },

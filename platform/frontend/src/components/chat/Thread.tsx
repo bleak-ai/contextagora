@@ -15,7 +15,6 @@ import type { WorkspaceFile } from "../../api/workspace";
 import { MarkdownText } from "./MarkdownText";
 import { ToolCallDisplay } from "./ToolCallDisplay";
 import { ThinkingDisplay } from "./ThinkingDisplay";
-import { ModulePreviewCard } from "./ModulePreviewCard";
 import { useChatStore, NEW_CHAT_KEY } from "../../hooks/useChatStore";
 import { useSessionStore } from "../../hooks/useSessionStore";
 
@@ -100,10 +99,6 @@ const AssistantMessage: FC = () => (
             Text: AssistantText,
             Reasoning: ThinkingDisplay,
             tools: {
-              by_name: {
-                mcp__modules__create_module: ModulePreviewCard,
-                mcp__modules__update_module: ModulePreviewCard,
-              },
               Fallback: ToolCallDisplay,
             },
           }}
