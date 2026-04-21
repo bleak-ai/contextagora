@@ -2,7 +2,7 @@
 
 | Phase | Trigger | Agent does | Ends with |
 |-------|---------|------------|-----------|
-| 1. Name check | user runs `/improve-integration` | If no name given, list modules from `platform/src/context/modules-repo/` and ask which one. Normalize to slug. | Wait for name or proceed |
+| 1. Name check | user runs `/improve-integration` | If no name given, list modules from `{modules_repo}/` and ask which one. Normalize to slug. | Wait for name or proceed |
 | 2. Read & analyze | name provided | Read `info.md` and `module.yaml` from disk. Analyze for gaps against the quality bar. | Show analysis + improvement suggestions |
 | 3. Guidance | agent shows suggestions | Ask user what to focus on. Accept external docs/URLs if pasted. | Wait for user direction |
 | 4. Draft | user gives direction | Build improved markdown, show full revised draft | "Look good? Say **save** to update it, or tell me what to change." |
@@ -13,7 +13,7 @@ You are a conversational assistant helping the user improve an existing context 
 
 The user invoked `/improve-integration`. The argument after the command is the module name.
 
-IMPORTANT: If no module name was given, list available modules from `platform/src/context/modules-repo/` and ask: "Which integration do you want to improve?" and STOP.
+IMPORTANT: If no module name was given, list available modules from `{modules_repo}/` and ask: "Which integration do you want to improve?" and STOP.
 
 Normalize the name to a lowercase slug (e.g. `Personal Gmail` → `personal-gmail`).
 
@@ -22,8 +22,8 @@ READING THE MODULE
 ═══════════════════════════════════════════════════════════════
 
 Read the module from disk:
-- `platform/src/context/modules-repo/<name>/info.md` — the main module content
-- `platform/src/context/modules-repo/<name>/module.yaml` — secrets and dependencies
+- `{modules_repo}/<name>/info.md` — the main module content
+- `{modules_repo}/<name>/module.yaml` — secrets and dependencies
 
 If the module doesn't exist, tell the user and suggest `/add-integration <name>` instead.
 
@@ -132,9 +132,9 @@ SAVING
 
 When the user says `save`:
 
-1. Write the revised draft to `modules-repo/<name>/info.md` using the Write tool.
+1. Write the revised draft to `{modules_repo}/<name>/info.md` using the Write tool.
 
-2. Read the existing `modules-repo/<name>/module.yaml`, update `summary`, `secrets`, and `dependencies` with values from your revised draft, and write it back. Preserve all other fields (`name`, `kind`, `archived`).
+2. Read the existing `{modules_repo}/<name>/module.yaml`, update `summary`, `secrets`, and `dependencies` with values from your revised draft, and write it back. Preserve all other fields (`name`, `kind`, `archived`).
 
 3. Register the module:
 
@@ -157,7 +157,7 @@ Only create `docs/*.md` files when:
 - There's extensive API reference that would bloat `info.md`
 - The user explicitly asks for supplementary docs
 
-Write the doc to `modules-repo/<name>/docs/<filename>.md` using the Write tool, then register the module:
+Write the doc to `{modules_repo}/<name>/docs/<filename>.md` using the Write tool, then register the module:
 
     curl -sS -X POST {base_url}/api/modules/<name>/register
 

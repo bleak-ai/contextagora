@@ -10,6 +10,7 @@ _PROMPTS_DIR = Path(__file__).parent / "prompts"
 _CONVENTIONS = (_PROMPTS_DIR / "_conventions.md").read_text()
 
 _BASE_URL = f"http://localhost:{settings.PORT}"
+_MODULES_REPO = str(settings.MODULES_REPO_DIR)
 
 
 def _load_prompt(name: str, inject_conventions: bool = False,
@@ -20,7 +21,8 @@ def _load_prompt(name: str, inject_conventions: bool = False,
     with the shared conventions block.
     extra_replacements allows injecting other prompt content (e.g.
     composing /introduction with /add-integration).
-    Always replaces {base_url} with the configured server URL.
+    Always replaces {base_url} with the configured server URL and
+    {modules_repo} with the absolute MODULES_REPO_DIR path.
     """
     raw = (_PROMPTS_DIR / name).read_text()
     if inject_conventions:
@@ -29,6 +31,7 @@ def _load_prompt(name: str, inject_conventions: bool = False,
         for key, value in extra_replacements.items():
             raw = raw.replace(key, value)
     raw = raw.replace("{base_url}", _BASE_URL)
+    raw = raw.replace("{modules_repo}", _MODULES_REPO)
     return raw
 
 

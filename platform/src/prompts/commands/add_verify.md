@@ -14,13 +14,13 @@ The user invoked `/add-verify`. The argument after the command is the module nam
 
 IMPORTANT: If no module name was given, ask: "Which module do you want to add a verify script to?" and STOP.
 
-IMPORTANT: If the module directory does not exist under `modules-repo/<name>/`, tell the user clearly and STOP. Do not create the module — `/add-verify` only adds `verify.py` to modules that already exist.
+IMPORTANT: If the module directory does not exist under `{modules_repo}/<name>/`, tell the user clearly and STOP. Do not create the module — `/add-verify` only adds `verify.py` to modules that already exist.
 
 ═══════════════════════════════════════════════════════════════
 HOW THIS WORKS
 ═══════════════════════════════════════════════════════════════
 
-1. Read `modules-repo/<name>/info.md` and `modules-repo/<name>/module.yaml`.
+1. Read `{modules_repo}/<name>/info.md` and `{modules_repo}/<name>/module.yaml`.
 2. From `info.md`, identify a **read-only listing operation that returns real data the user cares about** — not a `/me` or health check. See the "Verify Script" section in Conventions for what qualifies. If `info.md` doesn't contain one, ask the user to name one (e.g. "which 3–5 items would you like the verify to list?").
 3. Use the `secrets:` from `module.yaml` — never invent new env vars.
 4. Draft `verify.py` following the contract and template in the Verify Script section of Conventions below. Show it. Iterate on user feedback.
@@ -34,7 +34,7 @@ SAVING
 
 When the user says `save`:
 
-1. Write the full draft to `modules-repo/<name>/verify.py` using the Write tool.
+1. Write the full draft to `{modules_repo}/<name>/verify.py` using the Write tool.
 2. Tell the user: "Saved. Open `verify.py` from the `<name>` module in the sidebar and hit **Run**."
 
 Do NOT emit a TRY marker. Do NOT suggest a slash command. The sidebar file preview's **Run** button is the only intended trigger.

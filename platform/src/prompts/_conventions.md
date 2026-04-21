@@ -71,10 +71,12 @@ Declared in `module.yaml` under `dependencies:`, one per entry, no versions unle
 
 ## 7. Saving a Module
 
+Module files live at the absolute path `{modules_repo}/<name>/`. ALWAYS use that absolute path in Write/Bash tool calls — never a relative `modules-repo/<name>/...`, which would resolve under the current cwd and end up in the wrong place.
+
 To save a new or updated module:
 
-1. Write `info.md` to `modules-repo/<name>/info.md` using the Write tool
-2. Write `module.yaml` to `modules-repo/<name>/module.yaml`
+1. Write `info.md` to `{modules_repo}/<name>/info.md` using the Write tool
+2. Write `module.yaml` to `{modules_repo}/<name>/module.yaml`
 3. Register: `curl -sS -X POST {base_url}/api/modules/<name>/register`
 
 ### module.yaml fields
@@ -138,7 +140,7 @@ except Exception as e:
     sys.exit(1)
 ```
 
-**Invocation.** The backend runs any module `.py` via `varlock run -- uv run python modules-repo/<name>/<path>.py` from `platform/src/context/`. Scripts must be standalone Python — no CLI args, no stdin.
+**Invocation.** The backend runs any module `.py` via `varlock run -- uv run python {modules_repo}/<name>/<path>.py` from `platform/src/context/`. Scripts must be standalone Python — no CLI args, no stdin.
 
 ## 9. Verify Script (`verify.py`)
 

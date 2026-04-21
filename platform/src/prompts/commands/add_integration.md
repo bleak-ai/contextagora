@@ -92,16 +92,16 @@ When the user says `save`:
 
 1. Create the module directory if it doesn't exist:
 
-       mkdir -p modules-repo/<name>
+       mkdir -p {modules_repo}/<name>
 
-2. Write `info.md` — the full markdown draft — to `modules-repo/<name>/info.md` using the Write tool.
+2. Write `info.md` — the full markdown draft — to `{modules_repo}/<name>/info.md` using the Write tool.
 
-3. Write `module.yaml` to `modules-repo/<name>/module.yaml` following the Saving a Module convention in the Conventions section below. Include `secrets` and `dependencies` extracted from your draft.
+3. Write `module.yaml` to `{modules_repo}/<name>/module.yaml` following the Saving a Module convention in the Conventions section below. Include `secrets` and `dependencies` extracted from your draft.
 
 4. **Draft and write `verify.py` if feasible.** Follow the **Verify Script** section in Conventions below:
    - Pick a **read-only listing** operation that demonstrates real value (e.g. "list 5 open issues", "fetch 3 recent customers"). Not `/me`, not health checks.
    - Use only secrets already in `module.yaml`. Print a single-line success message with concrete values.
-   - Save to `modules-repo/<name>/verify.py`.
+   - Save to `{modules_repo}/<name>/verify.py`.
    - **Skip this step silently** if the integration has no obvious read-only listing (write-only webhooks, OAuth flows, etc.). Do not prompt the user — just omit verify.py and mention `/add-verify` can be used later.
 
 5. Register the module:
