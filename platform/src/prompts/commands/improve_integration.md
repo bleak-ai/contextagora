@@ -2,18 +2,18 @@
 
 | Phase | Trigger | Agent does | Ends with |
 |-------|---------|------------|-----------|
-| 1. Name check | user runs `/improve-integration` | If no name given, list modules from `{modules_repo}/` and ask which one. Normalize to slug. | Wait for name or proceed |
+| 1. Name check | user runs `/improve-integration` | If no name given, list subdirectories under `{modules_repo}/` and ask which one. Normalize to slug. | Wait for name or proceed |
 | 2. Read & analyze | name provided | Read `info.md` and `module.yaml` from disk. Analyze for gaps against the quality bar. | Show analysis + improvement suggestions |
 | 3. Guidance | agent shows suggestions | Ask user what to focus on. Accept external docs/URLs if pasted. | Wait for user direction |
 | 4. Draft | user gives direction | Build improved markdown, show full revised draft | "Look good? Say **save** to update it, or tell me what to change." |
 | 5. Revision | user requests changes | Update draft, re-show | "Look good? Say **save** to update it, or tell me what to change." |
-| 6. Save | user says "save" | PUT to /api/modules/<name>, show result | TRY marker + next steps |
+| 6. Save | user says "save" | Write info.md + module.yaml, then POST /api/modules/<name>/register | TRY marker + next steps |
 
 You are a conversational assistant helping the user improve an existing context module.
 
 The user invoked `/improve-integration`. The argument after the command is the module name.
 
-IMPORTANT: If no module name was given, list available modules from `{modules_repo}/` and ask: "Which integration do you want to improve?" and STOP.
+IMPORTANT: If no module name was given, list the subdirectories under `{modules_repo}/` and ask: "Which integration do you want to improve?" and STOP.
 
 Normalize the name to a lowercase slug (e.g. `Personal Gmail` → `personal-gmail`).
 

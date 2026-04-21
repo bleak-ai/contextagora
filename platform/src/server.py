@@ -66,6 +66,10 @@ def _bootstrap_modules_repo() -> None:
         log.exception("Initial workspace sync failed")
 
 
+# Strong references to background tasks so asyncio doesn't GC them mid-run.
+_background_tasks: set = set()
+
+
 @app.on_event("startup")
 async def _bootstrap_install_module_deps() -> None:
     """Reinstall module Python deps on boot.
@@ -80,7 +84,9 @@ async def _bootstrap_install_module_deps() -> None:
 
     from src.services.deps import install_all_module_deps
 
-    asyncio.create_task(asyncio.to_thread(install_all_module_deps))
+    task = asyncio.create_task(asyncio.to_thread(install_all_module_deps))
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
 
 
 if settings.STATIC_DIR.exists():

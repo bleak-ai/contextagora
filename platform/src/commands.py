@@ -48,9 +48,6 @@ class CommandDef:
     prompt: str
 
 
-# Load add_integration first so the standalone command is registered once.
-_ADD_INTEGRATION_PROMPT = _load_prompt("commands/add_integration.md", inject_conventions=True)
-
 COMMANDS: list[CommandDef] = [
     CommandDef(
         name="download",
@@ -60,7 +57,7 @@ COMMANDS: list[CommandDef] = [
     CommandDef(
         name="add-integration",
         description="Create a new context module from a generated info.md",
-        prompt=_ADD_INTEGRATION_PROMPT,
+        prompt=_load_prompt("commands/add_integration.md", inject_conventions=True),
     ),
     CommandDef(
         name="introduction",

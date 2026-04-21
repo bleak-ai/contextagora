@@ -185,12 +185,15 @@ async def api_register_module(name: str):
     # Generate llms.txt
     regenerate_module_llms_txt(name, settings.MANAGED_FILES, summary=manifest.summary)
 
-    kind = ModuleKind(manifest.kind)
-    if kind.auto_load:
-        current = get_loaded_module_names()
-        if name not in current:
-            current.append(name)
-        reload_workspace(current)
+    # Always load on register so the module is immediately usable:
+    # - Symlink into CONTEXT_DIR so claude can read it
+    # - Secrets populated into .env.schema for varlock
+    # Already-loaded modules keep their state (reload_workspace is idempotent
+    # on membership). Users can still opt out later via the sidebar toggle.
+    current = get_loaded_module_names()
+    if name not in current:
+        current.append(name)
+    reload_workspace(current)
 
     return {
         "name": manifest.name,

@@ -116,6 +116,18 @@ export const useChatStore = create<ChatState>()(
           });
         };
 
+        // Turn-scoped flag: only refresh module/workspace queries if a
+        // state-changing tool ran. Pure Q&A / read-only exploration doesn't
+        // need to invalidate the sidebar caches.
+        const MUTATING_TOOLS = new Set([
+          "Write",
+          "Edit",
+          "MultiEdit",
+          "NotebookEdit",
+          "Bash",
+        ]);
+        let turnMutatedState = false;
+
         streamChat(
           prompt,
           claudeSessionIdToSend,
@@ -143,6 +155,9 @@ export const useChatStore = create<ChatState>()(
                 });
                 break;
               case "tool_use":
+                if (MUTATING_TOOLS.has(event.tool)) {
+                  turnMutatedState = true;
+                }
                 updateAssistant((m) => ({
                   ...m,
                   parts: [
@@ -230,13 +245,13 @@ export const useChatStore = create<ChatState>()(
                 }));
                 set({ streamingSessionId: null, abortController: null });
                 queryClient.invalidateQueries({ queryKey: ["sessions"] });
-                invalidateModuleQueries(queryClient);
+                if (turnMutatedState) invalidateModuleQueries(queryClient);
                 break;
               case "done":
                 updateAssistant((m) => ({ ...m, streaming: false }));
                 set({ streamingSessionId: null, abortController: null });
                 queryClient.invalidateQueries({ queryKey: ["sessions"] });
-                invalidateModuleQueries(queryClient);
+                if (turnMutatedState) invalidateModuleQueries(queryClient);
                 break;
             }
           },
