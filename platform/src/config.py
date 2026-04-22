@@ -41,6 +41,7 @@ class Settings(BaseSettings):
 
     # Overridable paths
     MODULES_REPO_DIR: Path = Path("")  # resolved in validator
+    SESSIONS_DB_PATH: Path = Path("")  # resolved in validator
 
     # Derived (not from env)
     BASE_DIR: Path = Path("")  # resolved in validator
@@ -59,6 +60,12 @@ class Settings(BaseSettings):
         object.__setattr__(self, "STATIC_DIR", base / "static")
         if not self.MODULES_REPO_DIR or self.MODULES_REPO_DIR == Path(""):
             object.__setattr__(self, "MODULES_REPO_DIR", base / "modules-repo")
+        if not self.SESSIONS_DB_PATH or self.SESSIONS_DB_PATH == Path(""):
+            object.__setattr__(
+                self,
+                "SESSIONS_DB_PATH",
+                Path.home() / ".claude" / "contextagora" / "sessions.db",
+            )
         return self
 
     model_config = {"env_file": ".env", "extra": "ignore"}

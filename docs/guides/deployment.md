@@ -109,6 +109,8 @@ docker compose pull
 docker compose up -d
 ```
 
+> **First-time upgrade note:** if you're upgrading from a version before persistent session storage was added, any chat history stored inside previous containers is lost on this redeploy. New sessions onwards persist in the `claude-home` volume (see [Session persistence](#session-persistence)).
+
 ## Setting up secrets (optional)
 
 If your modules need secrets (API keys, tokens, etc.), ContextAgora resolves them at runtime via Varlock + [Infisical](https://infisical.com). You can set this up later — modules without secrets work fine without it.
@@ -174,6 +176,31 @@ INFISICAL_SITE_URL=https://app.infisical.com
 
 > `INFISICAL_SITE_URL` only needs to change if you are self-hosting Infisical.
 
+## Upgrading / Persistence
+
+### Session persistence
+
+Chat history (Claude Code session transcripts + ContextAgora's message DB) lives
+in the `claude-home` Docker volume, mounted at `/root/.claude` inside the
+container. This survives `docker compose pull` and `docker compose up -d`.
+
+To wipe all session history: `docker compose down -v` (removes named volumes).
+To back it up: `docker run --rm -v claude-home:/src -v $PWD:/dst alpine tar czf /dst/claude-home.tgz -C /src .`
+
+If you maintain your own compose file instead of the bundled one, make sure it
+includes the volume — otherwise chat history is lost on every redeploy:
+
+```yaml
+services:
+  contextagora:
+    # ...your existing config...
+    volumes:
+      - claude-home:/root/.claude
+
+volumes:
+  claude-home:
+```
+
 ## Reverse Proxy / HTTPS
 
 For production, put ContextAgora behind a reverse proxy (Caddy, Nginx, etc.) that terminates TLS and forwards to `localhost:9090`. Bind the container to `127.0.0.1` so it's only reachable through the proxy — change `"9090:9090"` to `"127.0.0.1:9090:9090"` in `docker-compose.yml`.
@@ -184,5 +211,5 @@ If something isn't working, check the logs: `docker compose logs contextagora`
 
 ## Notes
 
-- The app is stateless — no volumes or database needed. Modules are fetched from GitHub on demand.
+- Modules are fetched from GitHub on demand. The only persistent state is chat history, stored in the `claude-home` named volume (see [Session persistence](#session-persistence)).
 - Recommend at least **2 GB RAM** and **2 CPU cores**.

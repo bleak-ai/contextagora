@@ -50,6 +50,7 @@ interface ChatState {
   cancelStream: () => void;
   clearMessages: (sessionId: string) => void;
   deleteSessionMessages: (sessionId: string) => void;
+  hydrateSession: (sessionId: string, messages: ChatMessage[]) => void;
   resetTreeState: () => void;
 }
 
@@ -294,23 +295,33 @@ export const useChatStore = create<ChatState>()(
         });
       },
 
+      hydrateSession: (sessionId: string, messages: ChatMessage[]) => {
+        set((state) => {
+          if (state.streamingSessionId === sessionId) return state;
+          return {
+            messagesBySession: {
+              ...state.messagesBySession,
+              [sessionId]: messages.map((m) => ({
+                ...m,
+                streaming: false,
+                thinking: m.thinking ?? "",
+                parts: m.parts ?? [],
+              })),
+            },
+          };
+        });
+      },
+
       resetTreeState: () => {
         set({ currentTreeState: null });
       },
     }),
     {
       name: "context-chat-store",
-      partialize: (state) => ({
-        messagesBySession: Object.fromEntries(
-          Object.entries(state.messagesBySession).map(([sid, msgs]) => [
-            sid,
-            msgs.map((m) => {
-              const { suggestions: _drop, ...rest } = m;
-              return { ...rest, streaming: false };
-            }),
-          ]),
-        ),
-      }),
+      // Messages are NOT persisted. They live on the server (parsed from
+      // Claude's JSONL transcripts) and are hydrated on session open, so
+      // multiple devices see the same history.
+      partialize: () => ({}),
     },
   ),
 );

@@ -31,4 +31,9 @@ services:
       - INFISICAL_PROJECT_ID=${INFISICAL_PROJECT_ID:-}
       - INFISICAL_ENVIRONMENT=${INFISICAL_ENVIRONMENT:-}
       - INFISICAL_SITE_URL=${INFISICAL_SITE_URL:-}
+    volumes:
+      - claude-home:/root/.claude
     restart: unless-stopped
+
+volumes:
+  claude-home:

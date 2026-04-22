@@ -9,7 +9,7 @@
 - [platform/src/llms.py](platform/src/llms.py) — llms.txt generation and parsing helpers
 - [platform/src/routes/modules.py](platform/src/routes/modules.py) — Module CRUD and file CRUD endpoints
 - [platform/src/routes/workspace.py](platform/src/routes/workspace.py) — Workspace load, secrets endpoints
-- [platform/src/routes/chat.py](platform/src/routes/chat.py) — Stateless chat SSE streaming and `GET /api/sessions` (lists sessions from disk via claude_sessions service)
+- [platform/src/routes/chat.py](platform/src/routes/chat.py) — Chat SSE streaming that records events into the sessions DB via transcript_recorder; `GET /api/sessions` (list) and `GET /api/sessions/{id}/messages` (hydrate transcript, DB-first with JSONL fallback) via claude_sessions service
 - [platform/src/routes/health.py](platform/src/routes/health.py) — Health check endpoint
 - [platform/src/routes/files.py](platform/src/routes/files.py) — File download endpoint (GET /api/files/download) with path validation against CONTEXT_DIR and /tmp
 - [platform/src/routes/commands.py](platform/src/routes/commands.py) — Slash commands listing endpoint (GET /api/commands) from static COMMANDS registry
@@ -17,7 +17,9 @@
 - [platform/src/prompts/llms.txt](platform/src/prompts/llms.txt) — Prompt directory: commands/ (user-facing slash commands) and templates/ (internal prompts)
 - [platform/src/prompts/_conventions.md](platform/src/prompts/_conventions.md) — Single source of truth for varlock, TRY markers, secret naming, and execution conventions; auto-injected into all prompts
 - [platform/src/services/claude.py](platform/src/services/claude.py) — Single source of truth for spawning the claude CLI (run_headless, stream); unified env build (telemetry-off + LLM_* → ANTHROPIC_* mapping)
-- [platform/src/services/claude_sessions.py](platform/src/services/claude_sessions.py) — Reads Claude Code's on-disk session transcripts (~/.claude/projects/<encoded-cwd>/*.jsonl); pure functions claude_project_dir, first_user_message, list_sessions; no state
+- [platform/src/services/claude_sessions.py](platform/src/services/claude_sessions.py) — Reads Claude Code's on-disk session transcripts (~/.claude/projects/<encoded-cwd>/*.jsonl); pure functions claude_project_dir, first_user_message, list_sessions, read_transcript (parses JSONL into frontend ChatMessage shape), load_session_messages (DB-first via sessions_store, JSONL fallback); no state
+- [platform/src/services/sessions_store.py](platform/src/services/sessions_store.py) — SQLite DAO for chat messages (open_db, ensure_schema, save_message, list_messages); no ORM, stdlib sqlite3
+- [platform/src/services/transcript_recorder.py](platform/src/services/transcript_recorder.py) — Pure in-memory builder that turns SSE events into ChatMessage records for persistence; mirrors useChatStore.sendMessage
 - [platform/src/services/git_repo.py](platform/src/services/git_repo.py) — Local git clone wrapper (clone, read/write, sync_status/pull/push)
 - [platform/src/routes/sync.py](platform/src/routes/sync.py) — Sync API endpoints (GET /api/sync/status, POST /api/sync/pull, POST /api/sync/push)
 - [platform/frontend/src/api/sync.ts](platform/frontend/src/api/sync.ts) — Sync API client (fetchSyncStatus, pullSync, pushSync)
@@ -32,7 +34,7 @@
 - [platform/frontend/src/components/chat/SlashCommandSelector.tsx](platform/frontend/src/components/chat/SlashCommandSelector.tsx) — Slash command dropdown selector component and useSlashCommands hook
 - [platform/frontend/src/components/chat/MentionSelector.tsx](platform/frontend/src/components/chat/MentionSelector.tsx) — @-mention file picker component (MentionSelector), useMentionPicker hook, and findActiveMention utility
 - [platform/frontend/src/components/chat/DecisionTreePanel.tsx](platform/frontend/src/components/chat/DecisionTreePanel.tsx) — Tree navigation visualization with breadcrumbs and module access counts
-- [platform/frontend/src/api/sessions.ts](platform/frontend/src/api/sessions.ts) — Sessions API client (fetchSessions only; SessionInfo type)
+- [platform/frontend/src/api/sessions.ts](platform/frontend/src/api/sessions.ts) — Sessions API client (fetchSessions, fetchSessionMessages; SessionInfo type)
 - [platform/frontend/src/hooks/useSessionStore.ts](platform/frontend/src/hooks/useSessionStore.ts) — Zustand store holding only `activeClaudeSessionId` (localStorage-persisted); session list comes from the server
 - [platform/frontend/src/components/](platform/frontend/src/components/) — React components (Chat, ModuleRegistry, IconRail, ContextPanel, etc.)
 - [platform/frontend/src/components/sidebar/ModuleCard.tsx](platform/frontend/src/components/sidebar/ModuleCard.tsx) — Unified card component for tasks and integrations; renders name, summary, files, secrets, packages with expand/collapse

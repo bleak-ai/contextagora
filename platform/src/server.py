@@ -1,4 +1,6 @@
 import logging
+import threading
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
@@ -19,7 +21,7 @@ from src.routes.onboarding import router as onboarding_router
 from src.routes.root_context import router as root_context_router
 from src.routes.sync import router as sync_router
 from src.routes.workspace import router as workspace_router
-from src.services import git_repo
+from src.services import git_repo, sessions_store
 from src.services.workspace import (
     all_integration_names,
     list_loaded_modules,
@@ -30,21 +32,11 @@ log = logging.getLogger(__name__)
 
 settings.CONTEXT_DIR.mkdir(exist_ok=True)
 
-app = FastAPI()
 
-app.include_router(health_router)
-app.include_router(modules_router)
-app.include_router(workspace_router)
-app.include_router(chat_router)
-app.include_router(files_router)
-app.include_router(commands_router)
-app.include_router(sync_router)
-app.include_router(benchmarks_router)
-app.include_router(root_context_router)
-app.include_router(onboarding_router)
+# Strong references to background tasks so asyncio doesn't GC them mid-run.
+_background_tasks: set = set()
 
 
-@app.on_event("startup")
 def _bootstrap_modules_repo() -> None:
     try:
         git_repo.init_repo()
@@ -66,11 +58,6 @@ def _bootstrap_modules_repo() -> None:
         log.exception("Initial workspace sync failed")
 
 
-# Strong references to background tasks so asyncio doesn't GC them mid-run.
-_background_tasks: set = set()
-
-
-@app.on_event("startup")
 async def _bootstrap_install_module_deps() -> None:
     """Reinstall module Python deps on boot.
 
@@ -87,6 +74,42 @@ async def _bootstrap_install_module_deps() -> None:
     task = asyncio.create_task(asyncio.to_thread(install_all_module_deps))
     _background_tasks.add(task)
     task.add_done_callback(_background_tasks.discard)
+
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    # Existing bootstrap steps — keep their behavior unchanged.
+    _bootstrap_modules_repo()
+    await _bootstrap_install_module_deps()
+
+    # Open the sessions DB and ensure its schema. One connection per process;
+    # WAL mode lets concurrent reads happen while SSE writes are in flight.
+    conn = sessions_store.open_db(settings.SESSIONS_DB_PATH)
+    sessions_store.ensure_schema(conn)
+    app.state.sessions_db = conn
+    # Single shared SQLite connection is not safe for concurrent use across
+    # threads, even with check_same_thread=False. Every DB access in the SSE
+    # hot path goes through this lock. Writes are millisecond-scale, so this
+    # serializes persist calls without meaningfully affecting throughput.
+    app.state.sessions_db_lock = threading.Lock()
+    try:
+        yield
+    finally:
+        conn.close()
+
+
+app = FastAPI(lifespan=_lifespan)
+
+app.include_router(health_router)
+app.include_router(modules_router)
+app.include_router(workspace_router)
+app.include_router(chat_router)
+app.include_router(files_router)
+app.include_router(commands_router)
+app.include_router(sync_router)
+app.include_router(benchmarks_router)
+app.include_router(root_context_router)
+app.include_router(onboarding_router)
 
 
 if settings.STATIC_DIR.exists():

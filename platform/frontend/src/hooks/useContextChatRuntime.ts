@@ -1,6 +1,9 @@
+import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useExternalStoreRuntime } from "@assistant-ui/react";
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import type { ReadonlyJSONObject } from "assistant-stream/utils";
+import { fetchSessionMessages } from "../api/sessions";
 import { useChatStore, NEW_CHAT_KEY, type ChatMessage } from "./useChatStore";
 
 function convertMessage(msg: ChatMessage): ThreadMessageLike {
@@ -77,9 +80,27 @@ export function useContextChatRuntime(opts: {
   const sendMessage = useChatStore((s) => s.sendMessage);
   const cancelStream = useChatStore((s) => s.cancelStream);
   const clearMessages = useChatStore((s) => s.clearMessages);
+  const hydrateSession = useChatStore((s) => s.hydrateSession);
 
   const isRunning =
     streamingSessionId !== null && streamingSessionId === messagesKey;
+
+  // Pull the full transcript from the server whenever a persisted session is
+  // opened. This is how a second browser/computer sees history that was
+  // created elsewhere — the JSONL on disk is the source of truth.
+  const shouldHydrate =
+    opts.sessionId !== null && streamingSessionId !== opts.sessionId;
+  const { data: hydrated } = useQuery({
+    queryKey: ["session-messages", opts.sessionId],
+    queryFn: () => fetchSessionMessages(opts.sessionId!),
+    enabled: shouldHydrate,
+    staleTime: 0,
+  });
+
+  useEffect(() => {
+    if (!opts.sessionId || !hydrated) return;
+    hydrateSession(opts.sessionId, hydrated.messages);
+  }, [opts.sessionId, hydrated, hydrateSession]);
 
   const runtime = useExternalStoreRuntime({
     messages,

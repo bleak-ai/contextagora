@@ -17,3 +17,11 @@ Shared conventions are centralised in `_conventions.md` and auto-injected into a
 ### Current conventions
 
 All execution conventions now live in `platform/src/prompts/_conventions.md` — see that file for the authoritative reference.
+
+## Session persistence
+
+Chat history lives in two places:
+1. **SQLite** at `settings.SESSIONS_DB_PATH` (default `~/.claude/contextagora/sessions.db`) — authoritative for anything streamed through this server. Written live as SSE events fire.
+2. **Claude Code JSONL** at `~/.claude/projects/<encoded-cwd>/<id>.jsonl` — source of truth for `claude --resume`. Used as a fallback by the hydrate endpoint for sessions we didn't capture.
+
+The Docker compose file mounts `/root/.claude` as a named volume so both persist across restarts.

@@ -128,6 +128,22 @@ The backend holds no conversation state. Each message spawns a `claude` subproce
 
 **Why:** The user explicitly rejected both backend and frontend session stores: "Can't we just parse the sessions as how they are saved in claude code and then show them in the sidebar? Why do we have to even replicate any of their logic." **Rejected:** Backend `SessionStore` (deleted), frontend localStorage session IDs.
 
+**Superseded 2026-04-21** by "Durable session storage via write-through SQLite" below.
+
+### Durable session storage via write-through SQLite
+
+Reverses the previous decision: the backend now DOES hold conversation state, in a SQLite DB at `~/.claude/contextagora/sessions.db` (override via `SESSIONS_DB_PATH`). Every SSE event the chat route streams to the client is mirrored into the DB via `TranscriptRecorder` + `sessions_store`. The hydrate endpoint reads DB-first and falls back to parsing Claude Code's JSONL only for sessions the server didn't capture (CLI-created or pre-existing).
+
+**Why:** Two concrete failures of the JSONL-only approach emerged in production:
+1. Users opening the app from a second computer couldn't see sessions streamed from the first — frontend `messagesBySession` lived in localStorage, so the list appeared but every session hydrated empty.
+2. JSONL parsing is coupled to Claude Code's private on-disk format. A format change on their side breaks our hydration silently.
+
+The DB is a write-through cache of what we actually streamed, so it's immune to Claude Code format drift for captured sessions. JSONL remains authoritative for `claude --resume` (we never replace that).
+
+**Rejected alternatives:** (a) Postgres / real DB infra — premature for a single-process deployment; (b) shadow `<id>.messages.json` files next to the JSONL — two files to keep in sync, no benefit over SQLite; (c) dropping the frontend cache entirely and fetching per-render — kills streaming UX.
+
+**How the two stores coexist:** JSONL is the source of truth for *resumption* (Claude Code owns it). SQLite is the source of truth for *display*. They agree by construction while a session is streamed through this server; they diverge only for external sessions, which the JSONL fallback handles.
+
 ### Commands are hardcoded in the backend, not Claude Code native commands
 
 Commands like `/download` and `/add-integration` are backend-intercepted slash commands with a structured registry, not `.claude/commands/*.md` files.

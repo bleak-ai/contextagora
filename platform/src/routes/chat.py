@@ -1,16 +1,22 @@
 import json
 import logging
+import time
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from src.commands import COMMANDS
 from src.models import ChatRequest
 from src.config import settings
-from src.services import claude
-from src.services.claude_sessions import list_sessions
+from src.services import claude, sessions_store
+from src.services.claude_sessions import (
+    claude_project_dir,
+    list_sessions,
+    load_session_messages,
+)
 from src.services.suggestion_parser import SuggestionBuffer
+from src.services.transcript_recorder import TranscriptRecorder
 
 log = logging.getLogger(__name__)
 
@@ -43,17 +49,94 @@ async def api_list_sessions():
     return {"sessions": list_sessions(settings.CONTEXT_DIR)}
 
 
+@router.get("/sessions/{session_id}/messages")
+async def api_session_messages(session_id: str, request: Request):
+    """Return the full transcript for a session, in frontend ChatMessage shape.
+
+    Lets any client (e.g., a second computer) hydrate a session it didn't
+    originate. Rejects ids containing path separators so we can't escape the
+    project dir.
+    """
+    if "/" in session_id or "\\" in session_id or ".." in session_id:
+        raise HTTPException(status_code=400, detail="invalid session id")
+    proj_dir = claude_project_dir(settings.CONTEXT_DIR)
+    jsonl = proj_dir / f"{session_id}.jsonl"
+    db = request.app.state.sessions_db
+    lock = request.app.state.sessions_db_lock
+    # Share the write lock: the single sqlite3.Connection lives on app.state,
+    # and Python's Connection wrapper holds non-threadsafe state even when
+    # the underlying SQLite build is threadsafety=3.
+    with lock:
+        msgs = load_session_messages(session_id, db, proj_dir)
+    # 404 only when neither source knows about this session. Returns an empty
+    # list for sessions that exist on either side but have no consumable
+    # messages yet (in-flight first turn, or JSONL with only skipped events).
+    if not msgs and not jsonl.is_file():
+        raise HTTPException(status_code=404, detail="session not found")
+    return {"messages": msgs}
+
+
+def _persist(conn, lock, recorder: TranscriptRecorder) -> None:
+    """Write the recorder's [user, assistant] pair into the sessions DB.
+
+    Appends after any existing messages for the same session (resumed turns).
+    No-ops if the stream never produced a session_id (e.g., the subprocess
+    crashed before Claude emitted its `system` event).
+
+    The lock serializes both the read-then-write seq computation (otherwise
+    two concurrent persists for the same session would pick the same
+    base_seq and the second `INSERT OR REPLACE` would silently overwrite
+    the first) and the shared SQLite connection itself (the single
+    `check_same_thread=False` connection is not safe for concurrent use
+    across threads).
+    """
+    if recorder.session_id is None:
+        return
+    with lock:
+        base_seq = conn.execute(
+            "SELECT COALESCE(MAX(seq), -1) FROM messages WHERE session_id = ?",
+            (recorder.session_id,),
+        ).fetchone()[0] + 1
+        now = int(time.time() * 1000)
+        for i, msg in enumerate(recorder.messages):
+            sessions_store.save_message(
+                conn, recorder.session_id,
+                seq=base_seq + i, message=msg, created_at_ms=now,
+            )
+
+
 @router.post("/chat")
-async def api_chat(body: ChatRequest):
+async def api_chat(body: ChatRequest, request: Request):
     """Run claude with stream-json output.
 
     Stateless w.r.t. sessions: if `claude_session_id` is provided, resume it;
     otherwise start a fresh Claude session. The new session id is streamed
     back to the client via the `session` SSE event so it can be remembered
     for the next turn.
+
+    Side-effect: every SSE event is also fed to an in-memory TranscriptRecorder
+    and persisted to the sessions DB when the stream ends, so the session's
+    transcript survives container restarts (see docs/superpowers/plans/
+    2026-04-21-durable-session-storage.md).
     """
+    db = request.app.state.sessions_db
+    lock = request.app.state.sessions_db_lock
+    recorder = TranscriptRecorder()
+    # Record what the user typed (e.g., "/command args"), not the expanded
+    # prompt template, so replay matches what the UI shows.
+    recorder.begin_turn(body.prompt)
 
     def generate():
+      persisted = False  # guards against the dual `done` emission paths below
+
+      def _persist_once():
+          nonlocal persisted
+          if persisted:
+              return
+          persisted = True
+          recorder.finalize()
+          _persist(db, lock, recorder)
+
       try:
         try:
             proc = claude.stream(
@@ -100,6 +183,7 @@ async def api_chat(body: ChatRequest):
             if event_type == "system":
                 sid = event.get("session_id")
                 if sid:
+                    recorder.set_session_id(sid)
                     payload = {"session_id": sid}
                     model = event.get("model")
                     if model:
@@ -113,11 +197,13 @@ async def api_chat(body: ChatRequest):
                     delta = inner.get("delta", {})
                     delta_type = delta.get("type", "")
                     if delta_type == "thinking_delta":
+                        recorder.on_thinking(delta.get("thinking", ""))
                         yield f"event: thinking\ndata: {json.dumps({'text': delta.get('thinking', '')})}\n\n"
                     elif delta_type == "text_delta":
                         raw = delta.get("text", "")
                         visible, suggestions = suggestion_buf.feed(raw)
                         if visible:
+                            recorder.on_text(visible)
                             yield f"event: text\ndata: {json.dumps({'text': visible})}\n\n"
                         for sug in suggestions:
                             yield f"event: suggestion\ndata: {json.dumps({'prompt': sug})}\n\n"
@@ -134,6 +220,7 @@ async def api_chat(body: ChatRequest):
                         tool_input = block.get("input", {})
                         if tool_id not in seen_tool_ids:
                             seen_tool_ids.add(tool_id)
+                            recorder.on_tool_use(tool_id, tool_name, tool_input)
                             yield f"event: tool_use\ndata: {json.dumps({'tool': tool_name, 'tool_id': tool_id, 'input': tool_input})}\n\n"
 
                             if tool_name == "Read":
@@ -166,6 +253,7 @@ async def api_chat(body: ChatRequest):
                             result_content = "\n".join(
                                 b.get("text", "") for b in result_content if b.get("type") == "text"
                             )
+                        recorder.on_tool_result(tool_use_id, result_content)
                         yield f"event: tool_result\ndata: {json.dumps({'tool_id': tool_use_id, 'output': result_content})}\n\n"
 
             elif event_type == "result":
@@ -173,6 +261,9 @@ async def api_chat(body: ChatRequest):
 
         tail = suggestion_buf.finalize()
         if tail:
+            # Feed the tail into the recorder before yielding so the
+            # persisted transcript includes trailing suggestion-buffer text.
+            recorder.on_text(tail)
             yield f"event: text\ndata: {json.dumps({'text': tail})}\n\n"
 
         proc.wait()
@@ -190,5 +281,12 @@ async def api_chat(body: ChatRequest):
         log.exception("chat stream crashed")
         yield f"event: error\ndata: {json.dumps({'message': f'Server error: {e}'})}\n\n"
         yield f"event: done\ndata: {{}}\n\n"
+      finally:
+        # Runs on every exit path: normal completion, error yield, and
+        # GeneratorExit raised when the client drops the SSE connection
+        # (inherits from BaseException, so `except Exception` above does
+        # NOT catch it). The `persisted` guard in _persist_once prevents
+        # double writes.
+        _persist_once()
 
     return StreamingResponse(generate(), media_type="text/event-stream")
