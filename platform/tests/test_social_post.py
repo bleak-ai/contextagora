@@ -18,8 +18,19 @@ def _assistant_text(text: str) -> dict:
     return _msg("assistant", [{"type": "text", "text": text}])
 
 
-def _tool_call(name: str, started_ms: int, completed_ms: int | None = None, output: str = "") -> dict:
-    tc = {"id": f"t-{started_ms}", "name": name, "input": {}, "startedAt": started_ms}
+def _tool_call(
+    name: str,
+    started_ms: int,
+    completed_ms: int | None = None,
+    output: str = "",
+    tool_input: dict | None = None,
+) -> dict:
+    tc = {
+        "id": f"t-{started_ms}",
+        "name": name,
+        "input": tool_input or {},
+        "startedAt": started_ms,
+    }
     if completed_ms is not None:
         tc["completedAt"] = completed_ms
         tc["output"] = output
@@ -83,22 +94,41 @@ def test_build_transcript_includes_user_prompt_and_tool_calls():
     assert "solve the urgent one" in transcript
     # Tool-call names appear
     assert "Read" in transcript and "Bash" in transcript
-    # Outputs show up (possibly trimmed)
-    assert "Lisa Park paid for Pro" in transcript
+    # Tool outputs are intentionally dropped — the card prompt only needs
+    # which services were touched, not their result bodies.
+    assert "Lisa Park paid for Pro" not in transcript
+    assert "billing_tier=free" not in transcript
     # Final assistant text is included
     assert "Lisa is on Pro" in transcript
 
 
-def test_build_transcript_trims_long_tool_outputs():
+def test_build_transcript_drops_tool_outputs():
     long_output = "x" * 5000
     messages = [
         _user("go"),
         _msg("assistant", [_tool_call("Bash", 1000, 2000, output=long_output)]),
     ]
     transcript = social_post.build_transcript(messages)
-    # Each tool output is capped at 200 chars in the transcript
-    assert "x" * 200 in transcript
-    assert "x" * 300 not in transcript
+    # Outputs are dropped entirely — even huge ones never bloat the transcript.
+    assert "x" not in transcript
+    assert "Bash" in transcript
+
+
+def test_build_transcript_caps_long_tool_inputs():
+    long_input = "y" * 500
+    messages = [
+        _user("go"),
+        _msg(
+            "assistant",
+            [_tool_call("Bash", 1000, 2000, tool_input={"command": long_input})],
+        ),
+    ]
+    transcript = social_post.build_transcript(messages)
+    # Inputs are capped at 80 chars to keep large prompts/queries from bloating
+    # the transcript. The cap is on the str(dict) repr, so headroom is small.
+    assert "y" * 80 not in transcript or "y" * 81 not in transcript
+    # Practically: the transcript should be way shorter than the raw input.
+    assert len(transcript) < 300
 
 
 def test_build_transcript_empty_returns_empty_string():

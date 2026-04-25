@@ -6,12 +6,15 @@ is unified in `_build_env()`; every claude subprocess sees the same env.
 """
 from __future__ import annotations
 
+import logging
 import os
 import subprocess
 from pathlib import Path
 from subprocess import CompletedProcess, Popen
 
 from src.config import settings
+
+log = logging.getLogger(__name__)
 
 
 _TELEMETRY_OFF_ENV: dict[str, str] = {
@@ -44,6 +47,11 @@ def run_headless(
 
     Callers inspect proc.returncode / stdout / stderr themselves.
     """
+    log.info(
+        "claude run_headless prompt (%d chars):\n%s\n--- end prompt ---",
+        len(prompt),
+        prompt,
+    )
     return subprocess.run(
         [
             "claude", "-p", prompt,

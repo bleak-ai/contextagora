@@ -49,7 +49,7 @@ def compute_stats(messages: list[dict]) -> dict:
     }
 
 
-_TOOL_OUTPUT_CAP = 200
+_TOOL_INPUT_CAP = 80
 
 
 def _part_text(part: dict) -> str:
@@ -59,7 +59,13 @@ def _part_text(part: dict) -> str:
 
 
 def build_transcript(messages: list[dict]) -> str:
-    """Compact text-rendering of a session for Claude's extraction prompt."""
+    """Compact text-rendering of a session for Claude's extraction prompt.
+
+    Tool outputs are dropped entirely — the card extraction needs to know
+    WHICH services were touched and WHAT was asked, not the full result
+    bodies. Outputs are the bulkiest part of any session and the smallest
+    signal for the prompt's job.
+    """
     if not messages:
         return ""
 
@@ -76,9 +82,8 @@ def build_transcript(messages: list[dict]) -> str:
                 tc = part.get("toolCall", {})
                 name = tc.get("name", "?")
                 raw_input = tc.get("input", {}) or {}
-                input_str = str(raw_input)[:_TOOL_OUTPUT_CAP]
-                output = str(tc.get("output", ""))[:_TOOL_OUTPUT_CAP]
-                lines.append(f"[tool] {name} input={input_str} output={output}")
+                input_str = str(raw_input)[:_TOOL_INPUT_CAP]
+                lines.append(f"[tool] {name} {input_str}")
 
     return "\n".join(lines)
 

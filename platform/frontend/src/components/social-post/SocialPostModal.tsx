@@ -47,7 +47,7 @@ export function SocialPostModal({ sessionId, onClose }: Props) {
                 aria-label="Create tweet"
                 className="w-9 h-9 flex items-center justify-center rounded-md border border-border text-text font-bold text-base hover:bg-bg disabled:opacity-50"
               >
-                X
+                T
               </button>
               <button
                 type="button"
