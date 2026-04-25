@@ -1,34 +1,33 @@
 import { useEffect, useRef, useState } from "react";
 import { toBlob } from "html-to-image";
 import type { UseMutationResult } from "@tanstack/react-query";
-import type { TweetPayload } from "../../api/tweet";
+import type { LinkedinPayload } from "../../api/linkedin";
 import type { SocialPostPayload } from "../../api/socialPost";
 
 type Props = {
   card: SocialPostPayload;
   cardRef: React.RefObject<HTMLDivElement | null>;
-  mutation: UseMutationResult<TweetPayload, Error, SocialPostPayload>;
+  mutation: UseMutationResult<LinkedinPayload, Error, SocialPostPayload>;
 };
 
-const HARD_LIMIT = 280;
-const SOFT_LIMIT = 270;
+const HARD_LIMIT = 3000;
+const SOFT_LIMIT = 2800;
 
 type CopyState = "idle" | "copied" | "error";
 
-export function TweetSection({ card, cardRef, mutation: tweet }: Props) {
+export function LinkedinSection({ card, cardRef, mutation: linkedin }: Props) {
   const [text, setText] = useState("");
   const [textCopy, setTextCopy] = useState<CopyState>("idle");
   const [imageCopy, setImageCopy] = useState<CopyState>("idle");
   const [imageBusy, setImageBusy] = useState(false);
   const isPristine = useRef(true);
 
-  // Seed the textarea once the mutation lands (and re-seed on every regenerate).
   useEffect(() => {
-    if (tweet.isSuccess && tweet.data) {
-      setText(tweet.data.text);
+    if (linkedin.isSuccess && linkedin.data) {
+      setText(linkedin.data.text);
       isPristine.current = true;
     }
-  }, [tweet.isSuccess, tweet.data]);
+  }, [linkedin.isSuccess, linkedin.data]);
 
   const onChangeText = (next: string) => {
     setText(next);
@@ -73,14 +72,14 @@ export function TweetSection({ card, cardRef, mutation: tweet }: Props) {
   const onRegenerate = () => {
     if (!isPristine.current) {
       const ok = window.confirm(
-        "Regenerate will replace your edits with a fresh tweet. Continue?",
+        "Regenerate will replace your edits with a fresh post. Continue?",
       );
       if (!ok) return;
     }
-    tweet.mutate(card);
+    linkedin.mutate(card);
   };
 
-  if (tweet.isIdle) return null;
+  if (linkedin.isIdle) return null;
 
   const charCount = text.length;
   const charColor =
@@ -94,29 +93,29 @@ export function TweetSection({ card, cardRef, mutation: tweet }: Props) {
     <div className="border-b border-border px-4 py-4">
       <div className="flex items-center justify-between mb-2">
         <div className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-          Tweet
+          LinkedIn post
         </div>
-        {tweet.isSuccess && (
+        {linkedin.isSuccess && (
           <div className={`text-xs tabular-nums ${charColor}`}>
             {charCount} / {HARD_LIMIT}
           </div>
         )}
       </div>
 
-      {tweet.isPending && (
+      {linkedin.isPending && (
         <div className="py-6 text-center text-sm text-text-muted">
-          Writing the tweet…
+          Writing the post…
         </div>
       )}
 
-      {tweet.isError && (
+      {linkedin.isError && (
         <div className="py-3">
           <div className="text-text mb-2 text-sm">
-            {tweet.error?.message ?? "Couldn't generate the tweet."}
+            {linkedin.error?.message ?? "Couldn't generate the LinkedIn post."}
           </div>
           <button
             type="button"
-            onClick={() => tweet.mutate(card)}
+            onClick={() => linkedin.mutate(card)}
             className="px-3 py-1.5 bg-accent text-white rounded text-sm hover:opacity-90"
           >
             Retry
@@ -124,13 +123,13 @@ export function TweetSection({ card, cardRef, mutation: tweet }: Props) {
         </div>
       )}
 
-      {tweet.isSuccess && (
+      {linkedin.isSuccess && (
         <>
           <textarea
             value={text}
             onChange={(e) => onChangeText(e.target.value)}
             spellCheck={false}
-            rows={6}
+            rows={12}
             className="w-full bg-bg border border-border rounded-md p-3 text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-accent"
           />
           <div className="flex flex-wrap items-center gap-2 mt-2">
@@ -144,7 +143,7 @@ export function TweetSection({ card, cardRef, mutation: tweet }: Props) {
                 ? "Copied!"
                 : textCopy === "error"
                   ? "Copy failed"
-                  : "Copy tweet"}
+                  : "Copy post"}
             </button>
             <button
               type="button"
@@ -163,10 +162,10 @@ export function TweetSection({ card, cardRef, mutation: tweet }: Props) {
             <button
               type="button"
               onClick={onRegenerate}
-              disabled={tweet.isPending}
+              disabled={linkedin.isPending}
               className="px-3 py-1.5 border border-border rounded text-sm hover:bg-bg-raised disabled:opacity-50"
             >
-              {tweet.isPending ? "Regenerating…" : "Regenerate"}
+              {linkedin.isPending ? "Regenerating…" : "Regenerate"}
             </button>
           </div>
         </>

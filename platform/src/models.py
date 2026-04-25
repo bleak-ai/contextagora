@@ -124,3 +124,11 @@ class TweetPayload(BaseModel):
 
 class TweetGenerateRequest(BaseModel):
     card: SocialPostPayload
+
+
+class LinkedinPayload(BaseModel):
+    text: str
+
+
+class LinkedinGenerateRequest(BaseModel):
+    card: SocialPostPayload

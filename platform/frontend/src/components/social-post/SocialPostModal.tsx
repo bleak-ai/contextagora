@@ -1,8 +1,11 @@
 import { useRef, useState } from "react";
 import { Modal } from "../Modal";
 import { useSocialPost } from "../../hooks/useSocialPost";
+import { useTweet } from "../../hooks/useTweet";
+import { useLinkedin } from "../../hooks/useLinkedin";
 import { SocialPostCard } from "./SocialPostCard";
 import { TweetSection } from "./TweetSection";
+import { LinkedinSection } from "./LinkedinSection";
 import { THEMES, type Theme } from "./themes";
 
 type Props = {
@@ -19,6 +22,10 @@ export function SocialPostModal({ sessionId, onClose }: Props) {
   const query = useSocialPost(sessionId);
   const [theme, setTheme] = useState<Theme>(() => randomTheme());
   const cardRef = useRef<HTMLDivElement | null>(null);
+  const tweet = useTweet();
+  const linkedin = useLinkedin();
+
+  const card = query.data;
 
   return (
     <Modal onClose={onClose}>
@@ -26,30 +33,52 @@ export function SocialPostModal({ sessionId, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
         className="bg-bg-raised border border-border rounded-lg w-[520px] max-w-[90vw] max-h-[90vh] overflow-auto"
       >
-        {query.isSuccess && query.data && (
-          <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-border">
+        {query.isSuccess && card && (
+          <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
               Theme · <span className="text-text">{theme.name}</span>
             </div>
-            <button
-              type="button"
-              onClick={() => setTheme((cur) => randomTheme(cur.id))}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-accent text-white text-sm font-medium hover:opacity-90 transition"
-            >
-              <span
-                aria-hidden
-                className="inline-flex w-4 h-4 rounded-sm overflow-hidden ring-1 ring-white/30"
-                style={{ backgroundColor: theme.bg }}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => tweet.mutate(card)}
+                disabled={tweet.isPending}
+                title="Create tweet"
+                aria-label="Create tweet"
+                className="w-9 h-9 flex items-center justify-center rounded-md border border-border text-text font-bold text-base hover:bg-bg disabled:opacity-50"
+              >
+                X
+              </button>
+              <button
+                type="button"
+                onClick={() => linkedin.mutate(card)}
+                disabled={linkedin.isPending}
+                title="Create LinkedIn post"
+                aria-label="Create LinkedIn post"
+                className="w-9 h-9 flex items-center justify-center rounded-md border border-border text-text font-bold text-base hover:bg-bg disabled:opacity-50"
+              >
+                L
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme((cur) => randomTheme(cur.id))}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-accent text-white text-sm font-medium hover:opacity-90 transition"
               >
                 <span
-                  className="w-full h-full"
-                  style={{
-                    background: `linear-gradient(135deg, ${theme.bg} 50%, ${theme.accent} 50%)`,
-                  }}
-                />
-              </span>
-              Shuffle theme
-            </button>
+                  aria-hidden
+                  className="inline-flex w-4 h-4 rounded-sm overflow-hidden ring-1 ring-white/30"
+                  style={{ backgroundColor: theme.bg }}
+                >
+                  <span
+                    className="w-full h-full"
+                    style={{
+                      background: `linear-gradient(135deg, ${theme.bg} 50%, ${theme.accent} 50%)`,
+                    }}
+                  />
+                </span>
+                Shuffle theme
+              </button>
+            </div>
           </div>
         )}
 
@@ -73,14 +102,18 @@ export function SocialPostModal({ sessionId, onClose }: Props) {
           </div>
         )}
 
-        {query.isSuccess && query.data && (
-          <TweetSection card={query.data} cardRef={cardRef} />
+        {query.isSuccess && card && (
+          <TweetSection card={card} cardRef={cardRef} mutation={tweet} />
         )}
 
-        {query.isSuccess && query.data && (
+        {query.isSuccess && card && (
+          <LinkedinSection card={card} cardRef={cardRef} mutation={linkedin} />
+        )}
+
+        {query.isSuccess && card && (
           <div style={{ zoom: 0.85 }}>
             <div ref={cardRef}>
-              <SocialPostCard payload={query.data} theme={theme} />
+              <SocialPostCard payload={card} theme={theme} />
             </div>
           </div>
         )}
