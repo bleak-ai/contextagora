@@ -42,7 +42,7 @@ The local clone is not persisted via Docker volume. A fresh `git clone` runs on 
 
 ### Tasks are modules with a different scaffold, not a separate concept
 
-A task is a `module.yaml` with `kind: task`. It lives in the same `modules-repo/`, uses the same symlink workflow, is edited through the same editor. The only forks are the scaffolded files (`status.md` instead of richer integration docs) and the auto-load-on-create behavior.
+A task is a `module.yaml` with `kind: task`. It lives in the same `modules-repo/`, uses the same symlink workflow, is edited through the same editor. The only forks are the scaffolded files (a minimal `info.md` instead of richer integration docs) and the auto-load-on-create behavior.
 
 **Why:** One storage model, one sync path, one editor. Introducing a separate "tasks" collection would have duplicated every code path — listing, editing, syncing, archiving. Tasks auto-load because a task the agent can't act on is dead weight. **Rejected:** tasks table / separate directory / separate API — all considered when adding the feature, all rejected as duplication.
 
@@ -218,7 +218,7 @@ Files like `.claude/commands/download.md` are placed in the repo at `platform/sr
 
 ### Module file convention
 
-Modules follow this structure: `info.md` (main description, editable), `docs/*.md` (additional docs, editable), `module.yaml` (declares name, summary, secrets, dependencies), `llms.txt` (auto-generated). Only `info.md`, `docs/*.md`, and `status.md` are user-editable.
+Modules follow this structure: `info.md` (main description, editable), `docs/*.md` (additional docs, editable), `module.yaml` (declares name, summary, secrets, dependencies), `llms.txt` (auto-generated). Only `info.md` and `docs/*.md` are user-editable.
 
 ### MANAGED_FILES vs PRESERVED_FILES
 

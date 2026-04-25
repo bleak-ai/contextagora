@@ -33,7 +33,7 @@ components/sidebar/cards/
 - **No `ModuleCard.tsx` facade.** Call sites dispatch by `info.kind` directly — three call sites is cheap to update and keeps indirection out.
 - **`ModuleCardShell`** owns: outer `<div>`, border/bg class selection (passed as `tone: "ok" | "warn" | "idle" | "task"`), header row (dot + name + edit button). No expand state; children render below the header.
 - **`IntegrationCard`** owns: toggle switch, expand state, lazy detail query when idle, secrets/packages list, install-deps button. Expand is header-only when collapsed.
-- **`TaskCard`** owns: archive/delete buttons in header, expand state, body that (for now) shows `status.md` preview via `FilePreviewModal` pattern — or leave body empty and flag as TODO. Structure must match `IntegrationCard` so a future task expansion is drop-in.
+- **`TaskCard`** owns: archive/delete buttons in header, expand state, body that (for now) shows `info.md` preview via `FilePreviewModal` pattern — or leave body empty and flag as TODO. Structure must match `IntegrationCard` so a future task expansion is drop-in.
 
 ## Implementation steps
 

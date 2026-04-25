@@ -7,7 +7,7 @@ A **Context Management System**. Users create, edit, and load context modules in
 The system has three parts:
 
 1. **Chat** — interact with the AI based on the currently loaded context.
-2. **Modules** — create, edit, browse, and manage the context modules themselves. Modules come in two kinds: **integrations** (third-party services like Linear, Slack) and **tasks** (short-lived work trackers with a `status.md`).
+2. **Modules** — create, edit, browse, and manage the context modules themselves. Modules come in two kinds: **integrations** (third-party services like Linear, Slack) and **tasks** (short-lived work trackers).
 3. **Benchmarks** — test the loaded context against predefined prompts to answer: "did changing the context make the agent faster/smarter at this task?"
 
 ## How it's built
@@ -37,7 +37,7 @@ Secret loading uses **Varlock + Infisical**. The key property: Claude can *use* 
 
 ### Tasks
 
-Tasks are modules with `kind: task` in `module.yaml`. They share the same git repo, symlink workflow, and editor as integrations — only the scaffold differs. A new task gets `info.md` (title + description), `status.md` (dated, with a "Next Steps" checklist), and an `llms.txt` pointing at `status.md`. Tasks auto-load into the workspace on creation so the agent can start acting on them immediately.
+Tasks are modules with `kind: task` in `module.yaml`. They share the same git repo, symlink workflow, and editor as integrations — only the scaffold differs. A new task gets `info.md` (title + description) and an `llms.txt` pointing at it. Tasks auto-load into the workspace on creation so the agent can start acting on them immediately.
 
 Tasks can be archived — `archived: true` in the manifest hides them from the active list without deleting the files. The sidebar renders active tasks in their own zone above the integrations, with a separate modal for browsing archived tasks.
 

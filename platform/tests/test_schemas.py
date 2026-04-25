@@ -8,10 +8,6 @@ def test_info_md_allowed():
     assert validate_module_file_path("info.md", MANAGED_FILES) == "info.md"
 
 
-def test_status_md_allowed():
-    assert validate_module_file_path("status.md", MANAGED_FILES) == "status.md"
-
-
 def test_docs_subdir_allowed():
     assert validate_module_file_path("docs/guide.md", MANAGED_FILES) == "docs/guide.md"
 

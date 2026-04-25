@@ -5,7 +5,6 @@ and dependencies.  This replaces the previous per-module .env.schema and
 requirements.txt files.
 """
 import re
-from datetime import date
 from enum import Enum
 from pathlib import Path
 
@@ -186,24 +185,10 @@ def _scaffold_task(slug: str, body: CreateModuleRequest) -> None:
         info_lines.append(description)
     git_repo.write_file(slug, "info.md", "\n".join(info_lines) + "\n")
 
-    status_lines = [
-        f"# {title} — Status",
-        "",
-        f"**Created:** {date.today().isoformat()}",
-        "",
-        "## Context",
-        summary,
-        "",
-        "## Next Steps",
-        "- ",
-    ]
-    git_repo.write_file(slug, "status.md", "\n".join(status_lines) + "\n")
-
     llms_lines = [
         f"# {title}",
         f"> {summary}",
         "",
         "- [info.md](info.md) — Task description",
-        "- [status.md](status.md) — Current status and next steps",
     ]
     git_repo.write_file(slug, "llms.txt", "\n".join(llms_lines) + "\n")
