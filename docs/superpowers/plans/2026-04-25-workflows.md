@@ -22,6 +22,40 @@
 - After each task: commit with a small, focused message. Frequent commits make rollback easy.
 - Do not modify the spec file. If a task can't be completed as written, raise it back to the user — don't drift.
 
+### Test patterns in this codebase
+
+Two styles are used; pick the one that matches the function under test:
+
+**A. Settings monkeypatch + tmp_path** (preferred when you want real file I/O against a fake modules repo). `git_repo.list_modules()` and `git_repo.module_dir(name)` both read `settings.MODULES_REPO_DIR` lazily, so re-pointing `settings` is enough — `git_repo` itself does not export `MODULES_REPO_DIR`:
+
+```python
+def test_X(tmp_path, monkeypatch):
+    from src.config import settings
+    monkeypatch.setattr(settings, "MODULES_REPO_DIR", tmp_path)
+    # write fake modules into tmp_path/...
+    # call function under test
+```
+
+**B. `unittest.mock.patch` + `asyncio.run`** (used by `tests/test_create_module.py`, `test_register.py`, `test_run_file.py`). Patch the route's `git_repo` symbol at the import site and invoke the route function directly:
+
+```python
+def test_X(tmp_path):
+    from src.routes.modules import api_create_module
+    from src.models import CreateModuleRequest
+    import asyncio
+    from unittest.mock import patch
+
+    body = CreateModuleRequest(...)
+    with patch("src.routes.modules.git_repo") as mock_repo, \
+         patch("src.routes.modules.reload_workspace"), \
+         patch("src.routes.modules.get_loaded_module_names", return_value=[]):
+        mock_repo.module_dir.return_value = tmp_path
+        # ...
+        asyncio.run(api_create_module(body))
+```
+
+There is no `client` TestClient fixture defined in the existing route tests for modules. Tests that need TestClient (e.g. Task 7's `test_workflows_routes.py`) must inline the fixture themselves.
+
 ---
 
 ## File Structure
@@ -268,37 +302,38 @@ git commit -m "feat(workflows): add WORKFLOW member to ModuleKind enum"
 
 The route currently calls `kind.scaffold(...)`, which now raises `NotImplementedError` for workflows. Convert that into a clean 400 response *before* attempting any disk writes — otherwise we'd create a module dir then fail mid-flight.
 
-- [ ] **Step 1: Read the existing test file to learn its conventions**
+`test_create_module.py` uses pattern B from the conventions section (`unittest.mock.patch` + `asyncio.run`), not a TestClient fixture. Match that.
 
-```bash
-cd platform && cat tests/test_create_module.py | head -80
-```
-(For pattern reference — TestClient setup, fixture conventions.)
-
-- [ ] **Step 2: Write the failing test**
+- [ ] **Step 1: Write the failing test**
 
 Append to `platform/tests/test_create_module.py`:
 
 ```python
-def test_create_module_rejects_workflow_kind(client):
+def test_create_module_rejects_workflow_kind():
     """Workflows must be authored on disk, not via the modal."""
-    resp = client.post("/api/modules", json={
-        "name": "my-workflow",
-        "kind": "workflow",
-        "content": "",
-    })
+    import asyncio
+    from src.models import CreateModuleRequest
+    from src.routes.modules import api_create_module
+
+    body = CreateModuleRequest(
+        name="my-workflow",
+        kind="workflow",
+        content="",
+    )
+    resp = asyncio.run(api_create_module(body))
+    # FastAPI route returns a JSONResponse on rejection
     assert resp.status_code == 400
-    assert "workflow" in resp.json()["error"].lower()
+    import json
+    payload = json.loads(resp.body)
+    assert "workflow" in payload["error"].lower()
 ```
 
-(`client` is the TestClient fixture used by the other tests in this file. If the file uses a different fixture name, match that.)
-
-- [ ] **Step 3: Run it, verify failure**
+- [ ] **Step 2: Run it, verify failure**
 
 ```bash
 cd platform && uv run pytest tests/test_create_module.py::test_create_module_rejects_workflow_kind -v
 ```
-Expected: failure (likely 500 from the unhandled `NotImplementedError`, or 201 if scaffold somehow no-ops).
+Expected: failure — `ValueError: 'workflow' is not a valid ModuleKind` (Task 2 must already be done so this fails *for the right reason*: the kind exists but the route doesn't reject it). If Task 2 isn't done yet, it'd fail with a `ValueError` from the enum, which is also a useful failure mode but not the one we're targeting.
 
 - [ ] **Step 4: Implement the rejection**
 
@@ -332,27 +367,26 @@ git commit -m "feat(workflows): reject kind=workflow in /api/modules POST"
 
 **Files:**
 - Modify: `platform/src/services/workspace.py`
-- Test: `platform/tests/test_workspace_inspect.py`
+- Create: `platform/tests/test_workspace.py` (the existing `test_workspace_inspect.py` tests a *different* module — `workspace_inspect.py` — so do not append to it)
 
 The function currently yields non-archived `kind: task` modules; `reload_workspace` merges this into the loaded list to enforce the always-loaded invariant. Extend it to also yield `kind: workflow` modules (workflows have no archived state — every workflow is always loaded). Rename so the new behavior matches the name.
 
-- [ ] **Step 1: Read the existing test for context**
+Use pattern A from the conventions section (`monkeypatch.setattr(settings, "MODULES_REPO_DIR", tmp_path)`).
 
-```bash
-cd platform && cat tests/test_workspace_inspect.py | head -60
-```
-Note the fixture pattern (likely `tmp_path` plus a settings override or monkeypatch).
+- [ ] **Step 1: Write failing tests**
 
-- [ ] **Step 2: Write failing tests**
-
-Append to `platform/tests/test_workspace_inspect.py`:
+Create `platform/tests/test_workspace.py`:
 
 ```python
+"""Tests for the always-loaded module invariant in services/workspace.py."""
+
+
 def test_always_loaded_module_names_includes_active_tasks(tmp_path, monkeypatch):
     """Renamed function preserves the existing task invariant."""
-    from src.services import git_repo, workspace
-    monkeypatch.setattr(git_repo, "MODULES_REPO_DIR", tmp_path)
-    # Create one active task, one archived task
+    from src.config import settings
+    from src.services import workspace
+    monkeypatch.setattr(settings, "MODULES_REPO_DIR", tmp_path)
+
     (tmp_path / "task-active").mkdir()
     (tmp_path / "task-active" / "module.yaml").write_text(
         "name: task-active\nkind: task\n"
@@ -368,27 +402,28 @@ def test_always_loaded_module_names_includes_active_tasks(tmp_path, monkeypatch)
 
 def test_always_loaded_module_names_includes_workflows(tmp_path, monkeypatch):
     """Workflows are always loaded — no archived check applies."""
-    from src.services import git_repo, workspace
-    monkeypatch.setattr(git_repo, "MODULES_REPO_DIR", tmp_path)
+    from src.config import settings
+    from src.services import workspace
+    monkeypatch.setattr(settings, "MODULES_REPO_DIR", tmp_path)
+
     (tmp_path / "maat-support").mkdir()
     (tmp_path / "maat-support" / "module.yaml").write_text(
         "name: maat-support\nkind: workflow\nentry_step: 1-intake.md\n"
     )
     (tmp_path / "linear").mkdir()
     (tmp_path / "linear" / "module.yaml").write_text("name: linear\nkind: integration\n")
+
     names = workspace._always_loaded_module_names()
     assert "maat-support" in names
     assert "linear" not in names  # integrations are NOT always-loaded
 ```
 
-(If `git_repo.MODULES_REPO_DIR` isn't directly monkeypatchable — check the actual symbol — use `monkeypatch.setattr(git_repo, "list_modules", lambda: ["task-active", "task-done", "maat-support", "linear"])` plus a `module_dir` patch. The exact mechanism depends on `git_repo`'s shape; copy whichever pattern other workspace tests use.)
-
-- [ ] **Step 3: Run them, verify failure**
+- [ ] **Step 2: Run them, verify failure**
 
 ```bash
-cd platform && uv run pytest tests/test_workspace_inspect.py -v -k "always_loaded"
+cd platform && uv run pytest tests/test_workspace.py -v
 ```
-Expected: failure (function doesn't exist by that name).
+Expected: failure — `AttributeError: module 'src.services.workspace' has no attribute '_always_loaded_module_names'`.
 
 - [ ] **Step 4: Rename + extend in `workspace.py`**
 
@@ -418,10 +453,10 @@ def _always_loaded_module_names() -> list[str]:
 
 Update the only caller inside `workspace.py` (in `reload_workspace`, currently `_active_task_names()` on line ~74). Grep for any other callers in the file and rename them too.
 
-- [ ] **Step 5: Run all workspace tests**
+- [ ] **Step 5: Run new + existing workspace tests**
 
 ```bash
-cd platform && uv run pytest tests/test_workspace_inspect.py -v
+cd platform && uv run pytest tests/test_workspace.py tests/test_workspace_inspect.py -v
 ```
 Expected: all green.
 
@@ -435,7 +470,7 @@ Expected: no matches (function is `_`-prefixed so external use should be nil —
 - [ ] **Step 7: Commit**
 
 ```bash
-git add platform/src/services/workspace.py platform/tests/test_workspace_inspect.py
+git add platform/src/services/workspace.py platform/tests/test_workspace.py
 git commit -m "refactor(workspace): rename _active_task_names, include workflows"
 ```
 
@@ -451,38 +486,41 @@ git commit -m "refactor(workspace): rename _active_task_names, include workflows
 
 The frontend needs `parent_workflow` to render the `[from <workflow>]` badge on task cards. Thread it through the response model and the API client type.
 
-- [ ] **Step 1: Find an existing list-modules test to extend**
+- [ ] **Step 1: Pick a target test file**
 
-```bash
-cd platform && grep -rn "/api/modules" tests/ | grep -v "files/" | head
-```
-Pick one (likely in `test_create_module.py` or `test_register.py`).
+`test_register.py` exercises route logic and is the closest fit. Add the new test there. (Or create `test_list_modules.py` if you prefer isolation — the existing `tests/` dir has no list-modules-specific file.)
 
-- [ ] **Step 2: Write the failing assertion**
+- [ ] **Step 2: Write the failing test**
 
-Add a new test that creates a task module with `parent_workflow` set in its `module.yaml` and asserts the field appears in the `GET /api/modules` response:
+Append to `platform/tests/test_register.py` (or your chosen file). Use pattern A (settings monkeypatch + tmp_path), invoking the route function directly via `asyncio.run`:
 
 ```python
-def test_list_modules_returns_parent_workflow(tmp_path, monkeypatch, client):
-    """Task modules created from a workflow expose parent_workflow."""
-    from src.services import git_repo
-    monkeypatch.setattr(git_repo, "MODULES_REPO_DIR", tmp_path)
+def test_list_modules_returns_parent_workflow(tmp_path, monkeypatch):
+    """Task modules created from a workflow expose parent_workflow on /api/modules."""
+    import asyncio
+    from src.config import settings
+    from src.routes.modules import api_list_modules
+    monkeypatch.setattr(settings, "MODULES_REPO_DIR", tmp_path)
+
     (tmp_path / "maat-support-run-sup-42").mkdir()
     (tmp_path / "maat-support-run-sup-42" / "module.yaml").write_text(
         "name: maat-support-run-sup-42\nkind: task\nparent_workflow: maat-support\n"
     )
-    resp = client.get("/api/modules")
-    assert resp.status_code == 200
-    runs = [m for m in resp.json()["modules"] if m["name"] == "maat-support-run-sup-42"]
+
+    payload = asyncio.run(api_list_modules())
+    runs = [m for m in payload["modules"] if m.name == "maat-support-run-sup-42"]
     assert len(runs) == 1
-    assert runs[0]["parent_workflow"] == "maat-support"
+    assert runs[0].parent_workflow == "maat-support"
 ```
 
-(Match the fixture pattern of the file you're editing.)
+(`api_list_modules` returns `{"modules": [ModuleInfo(...), ...]}` — the items are Pydantic objects, attribute-access not dict-access.)
 
 - [ ] **Step 3: Run it, verify failure**
 
-Expected: KeyError or `parent_workflow` missing from the response.
+```bash
+cd platform && uv run pytest tests/test_register.py::test_list_modules_returns_parent_workflow -v
+```
+Expected: `AttributeError: 'ModuleInfo' object has no attribute 'parent_workflow'`.
 
 - [ ] **Step 4: Add the field to `ModuleInfo`**
 
@@ -510,17 +548,27 @@ In `platform/frontend/src/api/modules.ts`, find the `ModuleInfo` type (or equiva
   parent_workflow: string | null;
 ```
 
-- [ ] **Step 5: Run the test, verify pass**
+- [ ] **Step 5: Also extend the TS type's `kind` union**
 
-```bash
-cd platform && uv run pytest tests/<file> -v
+In `platform/frontend/src/api/modules.ts`, find the `ModuleInfo` type's `kind` field (likely `"integration" | "task"`) and add `"workflow"`:
+
+```typescript
+  kind: "integration" | "task" | "workflow";
 ```
 
-- [ ] **Step 6: Commit**
+Otherwise downstream `kind === "workflow"` checks in any consumer would be type errors.
+
+- [ ] **Step 6: Run the test, verify pass**
 
 ```bash
-git add platform/src/models.py platform/src/routes/modules.py platform/frontend/src/api/modules.ts platform/tests/<file>
-git commit -m "feat(workflows): expose parent_workflow on ModuleInfo"
+cd platform && uv run pytest tests/test_register.py -v
+```
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add platform/src/models.py platform/src/routes/modules.py platform/frontend/src/api/modules.ts platform/tests/test_register.py
+git commit -m "feat(workflows): expose parent_workflow on ModuleInfo + extend kind union"
 ```
 
 ---
@@ -571,14 +619,16 @@ def _make_workflow(repo: Path, name: str, entry_step: str = "1-intake.md", steps
 
 
 def test_list_workflows_empty(tmp_path, monkeypatch):
-    from src.services import git_repo, workflows
-    monkeypatch.setattr(git_repo, "MODULES_REPO_DIR", tmp_path)
+    from src.config import settings
+    from src.services import workflows
+    monkeypatch.setattr(settings, "MODULES_REPO_DIR", tmp_path)
     assert workflows.list_workflows() == []
 
 
 def test_list_workflows_returns_workflows_only(tmp_path, monkeypatch):
-    from src.services import git_repo, workflows
-    monkeypatch.setattr(git_repo, "MODULES_REPO_DIR", tmp_path)
+    from src.config import settings
+    from src.services import workflows
+    monkeypatch.setattr(settings, "MODULES_REPO_DIR", tmp_path)
     _make_workflow(tmp_path, "maat-support", steps=["1-intake.md", "2-plan.md"])
     (tmp_path / "linear").mkdir()
     (tmp_path / "linear" / "module.yaml").write_text("name: linear\nkind: integration\n")
@@ -591,8 +641,9 @@ def test_list_workflows_returns_workflows_only(tmp_path, monkeypatch):
 
 
 def test_list_workflows_counts_in_flight_runs(tmp_path, monkeypatch):
-    from src.services import git_repo, workflows
-    monkeypatch.setattr(git_repo, "MODULES_REPO_DIR", tmp_path)
+    from src.config import settings
+    from src.services import workflows
+    monkeypatch.setattr(settings, "MODULES_REPO_DIR", tmp_path)
     _make_workflow(tmp_path, "maat-support")
     # In-flight run
     (tmp_path / "maat-support-run-sup-42").mkdir()
@@ -609,8 +660,9 @@ def test_list_workflows_counts_in_flight_runs(tmp_path, monkeypatch):
 
 
 def test_start_run_creates_task_module(tmp_path, monkeypatch):
-    from src.services import git_repo, workflows
-    monkeypatch.setattr(git_repo, "MODULES_REPO_DIR", tmp_path)
+    from src.config import settings
+    from src.services import workflows
+    monkeypatch.setattr(settings, "MODULES_REPO_DIR", tmp_path)
     # Stub reload_workspace so tests don't touch CONTEXT_DIR
     monkeypatch.setattr(workflows, "reload_workspace", lambda names: None)
     _make_workflow(tmp_path, "maat-support", steps=["1-intake.md", "2-plan.md"])
@@ -635,8 +687,9 @@ def test_start_run_creates_task_module(tmp_path, monkeypatch):
 
 def test_start_run_collapses_variants_in_status(tmp_path, monkeypatch):
     """Step files with shared numeric prefix collapse to one checklist line."""
-    from src.services import git_repo, workflows
-    monkeypatch.setattr(git_repo, "MODULES_REPO_DIR", tmp_path)
+    from src.config import settings
+    from src.services import workflows
+    monkeypatch.setattr(settings, "MODULES_REPO_DIR", tmp_path)
     monkeypatch.setattr(workflows, "reload_workspace", lambda names: None)
     _make_workflow(
         tmp_path, "migration",
@@ -651,8 +704,9 @@ def test_start_run_collapses_variants_in_status(tmp_path, monkeypatch):
 
 
 def test_start_run_collision_appends_suffix(tmp_path, monkeypatch):
-    from src.services import git_repo, workflows
-    monkeypatch.setattr(git_repo, "MODULES_REPO_DIR", tmp_path)
+    from src.config import settings
+    from src.services import workflows
+    monkeypatch.setattr(settings, "MODULES_REPO_DIR", tmp_path)
     monkeypatch.setattr(workflows, "reload_workspace", lambda names: None)
     _make_workflow(tmp_path, "wf")
     info1 = workflows.start_run("wf", "X")
@@ -662,15 +716,17 @@ def test_start_run_collision_appends_suffix(tmp_path, monkeypatch):
 
 
 def test_start_run_unknown_workflow_raises(tmp_path, monkeypatch):
-    from src.services import git_repo, workflows
-    monkeypatch.setattr(git_repo, "MODULES_REPO_DIR", tmp_path)
+    from src.config import settings
+    from src.services import workflows
+    monkeypatch.setattr(settings, "MODULES_REPO_DIR", tmp_path)
     with pytest.raises(workflows.WorkflowNotFound):
         workflows.start_run("nope", "x")
 
 
 def test_start_run_missing_entry_step_raises(tmp_path, monkeypatch):
-    from src.services import git_repo, workflows
-    monkeypatch.setattr(git_repo, "MODULES_REPO_DIR", tmp_path)
+    from src.config import settings
+    from src.services import workflows
+    monkeypatch.setattr(settings, "MODULES_REPO_DIR", tmp_path)
     monkeypatch.setattr(workflows, "reload_workspace", lambda names: None)
     # Workflow declares entry_step but the file doesn't exist
     wdir = tmp_path / "wf"
@@ -916,7 +972,7 @@ def start_run(workflow_name: str, title: str) -> RunInfo:
 ```bash
 cd platform && uv run pytest tests/test_workflows_service.py -v
 ```
-Expected: all green. If `git_repo.MODULES_REPO_DIR` patching is the issue, mirror the existing pattern from `test_workspace_inspect.py` — sometimes you need to monkeypatch `settings.MODULES_REPO_DIR` instead.
+Expected: all green.
 
 - [ ] **Step 6: Commit**
 
@@ -948,9 +1004,10 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
-    from src.services import git_repo
-    monkeypatch.setattr(git_repo, "MODULES_REPO_DIR", tmp_path)
-    # Stub reload_workspace inside the workflows service
+    from src.config import settings
+    monkeypatch.setattr(settings, "MODULES_REPO_DIR", tmp_path)
+    # Stub reload_workspace inside the workflows service so tests don't
+    # touch the real CONTEXT_DIR
     from src.services import workflows as wf_module
     monkeypatch.setattr(wf_module, "reload_workspace", lambda names: None)
     from src.server import app
@@ -1114,17 +1171,17 @@ git commit -m "feat(workflows): add /api/workflows routes (list + start_run)"
 **Files:**
 - Modify: `platform/src/commands.py`
 - Modify: `platform/src/routes/commands.py`
+- Modify: `platform/src/routes/chat.py` — **critical**: this file builds `_COMMANDS_BY_NAME = {c.name: c for c in COMMANDS}` at module-import time and uses it to expand slash commands. Without this update the chat router would not recognize any auto-registered workflow command — typing `/maat-support` would send the literal text instead of the seeded prompt.
 - Test: `platform/tests/test_commands.py`
 
-The slash-command registry becomes a function call recomputed on every `GET /api/commands` request. Workflows auto-register as `/<workflow-name>` with a fixed seed-message prompt template.
+The slash-command registry becomes a function call recomputed on every request. Workflows auto-register as `/<workflow-name>` with a fixed seed-message prompt template. Both the `/api/commands` listing route AND the chat router's `_expand_slash_command` must call `list_commands()` per request rather than read a stale dict.
 
-- [ ] **Step 1: Read the current registry shape and route**
+- [ ] **Step 1: Read the current registry, route, and chat interceptor**
 
 ```bash
-cd platform && cat src/commands.py | tail -50
-cd platform && cat src/routes/commands.py
-cd platform && cat tests/test_commands.py | head -30
+cd /Users/bsampera/Documents/bleak-dev/context-loader && grep -n "COMMANDS\|_expand_slash_command\|_COMMANDS_BY_NAME" platform/src/commands.py platform/src/routes/commands.py platform/src/routes/chat.py
 ```
+You'll see three call sites. All three need to switch to the dynamic helper.
 
 - [ ] **Step 2: Write failing tests**
 
@@ -1141,9 +1198,9 @@ def test_list_commands_includes_static_set():
 
 
 def test_list_commands_auto_registers_workflows(tmp_path, monkeypatch):
-    from src.services import git_repo
+    from src.config import settings
     from src import commands as cmd_module
-    monkeypatch.setattr(git_repo, "MODULES_REPO_DIR", tmp_path)
+    monkeypatch.setattr(settings, "MODULES_REPO_DIR", tmp_path)
     (tmp_path / "maat-support").mkdir()
     (tmp_path / "maat-support" / "module.yaml").write_text(
         "name: maat-support\nkind: workflow\nentry_step: 1-intake.md\n"
@@ -1153,22 +1210,37 @@ def test_list_commands_auto_registers_workflows(tmp_path, monkeypatch):
     names = {c.name for c in cmd_module.list_commands()}
     assert "maat-support" in names
 
-    # Find the auto-registered command and inspect its prompt
     cmd = next(c for c in cmd_module.list_commands() if c.name == "maat-support")
     assert "maat-support" in cmd.prompt
     assert "1-intake.md" in cmd.prompt
 
 
-def test_list_commands_excludes_archived_or_non_workflow(tmp_path, monkeypatch):
-    from src.services import git_repo
+def test_list_commands_excludes_non_workflow_modules(tmp_path, monkeypatch):
+    from src.config import settings
     from src import commands as cmd_module
-    monkeypatch.setattr(git_repo, "MODULES_REPO_DIR", tmp_path)
+    monkeypatch.setattr(settings, "MODULES_REPO_DIR", tmp_path)
     (tmp_path / "linear").mkdir()
     (tmp_path / "linear" / "module.yaml").write_text("name: linear\nkind: integration\n")
     (tmp_path / "linear" / "info.md").write_text("# linear\n")
 
     names = {c.name for c in cmd_module.list_commands()}
     assert "linear" not in names  # integrations don't auto-register
+
+
+def test_chat_expands_workflow_slash_command(tmp_path, monkeypatch):
+    """The chat interceptor must recognize auto-registered workflow commands."""
+    from src.config import settings
+    from src.routes.chat import _expand_slash_command
+    monkeypatch.setattr(settings, "MODULES_REPO_DIR", tmp_path)
+    (tmp_path / "maat-support").mkdir()
+    (tmp_path / "maat-support" / "module.yaml").write_text(
+        "name: maat-support\nkind: workflow\nentry_step: 1-intake.md\n"
+    )
+
+    expanded = _expand_slash_command("/maat-support")
+    assert expanded != "/maat-support"  # must NOT be the literal text
+    assert "1-intake.md" in expanded
+    assert "maat-support" in expanded
 ```
 
 - [ ] **Step 3: Run, verify failure**
@@ -1232,44 +1304,72 @@ def list_commands() -> list[CommandDef]:
 
 Delete the old `COMMANDS = [...]` symbol — `list_commands()` replaces it.
 
-- [ ] **Step 5: Update the route**
+- [ ] **Step 5: Update the listing route — keep existing response shape**
 
-In `platform/src/routes/commands.py`, replace the `COMMANDS` import:
+In `platform/src/routes/commands.py`, swap the import and call `list_commands()`. **Do NOT add `prompt` to the response** — the existing public shape is `{"name", "description"}` only and the frontend picker doesn't need the prompt (the prompt is only used inside the chat router on slash-command expansion). Changing the response shape is a public API contract change we don't want.
 
 ```python
 from src.commands import list_commands
+
+@router.get("/commands")
+async def api_list_commands():
+    return {
+        "commands": [
+            {"name": cmd.name, "description": cmd.description}
+            for cmd in list_commands()
+        ]
+    }
 ```
 
-And change the route handler to call it:
+(Rename the inner function from `list_commands` to `api_list_commands` to avoid shadowing the imported `list_commands` symbol.)
+
+- [ ] **Step 6: Update the chat slash-command interceptor**
+
+In `platform/src/routes/chat.py`:
+
+1. Replace `from src.commands import COMMANDS` with `from src.commands import list_commands`.
+2. Delete the module-level `_COMMANDS_BY_NAME = {c.name: c for c in COMMANDS}` line.
+3. Modify `_expand_slash_command` to build the dict per call:
 
 ```python
-@router.get("")
-async def api_list_commands():
-    return {"commands": [
-        {"name": c.name, "description": c.description, "prompt": c.prompt}
-        for c in list_commands()
-    ]}
+def _expand_slash_command(prompt: str) -> str:
+    """If prompt starts with /<registered-command>, replace with the
+    command's full prompt text, appending any trailing args.
+
+    The command set is recomputed each call so auto-registered workflow
+    commands (added/removed when modules change on disk) are always seen.
+    """
+    if not prompt.startswith("/"):
+        return prompt
+    head, _, rest = prompt[1:].partition(" ")
+    commands_by_name = {c.name: c for c in list_commands()}
+    cmd_def = commands_by_name.get(head)
+    if cmd_def is None:
+        return prompt
+    if rest.strip():
+        return f"{cmd_def.prompt}\n\nUser arguments: {rest.strip()}"
+    return cmd_def.prompt
 ```
 
-(Match the response shape the route currently returns — adjust field names if the existing version uses something different. Keep behavior identical for static commands.)
+(The dict-rebuild on every chat message is fine — `list_commands()` only reads the modules-repo manifests, which is the same cost everything else in the chat path already pays.)
 
-- [ ] **Step 6: Run tests, verify pass**
+- [ ] **Step 7: Run tests, verify pass**
 
 ```bash
 cd platform && uv run pytest tests/test_commands.py -v
 ```
 
-- [ ] **Step 7: Verify nothing else imported the old `COMMANDS` symbol**
+- [ ] **Step 8: Verify nothing else imported the old `COMMANDS` symbol**
 
 ```bash
-cd platform && grep -rn "from src.commands import COMMANDS\|src\.commands\.COMMANDS" src/ tests/
+cd /Users/bsampera/Documents/bleak-dev/context-loader && grep -rn "from src.commands import COMMANDS\|src\.commands\.COMMANDS" platform/src/ platform/tests/
 ```
-Expected: no matches. If matches exist outside `_SUMMARY_PROMPT`/`_DETECT_PACKAGES_PROMPT` (which stay), update them to call `list_commands()`.
+Expected: no matches outside `_SUMMARY_PROMPT`/`_DETECT_PACKAGES_PROMPT` (which stay as module-level constants — they're internal templates, not part of the user-facing slash-command set). If you find any other call site, update it to call `list_commands()`.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add platform/src/commands.py platform/src/routes/commands.py platform/tests/test_commands.py
+git add platform/src/commands.py platform/src/routes/commands.py platform/src/routes/chat.py platform/tests/test_commands.py
 git commit -m "feat(workflows): auto-register slash command per workflow module"
 ```
 
@@ -1723,21 +1823,22 @@ git commit -m "feat(workflows): add WorkflowsGroup sidebar component"
 **Files:**
 - Create: `platform/frontend/src/components/sidebar/StartRunModal.tsx`
 
-Free-text input "what's this run about?". On submit, builds the canonical seed message (with the user's title inlined), calls `useChatStore.sendMessage(activeSessionId, seedText)`, closes.
+Free-text input "what's this run about?". On submit, builds the canonical seed message (with the user's title inlined), starts a fresh chat session (so each run gets its own session per spec), then sends the seed message.
 
-- [ ] **Step 1: Read the chat store to confirm `sendMessage`'s signature**
+**Two important facts about the existing store layout** (verified against `platform/frontend/src/hooks/useSessionStore.ts` and `platform/frontend/src/hooks/useChatStore.ts`):
 
-```bash
-cd /Users/bsampera/Documents/bleak-dev/context-loader && grep -n "sendMessage" platform/frontend/src/hooks/useChatStore.ts | head
-```
-Confirms `sendMessage(sessionId: string | null, prompt: string) => void`.
+- The active Claude session id lives in `useSessionStore` as `activeClaudeSessionId` (NOT in `useChatStore`). `useChatStore` only exposes `sendMessage`.
+- "+ New chat" elsewhere in the app (see `Chat.tsx:37` and `ContextPanel.tsx:381`) is implemented by calling `setActiveClaudeSessionId(null)` — the next `sendMessage(null, ...)` then starts a fresh session and `useChatStore` itself sets the new id back into the session store via `useSessionStore.getState().setActiveClaudeSessionId(newId)` (visible at `useChatStore.ts:202`).
 
-- [ ] **Step 2: Create the modal**
+So the modal must reset the session before sending — otherwise the seed lands in whatever chat the user happens to have open.
+
+- [ ] **Step 1: Create the modal**
 
 ```typescript
 import { useState } from "react";
 import { Modal } from "../Modal";
 import { useChatStore } from "../../hooks/useChatStore";
+import { useSessionStore } from "../../hooks/useSessionStore";
 
 interface StartRunModalProps {
   workflow: string;
@@ -1747,7 +1848,9 @@ interface StartRunModalProps {
 export function StartRunModal({ workflow, onClose }: StartRunModalProps) {
   const [title, setTitle] = useState("");
   const sendMessage = useChatStore((s) => s.sendMessage);
-  const activeSessionId = useChatStore((s) => s.activeSessionId);
+  const setActiveClaudeSessionId = useSessionStore(
+    (s) => s.setActiveClaudeSessionId,
+  );
 
   const handleSubmit = () => {
     const trimmed = title.trim();
@@ -1759,7 +1862,9 @@ export function StartRunModal({ workflow, onClose }: StartRunModalProps) {
       `Read the entry step from the ${workflow} workflow folder and follow it exactly.`,
       `The step's prose will tell you to call POST /api/workflows/${workflow}/runs with this title to create the run task.`,
     ].join("\n");
-    sendMessage(activeSessionId, seed);
+    // Spec requires each run to start in its own chat.
+    setActiveClaudeSessionId(null);
+    sendMessage(null, seed);
     onClose();
   };
 
@@ -1808,20 +1913,18 @@ export function StartRunModal({ workflow, onClose }: StartRunModalProps) {
 }
 ```
 
-(The `Modal` import path matches `platform/frontend/src/components/Modal.tsx`. The selector field name `activeSessionId` should match the store's actual field — grep `useChatStore.ts` to confirm; if it's `activeClaudeSessionId` or similar, update.)
+- [ ] **Step 2: Manual verification**
 
-- [ ] **Step 3: Verify imports against the live store**
+Start the dev server, click Start run on a workflow card, type a title, click Start. Confirm:
+- The previously-active chat session is replaced (or a new chat opens) — not added to.
+- The first message in the new session is the canonical seed (visible in the chat history).
+- The agent picks up the message and reads the entry step.
 
-```bash
-cd /Users/bsampera/Documents/bleak-dev/context-loader && grep -E "activeSessionId|activeClaudeSessionId" platform/frontend/src/hooks/useChatStore.ts
-```
-Update the field name in the modal if needed.
-
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
 git add platform/frontend/src/components/sidebar/StartRunModal.tsx
-git commit -m "feat(workflows): add StartRunModal"
+git commit -m "feat(workflows): add StartRunModal that starts a fresh chat per run"
 ```
 
 ---
