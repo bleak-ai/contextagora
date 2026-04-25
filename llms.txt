@@ -22,9 +22,12 @@
 - [platform/src/services/transcript_recorder.py](platform/src/services/transcript_recorder.py) — Pure in-memory builder that turns SSE events into ChatMessage records for persistence; mirrors useChatStore.sendMessage
 - [platform/src/services/git_repo.py](platform/src/services/git_repo.py) — Local git clone wrapper (clone, read/write, sync_status/pull/push)
 - [platform/src/routes/sync.py](platform/src/routes/sync.py) — Sync API endpoints (GET /api/sync/status, POST /api/sync/pull, POST /api/sync/push)
+- [platform/src/routes/jobs.py](platform/src/routes/jobs.py) — Job listing, run history, and manual trigger endpoints (GET /api/jobs, GET /api/jobs/{module}/{name}/runs, POST /api/jobs/{module}/{name}/run)
 - [platform/frontend/src/api/sync.ts](platform/frontend/src/api/sync.ts) — Sync API client (fetchSyncStatus, pullSync, pushSync)
+- [platform/frontend/src/api/jobs.ts](platform/frontend/src/api/jobs.ts) — Jobs API client (fetchJobs, fetchJobRuns, triggerJob; Job and JobRun types)
 - [platform/frontend/src/components/SyncControls.tsx](platform/frontend/src/components/SyncControls.tsx) — Pull/Push buttons driven by sync status
 - [platform/src/services/manifest.py](platform/src/services/manifest.py) — ModuleManifest Pydantic model + read_manifest/write_manifest I/O; replaces per-module .env.schema and requirements.txt with a single module.yaml
+- [platform/src/services/jobs.py](platform/src/services/jobs.py) — In-process JobScheduler: ticks every 30s, fires due module cron jobs as subprocesses, supports manual trigger_now; RunRecord + module-level singleton
 - [platform/src/services/schemas.py](platform/src/services/schemas.py) — generate_global_schema(dict[str,list[str]]) builds workspace .env.schema from manifest secret lists; validate_module_name/validate_module_file_path for input sanitization
 - [platform/src/services/workspace.py](platform/src/services/workspace.py) — Workspace management: list_loaded_modules, get_loaded_module_names, reload_workspace (clear and re-link modules into context directory)
 - [platform/src/services/secrets.py](platform/src/services/secrets.py) — Varlock secret status and loading
@@ -39,6 +42,8 @@
 - [platform/frontend/src/components/](platform/frontend/src/components/) — React components (Chat, ModuleRegistry, IconRail, ContextPanel, etc.)
 - [platform/frontend/src/components/sidebar/ModuleCard.tsx](platform/frontend/src/components/sidebar/ModuleCard.tsx) — Unified card component for tasks and integrations; renders name, summary, files, secrets, packages with expand/collapse
 - [platform/frontend/src/components/sidebar/WorkspaceGroup.tsx](platform/frontend/src/components/sidebar/WorkspaceGroup.tsx) — Collapsible integrations group with root files (CLAUDE.md, llms.txt), integration cards with ON/OFF toggles, and create/refresh actions
+- [platform/frontend/src/components/sidebar/JobsPanel.tsx](platform/frontend/src/components/sidebar/JobsPanel.tsx) — Sidebar panel listing all scheduled jobs with status dots, schedule cadence, last-run time, and inline Run button; polls every 5s
+- [platform/frontend/src/components/sidebar/JobRunsModal.tsx](platform/frontend/src/components/sidebar/JobRunsModal.tsx) — Modal showing the run history for a single job with expandable stdout/stderr panes; polls every 5s
 - [platform/frontend/src/components/Modal.tsx](platform/frontend/src/components/Modal.tsx) — Shared modal wrapper: backdrop, click-outside, Escape-key handling with opt-out props
 - [platform/frontend/src/components/sidebar/ArchiveModal.tsx](platform/frontend/src/components/sidebar/ArchiveModal.tsx) — Modal for managing archived tasks with unarchive and delete actions
 - [platform/frontend/src/components/sidebar/CreateTaskModal.tsx](platform/frontend/src/components/sidebar/CreateTaskModal.tsx) — Modal dialog for creating a new task module; posts to createTask API and invalidates modules/workspace queries on success

@@ -84,4 +84,9 @@ COMMANDS: list[CommandDef] = [
         description="Add a Python script (read or write) to an existing module's scripts/",
         prompt=_load_prompt("commands/add_script.md", inject_conventions=True),
     ),
+    CommandDef(
+        name="cron-jobs",
+        description="View, add, modify, or remove scheduled jobs on the loaded modules",
+        prompt=_load_prompt("commands/cron_jobs.md", inject_conventions=True),
+    ),
 ]

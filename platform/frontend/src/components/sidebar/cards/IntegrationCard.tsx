@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { FileText, Zap, Key, Package, ChevronDown, ChevronRight } from "lucide-react";
+import { FileText, Zap, Key, Package, Clock, ChevronDown, ChevronRight } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchModule, type ModuleInfo } from "../../../api/modules";
 import { installModuleDeps, type LoadedModule } from "../../../api/workspace";
+import { fetchJobs, triggerJob, type Job } from "../../../api/jobs";
 import { useModuleEditorStore } from "../../../hooks/useModuleEditorStore";
 import { ModuleCardShell } from "./ModuleCardShell";
 import { ModuleFilePreview } from "./ModuleFilePreview";
+import { JobRunsModal } from "../JobRunsModal";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -54,6 +56,7 @@ export function IntegrationCard({
 
   const [expanded, setExpanded] = useState(false);
   const [previewFile, setPreviewFile] = useState<string | null>(null);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   const { data: detail, isLoading: detailLoading } = useQuery({
     queryKey: ["module", info.name],
@@ -75,6 +78,22 @@ export function IntegrationCard({
       }
       queryClient.invalidateQueries({ queryKey: ["workspace"] });
     },
+  });
+
+  // Jobs for this module. One global query, filtered client-side; TanStack
+  // Query dedupes the request across all loaded module cards. No polling —
+  // refetch on expand and after a manual Run.
+  const { data: allJobs = [] } = useQuery({
+    queryKey: ["jobs"],
+    queryFn: fetchJobs,
+    enabled: expanded && isOn,
+    staleTime: 30_000,
+  });
+  const jobs = allJobs.filter((j) => j.module === info.name);
+
+  const triggerMutation = useMutation({
+    mutationFn: ({ name }: { name: string }) => triggerJob(info.name, name),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["jobs"] }),
   });
 
   const missingCount = isOn ? countMissing(loaded) : 0;
@@ -278,6 +297,26 @@ export function IntegrationCard({
                   </>
                 )}
               </Section>
+
+              {jobs.length > 0 && (
+                <Section
+                  title={<><Clock className="w-3.5 h-3.5 text-accent shrink-0" /> JOBS</>}
+                  count={`${jobs.length}`}
+                  defaultOpen={false}
+                >
+                  {jobs.map((job) => (
+                    <JobRow
+                      key={job.id}
+                      job={job}
+                      onOpen={() => setSelectedJob(job)}
+                      onRun={() =>
+                        !job.running &&
+                        triggerMutation.mutate({ name: job.name })
+                      }
+                    />
+                  ))}
+                </Section>
+              )}
             </>
           )}
 
@@ -332,7 +371,66 @@ export function IntegrationCard({
           onClose={() => setPreviewFile(null)}
         />
       )}
+
+      {selectedJob && (
+        <JobRunsModal
+          job={selectedJob}
+          onClose={() => setSelectedJob(null)}
+        />
+      )}
     </ModuleCardShell>
+  );
+}
+
+function relativeTime(epochSec: number): string {
+  const diff = Date.now() / 1000 - epochSec;
+  if (diff < 60) return `${Math.floor(diff)}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function jobDotClass(job: Job): string {
+  if (job.running) return "bg-accent animate-pulse";
+  if (!job.last_run) return "bg-text-muted";
+  return job.last_run.succeeded ? "bg-success" : "bg-red-400";
+}
+
+function JobRow({
+  job,
+  onOpen,
+  onRun,
+}: {
+  job: Job;
+  onOpen: () => void;
+  onRun: () => void;
+}) {
+  return (
+    <div className="group flex w-full items-center gap-2 rounded px-1.5 py-1 text-[11px] font-mono hover:bg-accent/10">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex flex-1 items-center gap-2 text-left min-w-0"
+      >
+        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${jobDotClass(job)}`} />
+        <span className="flex-1 truncate text-text font-medium">{job.name}</span>
+        <span className="shrink-0 text-[9px] text-text-muted">every {job.every}</span>
+        <span className="shrink-0 text-[9px] text-text-muted">
+          {job.last_run ? relativeTime(job.last_run.started_at) : "never"}
+        </span>
+      </button>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRun();
+        }}
+        disabled={job.running}
+        className="shrink-0 rounded border border-accent/40 bg-accent/10 px-1.5 py-0.5 text-[9px] font-semibold text-accent hover:bg-accent/20 disabled:opacity-50"
+      >
+        Run
+      </button>
+    </div>
   );
 }
 

@@ -10,11 +10,67 @@ from enum import Enum
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from src.llms import generate_module_llms_txt
 from src.models import CreateModuleRequest
 from src.services import git_repo
+
+
+_EVERY_RE = re.compile(r"^(\d+)([smh])$")
+_EVERY_UNIT_SECONDS = {"s": 1, "m": 60, "h": 3600}
+
+# Must match jobs.TICK_SECONDS — keep as a constant here to avoid
+# importing jobs.py from manifest.py (circular).
+_MIN_EVERY_SECONDS = 30
+
+
+def parse_every(value: str) -> int:
+    """Convert '30s' / '5m' / '1h' to a number of seconds.
+
+    Raises ValueError on any malformed input or values below the
+    scheduler tick (30 s) — sub-tick intervals would round up anyway
+    and surprise the user.
+    """
+    if not isinstance(value, str):
+        raise ValueError(f"every must be a string, got {type(value).__name__}")
+    match = _EVERY_RE.fullmatch(value)
+    if not match:
+        raise ValueError(
+            f"invalid every '{value}': expected <digits><s|m|h>, e.g. '30s', '5m', '1h'"
+        )
+    n = int(match.group(1))
+    if n == 0:
+        raise ValueError(f"invalid every '{value}': must be > 0")
+    seconds = n * _EVERY_UNIT_SECONDS[match.group(2)]
+    if seconds < _MIN_EVERY_SECONDS:
+        raise ValueError(
+            f"invalid every '{value}': minimum is {_MIN_EVERY_SECONDS}s"
+        )
+    return seconds
+
+
+class JobSpec(BaseModel):
+    name: str
+    script: str
+    every: str
+
+    @field_validator("script")
+    @classmethod
+    def _no_absolute_or_traversal(cls, v: str) -> str:
+        if v.startswith("/") or ".." in Path(v).parts:
+            raise ValueError(f"invalid script path '{v}': must be relative inside the module")
+        return v
+
+    @field_validator("every")
+    @classmethod
+    def _validate_every(cls, v: str) -> str:
+        parse_every(v)  # raises on bad values
+        return v
+
+    @property
+    def every_seconds(self) -> int:
+        return parse_every(self.every)
 
 
 class ModuleManifest(BaseModel):
@@ -24,6 +80,7 @@ class ModuleManifest(BaseModel):
     secrets: list[str] = []
     dependencies: list[str] = []
     archived: bool = False
+    jobs: list[JobSpec] = []
 
 
 def read_manifest(module_dir: Path) -> ModuleManifest:
@@ -53,6 +110,11 @@ def write_manifest(module_dir: Path, manifest: ModuleManifest) -> None:
         data["dependencies"] = manifest.dependencies
     if manifest.archived:
         data["archived"] = manifest.archived
+    if manifest.jobs:
+        data["jobs"] = [
+            {"name": j.name, "script": j.script, "every": j.every}
+            for j in manifest.jobs
+        ]
     (module_dir / "module.yaml").write_text(
         yaml.dump(data, default_flow_style=False, sort_keys=False)
     )

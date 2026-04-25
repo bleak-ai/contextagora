@@ -9,23 +9,23 @@ from unittest.mock import MagicMock, patch
 
 
 # ---------------------------------------------------------------------------
-# _build_env
+# build_env
 # ---------------------------------------------------------------------------
 
 
 def test_build_env_includes_telemetry_off():
-    from src.services.claude import _build_env, _TELEMETRY_OFF_ENV
+    from src.services.claude import build_env, _TELEMETRY_OFF_ENV
 
-    env = _build_env()
+    env = build_env()
     for key, value in _TELEMETRY_OFF_ENV.items():
         assert env[key] == value
 
 
 def test_build_env_inherits_os_environ(monkeypatch):
     monkeypatch.setenv("SOME_UNRELATED_VAR", "hello")
-    from src.services.claude import _build_env
+    from src.services.claude import build_env
 
-    env = _build_env()
+    env = build_env()
     assert env["SOME_UNRELATED_VAR"] == "hello"
 
 
@@ -34,7 +34,7 @@ def test_build_env_maps_llm_api_key(monkeypatch):
     from src.services import claude as claude_service
 
     with patch.object(claude_service.settings, "LLM_API_KEY", "sk-test-123"):
-        env = claude_service._build_env()
+        env = claude_service.build_env()
 
     assert env["ANTHROPIC_AUTH_TOKEN"] == "sk-test-123"
 
@@ -44,7 +44,7 @@ def test_build_env_maps_llm_base_url(monkeypatch):
     from src.services import claude as claude_service
 
     with patch.object(claude_service.settings, "LLM_BASE_URL", "https://proxy.example.com"):
-        env = claude_service._build_env()
+        env = claude_service.build_env()
 
     assert env["ANTHROPIC_BASE_URL"] == "https://proxy.example.com"
 
@@ -57,7 +57,7 @@ def test_build_env_maps_llm_model_to_all_three_anthropic_model_vars(monkeypatch)
     from src.services import claude as claude_service
 
     with patch.object(claude_service.settings, "LLM_MODEL", "my-custom-model"):
-        env = claude_service._build_env()
+        env = claude_service.build_env()
 
     assert env["ANTHROPIC_DEFAULT_OPUS_MODEL"] == "my-custom-model"
     assert env["ANTHROPIC_DEFAULT_SONNET_MODEL"] == "my-custom-model"
@@ -69,7 +69,7 @@ def test_build_env_preexisting_anthropic_auth_token_wins(monkeypatch):
     from src.services import claude as claude_service
 
     with patch.object(claude_service.settings, "LLM_API_KEY", "settings-supplied"):
-        env = claude_service._build_env()
+        env = claude_service.build_env()
 
     assert env["ANTHROPIC_AUTH_TOKEN"] == "user-supplied"
 
@@ -105,7 +105,7 @@ def test_run_headless_uses_build_env():
     sentinel_env = {"SENTINEL": "1"}
     mock_proc = MagicMock(returncode=0, stdout="", stderr="")
 
-    with patch("src.services.claude._build_env", return_value=sentinel_env), \
+    with patch("src.services.claude.build_env", return_value=sentinel_env), \
          patch("src.services.claude.subprocess.run", return_value=mock_proc) as mock_run:
         claude_service.run_headless("x")
 
@@ -200,7 +200,7 @@ def test_stream_uses_build_env_and_popen_kwargs():
     from src.services import claude as claude_service
 
     sentinel_env = {"SENTINEL": "1"}
-    with patch("src.services.claude._build_env", return_value=sentinel_env), \
+    with patch("src.services.claude.build_env", return_value=sentinel_env), \
          patch("src.services.claude.subprocess.Popen") as mock_popen:
         claude_service.stream("hi", cwd=Path("/tmp/work"))
 

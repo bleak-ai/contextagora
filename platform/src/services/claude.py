@@ -2,7 +2,7 @@
 
 Both the streaming chat route and the headless module-summary route call
 into this module. Env construction (telemetry-off + LLM backend mapping)
-is unified in `_build_env()`; every claude subprocess sees the same env.
+is unified in `build_env()`; every claude subprocess sees the same env.
 """
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ _TELEMETRY_OFF_ENV: dict[str, str] = {
 }
 
 
-def _build_env() -> dict[str, str]:
+def build_env() -> dict[str, str]:
     env: dict[str, str] = {**os.environ, **_TELEMETRY_OFF_ENV}
     if settings.LLM_API_KEY:
         env.setdefault("ANTHROPIC_AUTH_TOKEN", settings.LLM_API_KEY)
@@ -65,7 +65,7 @@ def run_headless(
         text=True,
         stdin=subprocess.DEVNULL,
         cwd="/tmp",
-        env=_build_env(),
+        env=build_env(),
         timeout=timeout,
     )
 
@@ -103,6 +103,6 @@ def stream(
         stderr=subprocess.PIPE,
         stdin=subprocess.DEVNULL,
         cwd=str(cwd) if cwd else None,
-        env=_build_env(),
+        env=build_env(),
         text=True,
     )
