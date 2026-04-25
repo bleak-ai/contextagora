@@ -116,3 +116,11 @@ class SocialPostPayload(BaseModel):
     services: list[str]
     stats: SocialPostStats
     session: SocialPostSession
+
+
+class TweetPayload(BaseModel):
+    text: str
+
+
+class TweetGenerateRequest(BaseModel):
+    card: SocialPostPayload

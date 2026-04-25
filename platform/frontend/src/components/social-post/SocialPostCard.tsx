@@ -217,7 +217,7 @@ export function SocialPostCard({ payload, theme }: Props) {
           borderTop: `1px solid ${theme.border}`,
         }}
       >
-        <BrandMark color={theme.text} />
+        <BrandMark />
         <b style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: theme.text }}>
           CONTEXTAGORA
         </b>
@@ -226,7 +226,7 @@ export function SocialPostCard({ payload, theme }: Props) {
           className="flex-1"
           style={{ ...HAND, fontSize: 20, color: theme.muted, lineHeight: 1 }}
         >
-          Stop pasting docs into Claude.
+          Stop Repeating Yourself.
         </span>
         <span style={{ color: theme.accent2, fontSize: 16 }}>♥</span>
       </div>
@@ -618,27 +618,15 @@ function Starburst({ color }: { color: string }) {
   );
 }
 
-function BrandMark({ color }: { color: string }) {
+function BrandMark() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden>
-      <path
-        d="M12 2 L22 8 V16 L12 22 L2 16 V8 Z"
-        fill="none"
-        stroke={color}
-        strokeWidth="1.75"
-        strokeLinejoin="round"
-      />
-      <text
-        x="12"
-        y="16"
-        textAnchor="middle"
-        fontSize="11"
-        fontWeight="800"
-        fill={color}
-      >
-        C
-      </text>
-    </svg>
+    <img
+      src="/logo.webp"
+      alt="Contextagora"
+      width={22}
+      height={22}
+      style={{ display: "block" }}
+    />
   );
 }
 

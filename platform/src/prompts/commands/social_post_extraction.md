@@ -1,44 +1,18 @@
 You are writing a Twitter card from a real Contextagora session.
 
-WHAT CONTEXTAGORA IS (and what this card has to make a reader feel)
-Contextagora is one agent that has access to a person's stack — Linear,
-Supabase, Notion, Stripe, Slack, the support inbox, the billing system,
-whatever they plug in — and uses those tools together to close a ticket
-end-to-end. The point of this card is: a non-developer (an ops lead, a
-PM, a support manager) reads it on Twitter and thinks "wait, that thing
-just did the boring tab-hopping for me." Not "cool AI demo." Not "neat
-dev tool." The thing they hate is having to context-switch across five
-SaaS tools to do one task. We're showing them that going away.
+WHAT CONTEXTAGORA IS (and what this card has to make a reader feel) Contextagora is one agent that has access to a person's stack — Linear, Supabase, Notion, Stripe, Slack, the support inbox, the billing system, whatever they plug in — and uses those tools together to close a ticket end-to-end. The point of this card is: a non-developer (an ops lead, a PM, a support manager) reads it on Twitter and thinks "wait, that thing just did the boring tab-hopping for me." Not "cool AI demo." Not "neat dev tool." The thing they hate is having to context-switch across five SaaS tools to do one task. We're showing them that going away.
 
-AUDIENCE
-Ops, PMs, support leads, founders running their own back office. Not
-engineers. They will not parse "GraphQL", "API call", "schema",
-"endpoint". They DO parse "ticket", "customer email", "billing
-question", "approval", "the queue", "the spreadsheet", "the dashboard".
+AUDIENCE Ops, PMs, support leads, founders running their own back office. Not engineers. They will not parse "GraphQL", "API call", "schema", "endpoint". They DO parse "ticket", "customer email", "billing question", "approval", "the queue", "the spreadsheet", "the dashboard".
 
-GOAL
-Generate interest. Pre-launch waitlist; we want a scroll to stop and
-become a "what is this." Not a feature dump.
+GOAL Generate interest. Pre-launch waitlist; we want a scroll to stop and become a "what is this." Not a feature dump.
 
-THE ONLY STORY THIS CARD TELLS
-Every Contextagora session has the same shape, and your card must make
-that shape obvious:
+THE ONLY STORY THIS CARD TELLS Every Contextagora session has the same shape, and your card must make that shape obvious:
 
-  (1) Something triggered it. A customer pinged. A ticket landed. A
-      number was off. The human had a thing to do.
-  (2) The agent reached across tools that the human would normally have
-      had to open in separate tabs. Step 1 hit one service, step 2 hit
-      another, step 3 pulled them together. The hops ARE the value.
-  (3) The job finished. A file shipped, a record flipped, a ticket
-      closed, an answer landed.
+(1) Something triggered it. A customer pinged. A ticket landed. A number was off. The human had a thing to do. (2) The agent reached across tools that the human would normally have had to open in separate tabs. Step 1 hit one service, step 2 hit another, step 3 pulled them together. The hops ARE the value. (3) The job finished. A file shipped, a record flipped, a ticket closed, an answer landed.
 
-If your finished card could be rearranged without losing meaning, you
-wrote independent jokes. Rewrite it as a story. Every field below is a
-beat in that story.
+If your finished card could be rearranged without losing meaning, you wrote independent jokes. Rewrite it as a story. Every field below is a beat in that story.
 
-The agent already spent {{elapsed_seconds}} seconds on this. Read the
-TRANSCRIPT below and return STRICT JSON matching this schema. Return
-JSON and nothing else. No markdown fences. No commentary.
+The agent already spent {{elapsed_seconds}} seconds on this. Read the TRANSCRIPT below and return STRICT JSON matching this schema. Return JSON and nothing else. No markdown fences. No commentary.
 
 ```
 {
@@ -165,55 +139,38 @@ JSON and nothing else. No markdown fences. No commentary.
 ```
 
 VOICE
-- Write like an ops lead telling a peer about a small win. Short
-  sentences. Active voice. Contractions welcome.
-- Customer/ticket language, not engineer language. 'A customer asked',
-  'support pinged', 'the queue', 'the spreadsheet', 'the billing row'.
-  NEVER 'GraphQL', 'API', 'endpoint', 'schema', 'query', 'webhook'.
-  Service names by themselves (Linear, Stripe, Notion) are fine.
-- Specific beats generic, every time. 'Closed Linear DEMO-5' beats
-  'closed the ticket'. 'Refunded the duplicate Stripe charge' beats
-  'fixed the billing issue'.
+
+- Write like an ops lead telling a peer about a small win. Short sentences. Active voice. Contractions welcome.
+- Customer/ticket language, not engineer language. 'A customer asked', 'support pinged', 'the queue', 'the spreadsheet', 'the billing row'. NEVER 'GraphQL', 'API', 'endpoint', 'schema', 'query', 'webhook'. Service names by themselves (Linear, Stripe, Notion) are fine.
+- Specific beats generic, every time. 'Closed Linear DEMO-5' beats 'closed the ticket'. 'Refunded the duplicate Stripe charge' beats 'fixed the billing issue'.
 - Never use em-dashes (—) or en-dashes (–). Use colons, periods, parens.
-- No corporate filler: no 'leveraged', 'utilized', 'streamlined',
-  'orchestrated', 'facilitated'.
-- No hashtags. No timestamps. No code, SQL, paths, or file extensions
-  in any text field EXCEPT outcome.file and where a file IS the outcome.
+- No corporate filler: no 'leveraged', 'utilized', 'streamlined', 'orchestrated', 'facilitated'.
+- No hashtags. No timestamps. No code, SQL, paths, or file extensions in any text field EXCEPT outcome.file and where a file IS the outcome.
 
 STEP RULES
+
 - 3 to 5 steps total. Not fewer, not more.
 - Each step.text is a PHRASE, not a sentence. Max 4 words, 28 chars.
-- The sequence of step.hint values should visibly hop across services.
-  If every step's hint says 'in Linear', the cross-tool story isn't
-  there — re-read the transcript and find the second service.
-- step.note connects to the next step where possible, not just a
-  standalone reaction.
+- The sequence of step.hint values should visibly hop across services. If every step's hint says 'in Linear', the cross-tool story isn't there — re-read the transcript and find the second service.
+- step.note connects to the next step where possible, not just a standalone reaction.
 
 CONNECTIVITY CHECK (run this against your draft before returning)
-1. Does tagline → title read like trigger → outcome? (e.g. 'URGENT
-   TICKET' → 'Closed DEMO-5'.) If not, rewrite tagline.
-2. Do meta_bits trace the arc — trigger count, tools touched, outcome
-   flex? Or are they three random numbers?
-3. Does problem.meta name a service/ticket that reappears in step 1
-   AND in outcome.title? If the loop isn't closed, rewrite outcome
-   or step 1.
-4. Does the sequence of step.hint values include at least 2 different
-   services for any session that touched 2+ tools? (Check services[]
-   length.) If not, the cross-tool point is invisible — rewrite hints.
-5. Does outcome.punchline compress the arc into one line a stranger
-   could understand without reading the rest of the card? If it
-   needs the card to make sense, rewrite it.
+
+1. Does tagline → title read like trigger → outcome? (e.g. 'URGENT TICKET' → 'Closed DEMO-5'.) If not, rewrite tagline.
+2. Do meta_bits trace the arc — trigger count, tools touched, outcome flex? Or are they three random numbers?
+3. Does problem.meta name a service/ticket that reappears in step 1 AND in outcome.title? If the loop isn't closed, rewrite outcome or step 1.
+4. Does the sequence of step.hint values include at least 2 different services for any session that touched 2+ tools? (Check services\[\] length.) If not, the cross-tool point is invisible — rewrite hints.
+5. Does outcome.punchline compress the arc into one line a stranger could understand without reading the rest of the card? If it needs the card to make sense, rewrite it.
 
 ANTI-PATTERNS (do not ship a card that does these)
+
 - A complaint with no specifics in problem ('this is annoying').
 - Steps that could be reordered without changing the outcome.
-- services[] lists 3 tools but step.hint only mentions 1.
-- meta_bits and outcome reference different units (one says 'tickets',
-  the other says 'rows').
+- services\[\] lists 3 tools but step.hint only mentions 1.
+- meta_bits and outcome reference different units (one says 'tickets', the other says 'rows').
 - Jargon a non-engineer wouldn't recognize.
 - Em-dashes anywhere.
 
 Return JSON ONLY. No prose around it.
 
-TRANSCRIPT:
-{{transcript}}
+TRANSCRIPT: {{transcript}}

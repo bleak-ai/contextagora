@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Modal } from "../Modal";
 import { useSocialPost } from "../../hooks/useSocialPost";
 import { SocialPostCard } from "./SocialPostCard";
+import { TweetSection } from "./TweetSection";
 import { THEMES, type Theme } from "./themes";
 
 type Props = {
@@ -17,6 +18,7 @@ function randomTheme(excludeId?: string): Theme {
 export function SocialPostModal({ sessionId, onClose }: Props) {
   const query = useSocialPost(sessionId);
   const [theme, setTheme] = useState<Theme>(() => randomTheme());
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
   return (
     <Modal onClose={onClose}>
@@ -72,8 +74,14 @@ export function SocialPostModal({ sessionId, onClose }: Props) {
         )}
 
         {query.isSuccess && query.data && (
+          <TweetSection card={query.data} cardRef={cardRef} />
+        )}
+
+        {query.isSuccess && query.data && (
           <div style={{ zoom: 0.85 }}>
-            <SocialPostCard payload={query.data} theme={theme} />
+            <div ref={cardRef}>
+              <SocialPostCard payload={query.data} theme={theme} />
+            </div>
           </div>
         )}
       </div>
