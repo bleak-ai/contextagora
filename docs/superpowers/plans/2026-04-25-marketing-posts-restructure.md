@@ -992,7 +992,7 @@ Run:
 cd platform/frontend && pnpm exec tsc -b --noEmit
 ```
 
-Expected: clean exit, no errors. If TypeScript complains about `pre` not being a valid key in the `components` prop type for `@assistant-ui/react-markdown`, fall back to typing `MD_COMPONENTS` as `Record<string, unknown>` — the underlying `react-markdown` does accept arbitrary tag overrides.
+Expected: clean exit, no errors. `pre` is a valid key in the `components` prop type per `@assistant-ui/react-markdown`'s `MarkdownTextPrimitive` definition, so no extra type gymnastics should be needed.
 
 - [ ] **Step 6: Lint**
 
@@ -1016,10 +1016,11 @@ In the running app:
 3. Confirm a "Copy" button appears in the top-right of the code block on hover (and is invisible without hover).
 4. Click it. Confirm:
    - The label changes to "Copied" briefly.
-   - Pasting into a text editor yields the exact code-block contents.
-5. Confirm code blocks still render correctly otherwise: scroll behavior, syntax (none — these are plain `<pre>` blocks, no highlighting), border/radius matching the existing `.aui-md pre` style.
+   - **Critical:** paste into a text editor and confirm the clipboard contains **only** the code body. The literal word `Copy` (or `Copied`) **must not** appear at the start. If it does, `querySelector("code")` is not finding the inner element — debug by adding a `console.log(preRef.current?.outerHTML)` in `handleCopy`. This is the most likely failure mode given how the component is wired.
+5. Open the browser devtools console. Confirm there are **no** React warnings of the form `Warning: React does not recognize the 'node' prop on a DOM element`. If you see one, the `node: _node` destructure was not applied correctly.
+6. Confirm code blocks still render correctly otherwise: scroll behavior, syntax (none — these are plain `<pre>` blocks, no highlighting), border/radius matching the existing `.aui-md pre` style.
 
-Do **not** mark this step complete based on type-check + lint alone. The button must be observed working in the browser.
+Do **not** mark this step complete based on type-check + lint alone. The button must be observed working in the browser, and the clipboard payload must be verified by paste.
 
 - [ ] **Step 8: Commit**
 
