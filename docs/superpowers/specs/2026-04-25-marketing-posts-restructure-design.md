@@ -66,7 +66,6 @@ Each `posts/*.md` is YAML frontmatter + Markdown body.
 
 ```markdown
 ---
-id: post-0-launch-linkedin
 platform: linkedin            # linkedin | x
 scheduled_date: 2026-04-21
 status: scheduled             # scheduled | posted
@@ -149,6 +148,8 @@ To copy one, ask "post 3" or "today's linkedin".
 ```
 
 **2. "post N" / "today's <platform>" / "the launch post" / similar**
+
+`N` resolves against the most recent overview the agent showed in the current conversation, not against any global numbering. (Numbers shift as posts get marked posted, so a stable global index would be misleading.) "Today's linkedin", "the launch post", and similar natural-language references resolve directly from frontmatter without going through the overview.
 
 The agent identifies the matching post file, then renders **only** the body inside a fenced code block — no commentary above or below the block, no extra prose. If `image:` is set in frontmatter, a single line follows the block: `Image: posts/<filename>` (the absolute path, copy-pasteable into Finder / `open`).
 
@@ -233,11 +234,15 @@ A one-shot, manual migration. Sequence:
 
 1. Create `posts/` directory.
 2. For each row in current `posts.csv`, create one `posts/<date>-<slug>-<platform>.md` file. Copy the body verbatim from the matching section of `playbook.md`. Populate frontmatter from the CSV row.
-3. Drop placeholder image files in `posts/` for the launch series where Post 0 already has documented visual asks (15-sec screen recording, pin video) — image filename in frontmatter, actual binary added later by the user. For posts without specified visuals, leave `image:` empty.
+3. For posts where the existing `playbook.md` documents a specific visual ask (Post 0's 15-sec screen recording, the X pin video), set `image:` in frontmatter to the planned filename (e.g. `2026-04-21-launch.png`). **No binary is committed** — the file is added later by the user when the asset is ready. The frontmatter reference is a placeholder, not a zero-byte file. For posts without a specified visual, leave `image:` empty.
 4. Trim `playbook.md` to remove the "Post 0–4" copy sections; replace with a one-paragraph pointer.
 5. Rewrite `info.md` per above.
 6. Update `llms.txt` per above.
 7. Delete `posts.csv`.
+8. Update cross-module references in `outbound-contextagora/`. Two existing files reference `../marketing-contextagora/posts.csv` and a non-existent `build-in-public-posts.md`:
+    - `outbound-contextagora/llms.txt` line 21: replace the "log a content idea in `posts.csv`" sentence with a pointer to creating a new `posts/<date>-<slug>-<platform>.md` file with `source: partner-<name>`.
+    - `outbound-contextagora/info.md` line 15: same replacement.
+    - `outbound-contextagora/playbook.md` lines 170 and 183: replace the broken `build-in-public-posts.md` link with a link to `marketing-contextagora/playbook.md` (the trimmed strategy doc) or `posts/` (the new content store), whichever the surrounding sentence is actually about.
 
 The user reviews the result. No automated tooling, no migration script committed — this is a one-time content edit.
 
