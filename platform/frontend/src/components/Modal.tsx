@@ -7,7 +7,7 @@ interface ModalProps {
   disableBackdropClick?: boolean;
   /** Skip the built-in Escape-key handler (use when the consumer needs custom Escape logic) */
   disableEscape?: boolean;
-  /** Tailwind classes for the backdrop, default "bg-black/50" */
+  /** Tailwind classes for the backdrop, default "bg-black/80" */
   backdropClass?: string;
 }
 
@@ -16,7 +16,7 @@ export function Modal({
   children,
   disableBackdropClick,
   disableEscape,
-  backdropClass = "bg-black/50",
+  backdropClass = "bg-black/80",
 }: ModalProps) {
   useEffect(() => {
     if (disableEscape) return;

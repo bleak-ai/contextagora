@@ -66,7 +66,7 @@ Streaming conversation with the Claude agent via SSE. The backend spawns a `clau
 - **Tool call display** — raw tool calls are translated to human-readable labels ("Read linear/info.md", "Searched for X", "Ran command"), with per-call timing and expandable input/output details.
 - **Thinking display** — Claude's reasoning blocks are shown as collapsible/expandable sections with an animated spinner while streaming.
 - **Decision tree** — a real-time panel showing which files the agent is reading during a conversation. Tree structure grouped by module, with pulsing indicators for active reads and access counts per module. Generated live during streaming, never persisted.
-- **Session browser** — sidebar tab listing past Claude Code sessions by topic (extracted from the first user message in each session). Sessions are read directly from Claude Code's on-disk JSONL files (`~/.claude/projects/`), no separate session store. Users can switch between sessions.
+- **Session browser** — sidebar tab listing past Claude Code sessions by topic (extracted from the first user message in each session). The session *list* comes from Claude Code's on-disk JSONL files (`~/.claude/projects/`). Session *contents* (messages, tool calls) are served DB-first from a local SQLite store at `~/.claude/contextagora/sessions.db` — every SSE event the chat route streams is mirrored into the DB, so any client opening a session sees the full transcript regardless of which browser originally streamed it. Sessions the server didn't capture (CLI-created, pre-existing) fall back to parsing the JSONL. Both stores live under `~/.claude`, which the compose file mounts as a named Docker volume so history survives container redeploys.
 
 ### Module editor
 

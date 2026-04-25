@@ -19,6 +19,7 @@ from src.routes.health import router as health_router
 from src.routes.modules import router as modules_router
 from src.routes.onboarding import router as onboarding_router
 from src.routes.root_context import router as root_context_router
+from src.routes.social_post import router as social_post_router
 from src.routes.sync import router as sync_router
 from src.routes.workspace import router as workspace_router
 from src.services import git_repo, sessions_store
@@ -110,6 +111,7 @@ app.include_router(sync_router)
 app.include_router(benchmarks_router)
 app.include_router(root_context_router)
 app.include_router(onboarding_router)
+app.include_router(social_post_router)
 
 
 if settings.STATIC_DIR.exists():

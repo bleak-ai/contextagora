@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { Camera } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchModules,
@@ -24,6 +25,7 @@ import { WorkspaceGroup } from "./sidebar/WorkspaceGroup";
 import { TaskCard } from "./sidebar/cards/TaskCard";
 import { ArchiveModal } from "./sidebar/ArchiveModal";
 import { CreateTaskModal } from "./sidebar/CreateTaskModal";
+import { SocialPostModal } from "./social-post/SocialPostModal";
 
 interface ContextPanelProps {
   mobileOpen?: boolean;
@@ -49,6 +51,7 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
   const isDesktop = useIsDesktop();
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [showCreateTask, setShowCreateTask] = useState(false);
+  const [postSessionId, setPostSessionId] = useState<string | null>(null);
   const openEditor = useModuleEditorStore((s) => s.openModuleEditor);
 
   const rawModel = useChatStore((s) => s.model);
@@ -398,6 +401,18 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
                   }`}
                 >
                   <span className="flex-1 text-xs truncate">{s.name}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPostSessionId(s.id);
+                    }}
+                    className="p-1 opacity-0 group-hover:opacity-100 transition-opacity text-text-muted hover:text-text"
+                    title="Create social post"
+                    aria-label="Create social post"
+                  >
+                    <Camera size={14} />
+                  </button>
                 </div>
               ))}
             </div>
@@ -426,6 +441,12 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
       )}
       {showCreateTask && (
         <CreateTaskModal onClose={() => setShowCreateTask(false)} />
+      )}
+      {postSessionId !== null && (
+        <SocialPostModal
+          sessionId={postSessionId}
+          onClose={() => setPostSessionId(null)}
+        />
       )}
     </>
   );
