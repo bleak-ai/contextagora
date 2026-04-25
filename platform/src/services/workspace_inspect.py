@@ -14,8 +14,8 @@ def list_workspace_files(
 ) -> list[str]:
     """Return relative paths of user-visible files inside a workspace module.
 
-    Includes top-level files (excluding managed ones), `.md` files one level
-    deep under `docs/`, and `.py` files one level deep under `scripts/`.
+    Includes top-level files (excluding managed ones), all `.md` files
+    anywhere under `docs/`, and `.py` files one level deep under `scripts/`.
     Order: top-level alphabetical, then docs alphabetical, then scripts alphabetical.
     """
     if not module_dir.is_dir():
@@ -28,9 +28,9 @@ def list_workspace_files(
 
     docs = module_dir / "docs"
     if docs.is_dir():
-        for doc in sorted(docs.iterdir()):
-            if doc.is_file() and doc.name.endswith(".md"):
-                paths.append(f"docs/{doc.name}")
+        for doc in sorted(docs.rglob("*.md")):
+            if doc.is_file():
+                paths.append(str(doc.relative_to(module_dir)))
 
     scripts = module_dir / "scripts"
     if scripts.is_dir():

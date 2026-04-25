@@ -126,7 +126,7 @@ def list_module_files(
     *,
     clone_dir: Path | None = None,
 ) -> list[dict[str, str]]:
-    """List top-level non-managed files + `docs/*.md` + `scripts/*.py` for a module."""
+    """List top-level non-managed files + `docs/**/*.md` + `scripts/*.py` for a module."""
     root = _resolve_clone(clone_dir) / module
     if not root.is_dir():
         raise FileNotFoundError(f"Module '{module}' not found")
@@ -138,12 +138,13 @@ def list_module_files(
         if entry.is_file() and entry.name not in managed_files:
             result.append({"name": entry.name, "path": entry.name})
 
-    # Pass 2: docs/*.md
+    # Pass 2: docs/**/*.md (recursive)
     docs_dir = root / "docs"
     if docs_dir.is_dir():
-        for doc in sorted(docs_dir.iterdir()):
-            if doc.is_file() and doc.name.endswith(".md"):
-                result.append({"name": doc.name, "path": f"docs/{doc.name}"})
+        for doc in sorted(docs_dir.rglob("*.md")):
+            if doc.is_file():
+                rel = doc.relative_to(root)
+                result.append({"name": doc.name, "path": str(rel)})
 
     # Pass 3: scripts/*.py
     scripts_dir = root / "scripts"
