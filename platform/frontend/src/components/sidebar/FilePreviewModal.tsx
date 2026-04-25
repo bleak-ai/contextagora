@@ -21,17 +21,25 @@ interface Props {
 
 const REMARK_PLUGINS = [remarkGfm];
 
-function isMarkdownTitle(title: React.ReactNode): boolean {
-  if (typeof title === "string") return title.endsWith(".md");
+function titleEndsWith(title: React.ReactNode, suffix: string): boolean {
+  if (typeof title === "string") return title.endsWith(suffix);
   if (title && typeof title === "object" && "props" in title) {
     const children = (title as React.ReactElement<{ children?: React.ReactNode }>).props.children;
     if (Array.isArray(children)) {
       const last = children[children.length - 1];
-      if (typeof last === "string") return last.endsWith(".md");
+      if (typeof last === "string") return last.endsWith(suffix);
     }
-    if (typeof children === "string") return children.endsWith(".md");
+    if (typeof children === "string") return children.endsWith(suffix);
   }
   return false;
+}
+
+function parseCsv(text: string): string[][] {
+  return text
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .filter((line, idx, arr) => line.length > 0 || idx < arr.length - 1)
+    .map((line) => line.split(","));
 }
 
 export function FilePreviewModal({
@@ -42,7 +50,8 @@ export function FilePreviewModal({
   runnable,
   onClose,
 }: Props) {
-  const renderAsMarkdown = isMarkdownTitle(title);
+  const renderAsMarkdown = titleEndsWith(title, ".md");
+  const renderAsCsv = titleEndsWith(title, ".csv");
   const canRun = !!runnable && runnable.path.endsWith(".py");
 
   return (
@@ -70,6 +79,8 @@ export function FilePreviewModal({
               <div className="aui-md text-sm text-text">
                 <Markdown remarkPlugins={REMARK_PLUGINS}>{content}</Markdown>
               </div>
+            ) : renderAsCsv ? (
+              <CsvTable rows={parseCsv(content)} />
             ) : (
               <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-text">
                 {content}
@@ -82,6 +93,45 @@ export function FilePreviewModal({
         )}
       </div>
     </Modal>
+  );
+}
+
+function CsvTable({ rows }: { rows: string[][] }) {
+  if (rows.length === 0) {
+    return <p className="text-xs text-text-muted">empty file</p>;
+  }
+  const [header, ...body] = rows;
+  return (
+    <div className="overflow-auto">
+      <table className="w-full border-collapse font-mono text-[11px] text-text">
+        <thead className="sticky top-0 bg-bg-raised">
+          <tr>
+            {header.map((cell, i) => (
+              <th
+                key={i}
+                className="border border-border px-2 py-1 text-left font-semibold text-text-secondary whitespace-nowrap"
+              >
+                {cell}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {body.map((row, r) => (
+            <tr key={r} className="hover:bg-bg-hover">
+              {row.map((cell, c) => (
+                <td
+                  key={c}
+                  className="border border-border px-2 py-1 align-top whitespace-pre-wrap break-words"
+                >
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

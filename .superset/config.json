@@ -1,11 +1,8 @@
 {
   "setup": [
-    "cd platform && uv sync",
-    "cd ..",
-    "cd platform/frontend && pnpm install",
-    "cd ../.."
+    "cd platform && uv sync && cd frontend && pnpm install"
   ],
   "run": [
-    "cp $SUPERSET_ROOT_PATH/platform/.env $SUPERSET_WORKSPACE_PATH/platform/.env 2>/dev/null; PORT=$((9000 + $(echo -n $SUPERSET_WORKSPACE_NAME | cksum | cut -d' ' -f1) % 1000)); echo PORT=$PORT > $SUPERSET_WORKSPACE_PATH/platform/frontend/.env.local; (cd $SUPERSET_WORKSPACE_PATH/platform && MODULES_REPO_DIR=$SUPERSET_WORKSPACE_PATH/modules-repo uv run uvicorn src.server:app --reload --port $PORT) & cd $SUPERSET_WORKSPACE_PATH/platform/frontend && ([ -d node_modules ] || pnpm install) && pnpm dev"
+    "cd platform && make dev"
   ]
 }
