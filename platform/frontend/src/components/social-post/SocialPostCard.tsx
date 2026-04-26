@@ -72,10 +72,6 @@ export function SocialPostCard({ payload, theme }: Props) {
     >
       {/* HERO */}
       <div className="relative">
-        {/* centered "real run" pill */}
-        <div className="flex justify-center">
-          <RealRunPill theme={theme} />
-        </div>
 
         <h1
           className="tracking-tight text-center"
@@ -260,27 +256,7 @@ function InsetPanel({
   );
 }
 
-/* ------------------------------ Hero bits --------------------------- */
 
-function RealRunPill({ theme }: { theme: Theme }) {
-  return (
-    <div
-      className="inline-flex items-center gap-1.5"
-      style={{
-        padding: "4px 12px",
-        borderRadius: 999,
-        fontSize: 12,
-        fontWeight: 600,
-        backgroundColor: `color-mix(in srgb, ${theme.accent} 12%, transparent)`,
-        color: theme.accent,
-        border: `1px solid color-mix(in srgb, ${theme.accent} 35%, transparent)`,
-      }}
-    >
-      <span aria-hidden style={{ fontSize: 13 }}>⚡</span>
-      real run
-    </div>
-  );
-}
 
 function Squiggle({ color }: { color: string }) {
   return (
