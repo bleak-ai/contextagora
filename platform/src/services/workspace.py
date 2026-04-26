@@ -31,10 +31,11 @@ def get_loaded_module_names() -> list[str]:
 def _always_loaded_module_names() -> list[str]:
     """Return names of all modules the server forces into the workspace.
 
-    Tasks: loaded iff `archived=False`. Workflows: always loaded (no
-    archived state). This invariant is owned by the server so that
-    incomplete client-supplied module lists cannot silently orphan
-    active tasks or hide workflows from the agent.
+    Workflows are always loaded so the agent can read their step prose to
+    spawn runs. Tasks (including workflow runs) are client-controlled via
+    /workspace/load, the same as integrations. Task creation flows
+    (api_create_module, start_run, api_unarchive_module) are responsible
+    for explicitly adding the new task to the loaded set when appropriate.
     """
     out: list[str] = []
     for name in git_repo.list_modules():
@@ -42,9 +43,7 @@ def _always_loaded_module_names() -> list[str]:
             manifest = read_manifest(git_repo.module_dir(name))
         except (OSError, ValueError):
             continue
-        if manifest.kind == "task" and not manifest.archived:
-            out.append(name)
-        elif manifest.kind == "workflow":
+        if manifest.kind == "workflow":
             out.append(name)
     return out
 
@@ -66,9 +65,10 @@ def reload_workspace(module_names: list[str]) -> dict[str, list[str] | list[dict
     """Clear workspace and (re)link selected modules into context/.
 
     Each loaded module becomes a symlink context/<name> -> modules-repo/<name>.
-    Non-archived tasks are always preserved regardless of `module_names` —
-    the loaded-ness of a task is derived from its manifest, not client input.
-    A global context/.env.schema is generated with Infisical config for all
+    Workflows are always force-merged into the loaded set so the agent
+    can always read workflow step prose. Tasks (including runs) are now
+    client-controlled and only loaded when present in `module_names`. A
+    global context/.env.schema is generated with Infisical config for all
     modules so varlock resolves secrets directly from the workspace root.
 
     Returns a dict with 'modules' (loaded names) and optionally 'errors'.

@@ -157,7 +157,9 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
   const allModuleInfos: ModuleInfo[] = modulesData?.modules || [];
   const loaded = workspace?.modules || [];              // LoadedModule[] — currently loaded
 
-  const activeTasks = allModuleInfos.filter((m) => m.kind === "task" && !m.archived);
+  const activeTasks = allModuleInfos.filter(
+    (m) => m.kind === "task" && !m.archived && !m.parent_workflow,
+  );
   const archivedTasks = allModuleInfos.filter((m) => m.kind === "task" && m.archived);
   const integrations = allModuleInfos.filter((m) => m.kind === "integration");
 
@@ -170,13 +172,36 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
     onSuccess: () => invalidateModuleQueries(queryClient),
   });
 
-  const handleToggleIntegration = (name: string, enabled: boolean) => {
+  const handleToggleModule = (name: string, enabled: boolean) => {
     const currentNames = loaded.map((m) => m.name);
     const nextNames = enabled
-      ? [...currentNames, name]
+      ? Array.from(new Set([...currentNames, name]))
       : currentNames.filter((n) => n !== name);
     loadMutation.mutate(nextNames);
   };
+
+  const handleToggleIntegration = (name: string, enabled: boolean) =>
+    handleToggleModule(name, enabled);
+
+  const renderTaskCard = (task: ModuleInfo) => (
+    <TaskCard
+      key={task.name}
+      info={task}
+      loaded={loaded.find((m) => m.name === task.name) ?? null}
+      onToggle={(enabled) => handleToggleModule(task.name, enabled)}
+      onEdit={() => openEditor(task.name)}
+      onArchive={async () => {
+        await archiveMutation.mutateAsync(task.name);
+      }}
+      onDelete={async () => {
+        if (
+          confirm(`Delete task "${task.name}"? This cannot be undone.`)
+        ) {
+          await deleteMutation.mutateAsync(task.name);
+        }
+      }}
+    />
+  );
 
   const panelBody = (
     <>
@@ -261,7 +286,11 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
           <div>
             {/* ---- Workflows Zone (above Active Tasks) ---- */}
             <div className="mb-3">
-              <WorkflowsGroup tasks={activeTasks} />
+              <WorkflowsGroup
+                tasks={allModuleInfos.filter((m) => m.kind === "task" && !m.archived)}
+                loadedNames={new Set(loaded.map((m) => m.name))}
+                renderRun={renderTaskCard}
+              />
             </div>
 
             {/* ---- Active Tasks Zone ---- */}
@@ -302,19 +331,7 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
                   </button>
                 </div>
               ) : (
-                activeTasks.map((task) => (
-                  <TaskCard
-                    key={task.name}
-                    info={task}
-                    loaded={loaded.find((m) => m.name === task.name) ?? null}
-                    onEdit={() => openEditor(task.name)}
-                    onArchive={async () => { await archiveMutation.mutateAsync(task.name); }}
-                    onDelete={async () => {
-                      if (confirm(`Delete task "${task.name}"? This cannot be undone.`))
-                        await deleteMutation.mutateAsync(task.name);
-                    }}
-                  />
-                ))
+                activeTasks.map(renderTaskCard)
               )}
             </div>
 

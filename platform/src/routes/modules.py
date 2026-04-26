@@ -68,13 +68,15 @@ async def api_archive_module(name: str):
 
 @router.post("/{name}/unarchive")
 async def api_unarchive_module(name: str):
-    """Set archived=false on a module and reload so the task invariant
-    (non-archived tasks are always loaded) takes effect."""
+    """Set archived=false on a module and re-add it to the loaded set."""
     if not git_repo.module_exists(name):
         return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
 
     set_archived(name, False)
-    reload_workspace(get_loaded_module_names())
+    current = get_loaded_module_names()
+    if name not in current:
+        current.append(name)
+    reload_workspace(current)
 
     return {"status": "ok"}
 

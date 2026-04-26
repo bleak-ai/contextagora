@@ -202,6 +202,9 @@ def start_run(workflow_name: str, title: str) -> RunInfo:
         f"# {title}\n> Run of workflow '{workflow_name}'\n\n- [info.md](info.md)\n- [status.md](status.md)\n"
     )
 
-    reload_workspace(get_loaded_module_names())
+    current = get_loaded_module_names()
+    if final not in current:
+        current.append(final)
+    reload_workspace(current)
 
     return RunInfo(run_task_name=final, path=run_dir)

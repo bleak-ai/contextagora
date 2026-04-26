@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, Zap, Key, Package, Clock, ChevronDown, ChevronRight } from "lucide-react";
+import { FileText, Zap, Key, Package, Clock, ChevronDown, ChevronRight, Edit2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchModule, type ModuleInfo } from "../../../api/modules";
 import { installModuleDeps, type LoadedModule } from "../../../api/workspace";
@@ -169,7 +169,6 @@ export function IntegrationCard({
       tone={tone}
       headerMiddle={headerMiddle}
       headerRight={headerRight}
-      onEdit={handleEdit}
     >
       {expanded && (
         <div className="border-t border-border bg-bg-raised px-3 py-2.5">
@@ -269,21 +268,6 @@ export function IntegrationCard({
                         }
                       />
                     ))}
-                    {loaded.packages.some((p) => !p.installed) && (
-                      <button
-                        type="button"
-                        disabled={installMutation.isPending}
-                        onClick={() => {
-                          setInstallError(null);
-                          installMutation.mutate();
-                        }}
-                        className="mt-1.5 w-full rounded border border-accent/40 bg-accent/10 px-2 py-1 text-[10px] font-semibold text-accent transition-colors hover:bg-accent/20 disabled:opacity-50"
-                      >
-                        {installMutation.isPending
-                          ? "Installing…"
-                          : "Install packages"}
-                      </button>
-                    )}
                     {installError && (
                       <details className="mt-1.5">
                         <summary className="cursor-pointer text-[10px] font-semibold text-red-400">
@@ -317,6 +301,30 @@ export function IntegrationCard({
                   ))}
                 </Section>
               )}
+
+              <div className="mt-3 pt-1.5 border-t border-border/50 flex items-center justify-end gap-3">
+                {loaded.packages.some((p) => !p.installed) && (
+                  <button
+                    type="button"
+                    disabled={installMutation.isPending}
+                    onClick={() => {
+                      setInstallError(null);
+                      installMutation.mutate();
+                    }}
+                    className="text-[10px] text-accent hover:text-accent-hover flex items-center gap-1 disabled:opacity-50"
+                  >
+                    <Package className="w-3 h-3" />
+                    {installMutation.isPending ? "Installing..." : "Install packages"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleEdit}
+                  className="text-[10px] text-text-muted hover:text-accent flex items-center gap-1"
+                >
+                  <Edit2 className="w-3 h-3" /> Edit
+                </button>
+              </div>
             </>
           )}
 
