@@ -9,6 +9,7 @@ Prompt templates for chat slash commands and module-building flows.
 ## Commands (user-facing slash commands)
 
 - [commands/add_integration.md](commands/add_integration.md) — /add-integration: multi-turn wizard to create a new context module from chat
+- [commands/add_workflow.md](commands/add_workflow.md) — /add-workflow: multi-turn wizard to create a workflow module (folder of numbered step files)
 - [commands/improve_integration.md](commands/improve_integration.md) — /improve-integration: reads an existing module, analyzes gaps, and improves it via PUT
 - [commands/download.md](commands/download.md) — /download: generates download links for files written in the session
 - [commands/guide.md](commands/guide.md) — /guide: shows loaded modules and suggests prompts to try

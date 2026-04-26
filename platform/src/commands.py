@@ -60,6 +60,11 @@ _STATIC_COMMANDS: list[CommandDef] = [
         prompt=_load_prompt("commands/add_integration.md", inject_conventions=True),
     ),
     CommandDef(
+        name="add-workflow",
+        description="Create a new workflow module: a folder of numbered Markdown step files",
+        prompt=_load_prompt("commands/add_workflow.md"),
+    ),
+    CommandDef(
         name="introduction",
         description="First-time setup: explain Context Agora and choose your first integration",
         prompt=_load_prompt("commands/introduction.md", inject_conventions=True),
