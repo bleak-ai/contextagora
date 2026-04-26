@@ -25,8 +25,7 @@ now", never "sign up free". Use "join the waitlist".
 THE STORY THIS TWEET TELLS
 Every Contextagora session has the same shape, and the card already
 encodes it for you:
-  (1) Something triggered it — see CARD.tagline (the trigger label)
-      and CARD.problem (what got in the way).
+  (1) Something triggered it — see CARD.problem (what got in the way).
   (2) The agent reached across tools — see CARD.services (the
       integrations touched) and CARD.steps (each with hint = service).
   (3) The job finished — see CARD.outcome (title, file, punchline).
@@ -75,8 +74,7 @@ Pattern C — outcome punchline:
 
 CONNECTIVITY CHECK (run against your draft before returning)
 1. Does line 1 ground the reader in a CONCRETE situation drawn from
-   CARD.problem or CARD.tagline? If it opens with abstract praise,
-   rewrite it.
+   CARD.problem? If it opens with abstract praise, rewrite it.
 2. Does the body show the BEFORE/AFTER contrast or name the cross-tool
    moment from CARD.services? If a stranger couldn't tell what
    changed, rewrite.

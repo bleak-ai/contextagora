@@ -116,8 +116,6 @@ def test_generate_tweet_returns_text_and_session_block():
         )
 
     assert payload["text"] == _VALID_TWEET
-    assert payload["session"]["id"] == "abc"
-    assert "date_iso" in payload["session"]
 
 
 def test_generate_tweet_raises_session_not_found_when_no_messages():

@@ -142,20 +142,17 @@ from unittest.mock import patch
 
 _VALID_PAYLOAD = {
     "title": "Flipped Lisa to Pro",
-    "tagline": "SUPPORT WIN",
     "meta_bits": ["1 customer", "2 tables", "fix at source"],
     "services": ["Linear", "Supabase"],
     "problem": {
         "headline": "Lisa paid for Pro.\nStill shows as free.\nTicket open for a week.",
         "meta": "Linear DEMO-5 : support ping",
-        "sticker_face": "😕",
-        "sticker_note": "why is this still a thing?",
     },
     "steps": [
-        {"text": "Read ticket", "hint": "in Linear", "note": "context.", "icon": "📋"},
-        {"text": "Pulled record", "hint": "from Supabase", "note": "found her.", "icon": "🔍"},
-        {"text": "Flipped to Pro", "hint": "one field", "note": "boom.", "icon": "⚡"},
-        {"text": "Closed ticket", "hint": "replied too", "note": "done.", "icon": "✅"},
+        {"text": "Read ticket", "hint": "in Linear", "icon": "📋"},
+        {"text": "Pulled record", "hint": "from Supabase", "icon": "🔍"},
+        {"text": "Flipped to Pro", "hint": "one field", "icon": "⚡"},
+        {"text": "Closed ticket", "hint": "replied too", "icon": "✅"},
     ],
     "outcome": {
         "title": "Lisa on Pro. Ticket closed.",
@@ -251,10 +248,7 @@ def test_generate_social_post_returns_full_payload():
     assert payload["stats"]["elapsed_seconds"] == 17
     # Title now comes from the LLM
     assert payload["title"] == "Flipped Lisa to Pro"
-    assert payload["tagline"] == "SUPPORT WIN"
     assert payload["meta_bits"] == ["1 customer", "2 tables", "fix at source"]
-    # session block filled in
-    assert payload["session"]["id"] == "abc"
 
 
 def test_generate_social_post_raises_no_messages():

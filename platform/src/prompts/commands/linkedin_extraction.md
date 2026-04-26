@@ -25,8 +25,7 @@ now", never "sign up free". Use "join the waitlist".
 THE STORY THIS POST TELLS
 Every Contextagora session has the same shape, and the card already
 encodes it for you:
-  (1) Something triggered it — see CARD.tagline (the trigger label)
-      and CARD.problem (what got in the way).
+  (1) Something triggered it — see CARD.problem (what got in the way).
   (2) The agent reached across tools the human would normally have
       had to open in separate tabs — see CARD.services and CARD.steps.
   (3) The job finished — see CARD.outcome.
@@ -95,7 +94,7 @@ in the new-way paragraph for contrast.
 
 CONNECTIVITY CHECK (run against your draft before returning)
 1. Does the hook reference a CONCRETE situation drawn from
-   CARD.problem or CARD.tagline? If it opens with abstract praise
+   CARD.problem? If it opens with abstract praise
    ("AI is changing operations forever"), rewrite it.
 2. Do the old-way and new-way paragraphs both name the SAME services
    from CARD.services? If only one paragraph mentions tools, the

@@ -30,8 +30,6 @@ def _format_card(card: SocialPostPayload) -> str:
     """Render the card payload as a compact text block for the prompt."""
     lines: list[str] = []
     lines.append(f"Title (outcome headline): {card.title}")
-    if card.tagline:
-        lines.append(f"Trigger label: {card.tagline}")
     if card.meta_bits:
         lines.append("Meta bits: " + " | ".join(card.meta_bits))
 
@@ -40,8 +38,6 @@ def _format_card(card: SocialPostPayload) -> str:
     lines.append(f"  Headline: {card.problem.headline}")
     if card.problem.meta:
         lines.append(f"  Source: {card.problem.meta}")
-    if card.problem.sticker_note:
-        lines.append(f"  Stakes: {card.problem.sticker_note}")
 
     lines.append("")
     lines.append(f"Services touched: {', '.join(card.services) if card.services else '(none)'}")
@@ -52,8 +48,6 @@ def _format_card(card: SocialPostPayload) -> str:
         bits = [step.text]
         if step.hint:
             bits.append(f"({step.hint})")
-        if step.note:
-            bits.append(f"-- {step.note}")
         lines.append(f"  {i}. {' '.join(bits)}")
 
     lines.append("")

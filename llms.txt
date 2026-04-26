@@ -12,6 +12,7 @@
 - [platform/src/routes/chat.py](platform/src/routes/chat.py) — Chat SSE streaming that records events into the sessions DB via transcript_recorder; `GET /api/sessions` (list) and `GET /api/sessions/{id}/messages` (hydrate transcript, DB-first with JSONL fallback) via claude_sessions service
 - [platform/src/routes/health.py](platform/src/routes/health.py) — Health check endpoint
 - [platform/src/routes/files.py](platform/src/routes/files.py) — File download endpoint (GET /api/files/download) with path validation against CONTEXT_DIR and /tmp
+- [platform/src/routes/uploads.py](platform/src/routes/uploads.py) — POST /api/uploads/tmp-image: writes PNG uploads to /tmp and returns the absolute path; used by SocialPostCard "Save to /tmp" button
 - [platform/src/routes/commands.py](platform/src/routes/commands.py) — Slash commands listing endpoint (GET /api/commands); calls list_commands() for dynamic registry including workflow commands
 - [platform/src/commands.py](platform/src/commands.py) — Slash-command registry (CommandDef, _STATIC_COMMANDS, list_commands()); loads prompts from .md files and auto-registers one command per workflow module
 - [platform/src/prompts/llms.txt](platform/src/prompts/llms.txt) — Prompt directory: commands/ (user-facing slash commands) and templates/ (internal prompts)
@@ -37,6 +38,8 @@
 - [platform/frontend/](platform/frontend/) — React SPA (Vite + TanStack Router + TanStack Query)
 - [platform/frontend/src/api/](platform/frontend/src/api/) — API client layer (fetch wrapper, modules, workspace, chat, sessions, commands)
 - [platform/frontend/src/api/commands.ts](platform/frontend/src/api/commands.ts) — Slash commands API client (fetchCommands, Command type)
+- [platform/frontend/src/api/uploads.ts](platform/frontend/src/api/uploads.ts) — uploadTmpImage(blob) client for POST /api/uploads/tmp-image
+- [platform/frontend/src/components/social-post/imageActions.ts](platform/frontend/src/components/social-post/imageActions.ts) — shared rasterize/saveToTmp/downloadAsPng helpers used by TweetSection and LinkedinSection
 - [platform/frontend/src/components/chat/SlashCommandSelector.tsx](platform/frontend/src/components/chat/SlashCommandSelector.tsx) — Slash command dropdown selector component and useSlashCommands hook
 - [platform/frontend/src/components/chat/MentionSelector.tsx](platform/frontend/src/components/chat/MentionSelector.tsx) — @-mention file picker component (MentionSelector), useMentionPicker hook, and findActiveMention utility
 - [platform/frontend/src/components/chat/DecisionTreePanel.tsx](platform/frontend/src/components/chat/DecisionTreePanel.tsx) — Tree navigation visualization with breadcrumbs and module access counts

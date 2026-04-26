@@ -2,18 +2,14 @@ import { apiFetch } from "./client";
 
 export type SocialPostPayload = {
   title: string;
-  tagline?: string;
   meta_bits?: string[];
   problem: {
     headline: string;
     meta: string;
-    sticker_face?: string;
-    sticker_note?: string;
   };
   steps: Array<{
     text: string;
     hint?: string;
-    note?: string;
     icon?: string;
   }>;
   outcome: {
@@ -25,7 +21,6 @@ export type SocialPostPayload = {
   };
   services: string[];
   stats: { elapsed_seconds: number; prompt_count: number };
-  session: { id: string; date_iso: string };
 };
 
 export function generateSocialPost(

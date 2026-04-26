@@ -7,7 +7,6 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
-from datetime import datetime, timezone
 from pathlib import Path
 
 from src.services.claude import run_headless
@@ -195,15 +194,10 @@ def generate_social_post(
     title = content.get("title") or _fallback_title(len(services), stats["elapsed_seconds"])
     return {
         "title": title,
-        "tagline": content.get("tagline", ""),
         "meta_bits": content.get("meta_bits", []),
         "problem": content["problem"],
         "steps": content["steps"],
         "outcome": content["outcome"],
         "services": services,
         "stats": stats,
-        "session": {
-            "id": session_id,
-            "date_iso": datetime.now(timezone.utc).date().isoformat(),
-        },
     }

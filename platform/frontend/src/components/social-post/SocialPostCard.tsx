@@ -57,13 +57,12 @@ function Twemoji({
 }
 
 export function SocialPostCard({ payload, theme }: Props) {
-  const { title, tagline, meta_bits, problem, steps, outcome, stats } = payload;
+  const { title, meta_bits, problem, steps, outcome, stats } = payload;
   const cleanTitle = (title || "")
     .replace(/\s+in\s+\d+\s*s\.?$/i, "")
     .replace(/\.$/, "")
     .trim();
-  const metaBits =
-    meta_bits && meta_bits.length > 0 ? meta_bits : defaultMetaBits(payload);
+  const metaBits = meta_bits ?? [];
   const problemLines = (problem.headline || "").split(/\n+/).filter(Boolean);
 
   return (
@@ -77,13 +76,6 @@ export function SocialPostCard({ payload, theme }: Props) {
         <div className="flex justify-center">
           <RealRunPill theme={theme} />
         </div>
-
-        {/* absolute tagline + arrow, top-left */}
-        {tagline && (
-          <div className="absolute left-0 top-[-6px] pointer-events-none">
-            <TaglineArrow text={tagline} color={theme.accent2} />
-          </div>
-        )}
 
         <h1
           className="tracking-tight text-center"
@@ -112,40 +104,33 @@ export function SocialPostCard({ payload, theme }: Props) {
           </span>
         </h1>
 
-        <div
-          className="text-center"
-          style={{ color: theme.muted, fontSize: 13, marginTop: 14, fontWeight: 500 }}
-        >
-          {metaBits.map((bit, i) => (
-            <span key={i}>
-              {i > 0 && <span className="mx-2.5" style={{ opacity: 0.5 }}>·</span>}
-              {bit}
-            </span>
-          ))}
-        </div>
+        {metaBits.length > 0 && (
+          <div
+            className="text-center"
+            style={{ color: theme.muted, fontSize: 13, marginTop: 14, fontWeight: 500 }}
+          >
+            {metaBits.map((bit, i) => (
+              <span key={i}>
+                {i > 0 && <span className="mx-2.5" style={{ opacity: 0.5 }}>·</span>}
+                {bit}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* SITUATION */}
       <InsetPanel theme={theme} labelColor={theme.accent2} label="THE SITUATION" topMargin={18}>
-        <div className="flex items-start gap-5">
-          <div className="flex-1 min-w-0">
-            <div style={{ fontSize: 17, fontWeight: 500, lineHeight: 1.35 }}>
-              {problemLines.length > 0
-                ? problemLines.map((line, i) => <div key={i}>{line}</div>)
-                : problem.headline}
-            </div>
-            {problemLines.length === 0 && problem.meta && (
-              <div className="mt-1.5" style={{ fontSize: 12, color: theme.muted }}>
-                {problem.meta}
-              </div>
-            )}
+        <div className="flex-1 min-w-0">
+          <div style={{ fontSize: 17, fontWeight: 500, lineHeight: 1.35 }}>
+            {problemLines.length > 0
+              ? problemLines.map((line, i) => <div key={i}>{line}</div>)
+              : problem.headline}
           </div>
-          {(problem.sticker_face || problem.sticker_note) && (
-            <StickerNote
-              face={problem.sticker_face || ""}
-              note={problem.sticker_note || ""}
-              color={theme.accent2}
-            />
+          {problemLines.length === 0 && problem.meta && (
+            <div className="mt-1.5" style={{ fontSize: 12, color: theme.muted }}>
+              {problem.meta}
+            </div>
           )}
         </div>
       </InsetPanel>
@@ -297,53 +282,6 @@ function RealRunPill({ theme }: { theme: Theme }) {
   );
 }
 
-function TaglineArrow({ text, color }: { text: string; color: string }) {
-  const words = text.split(" ").filter(Boolean);
-  return (
-    <div className="flex items-start gap-1" style={{ color }}>
-      <div
-        style={{
-          ...HAND,
-          fontSize: 20,
-          fontWeight: 700,
-          lineHeight: 1.0,
-          transform: "rotate(-6deg)",
-          transformOrigin: "top left",
-          maxWidth: 120,
-        }}
-      >
-        {words.map((w, i) => (
-          <div key={i}>{w}</div>
-        ))}
-      </div>
-      <svg
-        width="40"
-        height="56"
-        viewBox="0 0 40 56"
-        fill="none"
-        style={{ marginTop: 16, marginLeft: -4 }}
-        aria-hidden
-      >
-        <path
-          d="M4 4 C 14 14, 22 28, 30 44"
-          stroke="currentColor"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          fill="none"
-        />
-        <path
-          d="M22 40 L 30 44 L 28 35"
-          stroke="currentColor"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-        />
-      </svg>
-    </div>
-  );
-}
-
 function Squiggle({ color }: { color: string }) {
   return (
     <svg
@@ -365,53 +303,6 @@ function Squiggle({ color }: { color: string }) {
         strokeWidth="3"
         strokeLinecap="round"
         fill="none"
-      />
-    </svg>
-  );
-}
-
-function StickerNote({
-  face,
-  note,
-  color,
-}: {
-  face: string;
-  note: string;
-  color: string;
-}) {
-  // Always render the hand-drawn face if either field is present —
-  // matches the same line language as the arrow / squiggle / starburst.
-  const showFace = Boolean(face) || Boolean(note);
-  return (
-    <div className="flex items-start gap-3 shrink-0" style={{ maxWidth: 220, color }}>
-      {showFace && <HandDrawnFace color={color} size={44} />}
-      {note && (
-        <div style={{ ...HAND, fontSize: 20, lineHeight: 1.05, paddingTop: 4 }}>
-          {note}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function HandDrawnFace({ color, size = 52 }: { color: string; size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 60 60"
-      aria-hidden
-      style={{ flexShrink: 0 }}
-    >
-      <circle cx="30" cy="30" r="25" stroke={color} strokeWidth="2.4" fill="none" />
-      <circle cx="21" cy="25" r="2.4" fill={color} />
-      <circle cx="39" cy="25" r="2.4" fill={color} />
-      <path
-        d="M 21 40 Q 30 43, 39 40"
-        stroke={color}
-        strokeWidth="2.2"
-        fill="none"
-        strokeLinecap="round"
       />
     </svg>
   );
@@ -448,7 +339,7 @@ function StepList({
             key={i}
             className="relative grid items-center"
             style={{
-              gridTemplateColumns: `20px ${tileSize}px 1fr auto`,
+              gridTemplateColumns: `20px ${tileSize}px 1fr`,
               columnGap: 12,
               height: rowHeight,
             }}
@@ -516,22 +407,6 @@ function StepList({
               )}
             </div>
 
-            {/* Note (handwritten) */}
-            {step.note && (
-              <div
-                className="text-right shrink-0"
-                style={{
-                  ...HAND,
-                  fontSize: 18,
-                  lineHeight: 1.1,
-                  color: theme.muted,
-                  opacity: 0.85,
-                  maxWidth: 170,
-                }}
-              >
-                {step.note}
-              </div>
-            )}
           </li>
         ))}
       </ol>
@@ -631,15 +506,6 @@ function BrandMark() {
 }
 
 /* ------------------------------ Helpers ----------------------------- */
-
-function defaultMetaBits(payload: SocialPostPayload): string[] {
-  const { stats, services } = payload;
-  return [
-    `${stats.prompt_count} prompt${stats.prompt_count === 1 ? "" : "s"}`,
-    `${services.length} tool${services.length === 1 ? "" : "s"}`,
-    "real session",
-  ];
-}
 
 function stripTrailingFile(title: string, file: string): string {
   if (!file) return title;

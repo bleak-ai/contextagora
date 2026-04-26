@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { toBlob } from "html-to-image";
+import { rasterize, saveToTmp, downloadAsPng } from "./imageActions";
 import type { UseMutationResult } from "@tanstack/react-query";
 import type { TweetPayload } from "../../api/tweet";
 import type { SocialPostPayload } from "../../api/socialPost";
@@ -15,11 +15,23 @@ const SOFT_LIMIT = 270;
 
 type CopyState = "idle" | "copied" | "error";
 
+function slugifyTitle(title: string): string {
+  return (title || "card")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60) || "card";
+}
+
 export function TweetSection({ card, cardRef, mutation: tweet }: Props) {
   const [text, setText] = useState("");
   const [textCopy, setTextCopy] = useState<CopyState>("idle");
   const [imageCopy, setImageCopy] = useState<CopyState>("idle");
   const [imageBusy, setImageBusy] = useState(false);
+  const [saveState, setSaveState] = useState<CopyState>("idle");
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [downloadState, setDownloadState] = useState<"idle" | "done" | "error">("idle");
+  const [downloadBusy, setDownloadBusy] = useState(false);
   const isPristine = useRef(true);
 
   // Seed the textarea once the mutation lands (and re-seed on every regenerate).
@@ -55,8 +67,7 @@ export function TweetSection({ card, cardRef, mutation: tweet }: Props) {
     }
     setImageBusy(true);
     try {
-      const blob = await toBlob(node, { pixelRatio: 2, cacheBust: true });
-      if (!blob) throw new Error("rasterize failed");
+      const blob = await rasterize(node);
       await navigator.clipboard.write([
         new ClipboardItem({ "image/png": blob }),
       ]);
@@ -67,6 +78,47 @@ export function TweetSection({ card, cardRef, mutation: tweet }: Props) {
       setTimeout(() => setImageCopy("idle"), 2000);
     } finally {
       setImageBusy(false);
+    }
+  };
+
+  const onSaveToTmp = async () => {
+    const node = cardRef.current;
+    if (!node) {
+      setSaveState("error");
+      setTimeout(() => setSaveState("idle"), 2000);
+      return;
+    }
+    setSaveBusy(true);
+    try {
+      const { path } = await saveToTmp(node);
+      await navigator.clipboard.writeText(path);
+      setSaveState("copied");
+      setTimeout(() => setSaveState("idle"), 2000);
+    } catch {
+      setSaveState("error");
+      setTimeout(() => setSaveState("idle"), 2000);
+    } finally {
+      setSaveBusy(false);
+    }
+  };
+
+  const onDownload = async () => {
+    const node = cardRef.current;
+    if (!node) {
+      setDownloadState("error");
+      setTimeout(() => setDownloadState("idle"), 2000);
+      return;
+    }
+    setDownloadBusy(true);
+    try {
+      await downloadAsPng(node, `${slugifyTitle(card.title)}.png`);
+      setDownloadState("done");
+      setTimeout(() => setDownloadState("idle"), 2000);
+    } catch {
+      setDownloadState("error");
+      setTimeout(() => setDownloadState("idle"), 2000);
+    } finally {
+      setDownloadBusy(false);
     }
   };
 
@@ -159,6 +211,34 @@ export function TweetSection({ card, cardRef, mutation: tweet }: Props) {
                   : imageCopy === "error"
                     ? "Copy failed"
                     : "Copy image"}
+            </button>
+            <button
+              type="button"
+              onClick={onSaveToTmp}
+              disabled={saveBusy}
+              className="px-3 py-1.5 bg-accent text-white rounded text-sm font-medium hover:opacity-90 disabled:opacity-50"
+            >
+              {saveBusy
+                ? "Saving…"
+                : saveState === "copied"
+                  ? "Path copied!"
+                  : saveState === "error"
+                    ? "Save failed"
+                    : "Save to /tmp"}
+            </button>
+            <button
+              type="button"
+              onClick={onDownload}
+              disabled={downloadBusy}
+              className="px-3 py-1.5 bg-accent text-white rounded text-sm font-medium hover:opacity-90 disabled:opacity-50"
+            >
+              {downloadBusy
+                ? "Rendering…"
+                : downloadState === "done"
+                  ? "Downloaded!"
+                  : downloadState === "error"
+                    ? "Download failed"
+                    : "Download"}
             </button>
             <button
               type="button"

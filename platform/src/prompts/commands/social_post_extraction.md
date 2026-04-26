@@ -11,20 +11,16 @@ Agent took {{elapsed_seconds}}s. Return strict JSON only.
 ```
 {
   "title": "outcome, verb-first past-tense, <40c, no time. e.g. 'Closed DEMO-5'",
-  "tagline": "trigger, ALL CAPS, 2-4 words, <24c. e.g. 'URGENT TICKET'",
   "meta_bits": ["3 lowercase facts <20c each, [trigger count, tools, flex]. e.g. '1 ticket','3 tools','0 tabs opened'"],
   "services": ["human names, first-seen. e.g. 'Linear','Stripe'"],
   "problem": {
     "headline": "3 lines joined by \\n, ≤6 words/line. L1 blocker, L2 what was missing, L3 stakes",
-    "meta": "service+record <50c. e.g. 'Linear DEMO-5'. MUST reappear in outcome.title",
-    "sticker_face": "1 fatigue emoji from: 😩 😫 🥲 🫠 😮‍💨",
-    "sticker_note": "lowercase stakes <44c. e.g. 'ticket sat 2 days'"
+    "meta": "service+record <50c. e.g. 'Linear DEMO-5'. MUST reappear in outcome.title"
   },
   "steps": [
     {
       "text": "verb-first past-tense, ≤4 words ≤28c. e.g. 'Pulled the ticket'",
       "hint": "lowercase service touched <24c. e.g. 'in Linear'",
-      "note": "lowercase reaction <20c that propels. e.g. 'on to billing.'",
       "icon": "1 emoji from: 📋 🚩 📊 🔗 ⚡ 🧮 🔍 📝 ✅ 📬 📤 🧾 📎 🪣 🗂️ 🧷 🎯 🛠 🧪 📈 🧹 🔧 🔁"
     }
   ],
@@ -38,7 +34,7 @@ Agent took {{elapsed_seconds}}s. Return strict JSON only.
 }
 ```
 
-Rules: 3-5 steps. tagline→title must read trigger→outcome.
+Rules: 3-5 steps.
 If services has 2+ entries, step.hint values must name 2+ services.
 
 TRANSCRIPT:
