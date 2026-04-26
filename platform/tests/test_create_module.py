@@ -70,3 +70,22 @@ def test_update_module_preserves_kind_and_archived(tmp_path):
     assert manifest.summary == "new summary" # updated
     assert manifest.secrets == ["NEW_SECRET"]  # from body
     assert manifest.dependencies == ["new-pkg"]  # from body
+
+
+def test_create_module_rejects_workflow_kind():
+    """Workflows must be authored on disk, not via the modal."""
+    import asyncio
+    from src.models import CreateModuleRequest
+    from src.routes.modules import api_create_module
+
+    body = CreateModuleRequest(
+        name="my-workflow",
+        kind="workflow",
+        content="",
+    )
+    resp = asyncio.run(api_create_module(body))
+    # FastAPI route returns a JSONResponse on rejection
+    assert resp.status_code == 400
+    import json
+    payload = json.loads(resp.body)
+    assert "workflow" in payload["error"].lower()

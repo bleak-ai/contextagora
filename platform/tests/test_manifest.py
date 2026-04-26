@@ -130,3 +130,74 @@ def test_write_manifest_includes_jobs(tmp_path):
     assert raw["jobs"] == [
         {"name": "cleanup", "script": "scripts/cleanup.py", "every": "1h"}
     ]
+
+
+def test_manifest_workflow_fields_roundtrip(tmp_path):
+    raw = yaml.dump({
+        "name": "maat-support",
+        "kind": "workflow",
+        "entry_step": "1-intake.md",
+    })
+    (tmp_path / "module.yaml").write_text(raw)
+    m = read_manifest(tmp_path)
+    assert m.kind == "workflow"
+    assert m.entry_step == "1-intake.md"
+    assert m.parent_workflow is None
+
+
+def test_manifest_parent_workflow_roundtrip(tmp_path):
+    raw = yaml.dump({
+        "name": "maat-support-run-sup-42",
+        "kind": "task",
+        "parent_workflow": "maat-support",
+    })
+    (tmp_path / "module.yaml").write_text(raw)
+    m = read_manifest(tmp_path)
+    assert m.parent_workflow == "maat-support"
+
+
+def test_write_manifest_omits_none_workflow_fields(tmp_path):
+    m = ModuleManifest(name="foo")
+    write_manifest(tmp_path, m)
+    raw = yaml.safe_load((tmp_path / "module.yaml").read_text())
+    assert "entry_step" not in raw
+    assert "parent_workflow" not in raw
+
+
+def test_write_manifest_includes_entry_step(tmp_path):
+    m = ModuleManifest(name="foo", kind="workflow", entry_step="1-intake.md")
+    write_manifest(tmp_path, m)
+    raw = yaml.safe_load((tmp_path / "module.yaml").read_text())
+    assert raw["kind"] == "workflow"
+    assert raw["entry_step"] == "1-intake.md"
+
+
+def test_write_manifest_includes_parent_workflow(tmp_path):
+    m = ModuleManifest(name="run-x", kind="task", parent_workflow="migration")
+    write_manifest(tmp_path, m)
+    raw = yaml.safe_load((tmp_path / "module.yaml").read_text())
+    assert raw["parent_workflow"] == "migration"
+
+
+def test_module_kind_workflow_exists():
+    from src.services.manifest import ModuleKind
+    assert ModuleKind("workflow") is ModuleKind.WORKFLOW
+    assert ModuleKind.WORKFLOW.value == "workflow"
+
+
+def test_module_kind_workflow_auto_loads():
+    from src.services.manifest import ModuleKind
+    assert ModuleKind.WORKFLOW.auto_load is True
+
+
+def test_module_kind_workflow_label():
+    from src.services.manifest import ModuleKind
+    assert ModuleKind.WORKFLOW.label == "Workflow"
+
+
+def test_module_kind_workflow_scaffold_raises():
+    from src.services.manifest import ModuleKind
+    from src.models import CreateModuleRequest
+    body = CreateModuleRequest(name="x", kind="workflow", content="")
+    with pytest.raises(NotImplementedError):
+        ModuleKind.WORKFLOW.scaffold("x", body)

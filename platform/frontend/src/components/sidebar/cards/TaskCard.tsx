@@ -34,9 +34,19 @@ export function TaskCard({
 
   const headerMiddle = (
     <div className="flex-1 min-w-0">
-      <span className="text-xs font-semibold text-text block truncate">
-        {info.name}
-      </span>
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs font-semibold text-text truncate">
+          {info.name}
+        </span>
+        {info.parent_workflow && (
+          <span
+            className="text-[8px] font-semibold text-accent bg-accent/10 px-1.5 py-0.5 rounded-full shrink-0"
+            title={`Run of workflow: ${info.parent_workflow}`}
+          >
+            from {info.parent_workflow}
+          </span>
+        )}
+      </div>
     </div>
   );
 

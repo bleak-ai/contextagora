@@ -101,45 +101,9 @@ def _extract_code_blocks(content: str) -> list[str]:
 Issue = tuple[str, str]  # (severity, message)
 
 
-def validate_module(module_dir: Path) -> list[Issue]:
+def _validate_integration(module_dir: Path, manifest: dict, info_path: Path) -> list[Issue]:
     issues: list[Issue] = []
-    name = module_dir.name
 
-    # Required files
-    info_path = module_dir / "info.md"
-    manifest_path = module_dir / "module.yaml"
-
-    if not info_path.exists():
-        issues.append((ERROR, "Missing required file: info.md"))
-    if not manifest_path.exists():
-        issues.append((ERROR, "Missing required file: module.yaml"))
-
-    # Forbidden files
-    for forbidden in (".env", ".env.schema", "requirements.txt"):
-        if (module_dir / forbidden).exists():
-            issues.append((ERROR, f"Forbidden file present: {forbidden}"))
-
-    # module.yaml checks
-    manifest: dict[str, object] = {}
-    if manifest_path.exists():
-        try:
-            manifest = yaml.safe_load(manifest_path.read_text()) or {}
-        except yaml.YAMLError as e:
-            issues.append((ERROR, f"module.yaml is invalid YAML: {e}"))
-            manifest = {}
-
-        if manifest:
-            if "name" not in manifest:
-                issues.append((ERROR, "module.yaml missing 'name' field"))
-            elif manifest["name"] != name:
-                issues.append(
-                    (ERROR, f"module.yaml name '{manifest['name']}' does not match directory name '{name}'")
-                )
-
-            if not manifest.get("summary"):
-                issues.append((WARN, "module.yaml missing 'summary' field"))
-
-    # info.md checks
     info_content = ""
     if info_path.exists():
         info_content = info_path.read_text()
@@ -224,18 +188,89 @@ def validate_module(module_dir: Path) -> list[Issue]:
                     (WARN, f"{block_label}: reads os.environ but doesn't use 'varlock run'")
                 )
 
-    # llms.txt checks
+    return issues
+
+
+def _validate_workflow(module_dir: Path, manifest: dict) -> list[Issue]:
+    issues: list[Issue] = []
+    entry = manifest.get("entry_step")
+    if not entry:
+        issues.append((ERROR, "Workflow module.yaml missing 'entry_step' field"))
+    steps_dir = module_dir / "steps"
+    if not steps_dir.is_dir():
+        issues.append((ERROR, "Workflow missing required 'steps/' directory"))
+    elif entry and not (steps_dir / entry).is_file():
+        issues.append((ERROR, f"Workflow entry_step '{entry}' not found in steps/"))
+    return issues
+
+
+def _validate_task(module_dir: Path, manifest: dict) -> list[Issue]:
+    issues: list[Issue] = []
+    parent = manifest.get("parent_workflow")
+    if parent:
+        parent_dir = module_dir.parent / parent
+        if not parent_dir.is_dir():
+            issues.append((WARN, f"parent_workflow '{parent}' does not exist in modules repo"))
+        else:
+            try:
+                parent_manifest = yaml.safe_load((parent_dir / "module.yaml").read_text()) or {}
+                if parent_manifest.get("kind") != "workflow":
+                    issues.append((WARN, f"parent_workflow '{parent}' exists but is not kind: workflow"))
+            except (OSError, yaml.YAMLError):
+                issues.append((WARN, f"parent_workflow '{parent}' has unreadable manifest"))
+    return issues
+
+
+def validate_module(module_dir: Path) -> list[Issue]:
+    issues: list[Issue] = []
+    name = module_dir.name
+
+    # Universal: required + forbidden files
+    info_path = module_dir / "info.md"
+    manifest_path = module_dir / "module.yaml"
+    if not info_path.exists():
+        issues.append((ERROR, "Missing required file: info.md"))
+    if not manifest_path.exists():
+        issues.append((ERROR, "Missing required file: module.yaml"))
+    for forbidden in (".env", ".env.schema", "requirements.txt"):
+        if (module_dir / forbidden).exists():
+            issues.append((ERROR, f"Forbidden file present: {forbidden}"))
+
+    # Parse manifest
+    manifest: dict[str, object] = {}
+    if manifest_path.exists():
+        try:
+            manifest = yaml.safe_load(manifest_path.read_text()) or {}
+        except yaml.YAMLError as e:
+            issues.append((ERROR, f"module.yaml is invalid YAML: {e}"))
+            manifest = {}
+        if manifest:
+            if "name" not in manifest:
+                issues.append((ERROR, "module.yaml missing 'name' field"))
+            elif manifest["name"] != name:
+                issues.append((ERROR, f"module.yaml name '{manifest['name']}' does not match directory name '{name}'"))
+            if not manifest.get("summary"):
+                issues.append((WARN, "module.yaml missing 'summary' field"))
+
+    kind = (manifest.get("kind") or "integration") if manifest else "integration"
+
+    # Universal: llms.txt + link integrity
     llms_path = module_dir / "llms.txt"
     if not llms_path.exists():
         issues.append((WARN, "Missing recommended file: llms.txt"))
     else:
         llms_content = llms_path.read_text()
-
-        links = re.findall(r"\[.*?\]\((.*?)\)", llms_content)
-        for link in links:
-            target = module_dir / link
-            if not target.exists():
+        for link in re.findall(r"\[.*?\]\((.*?)\)", llms_content):
+            if not (module_dir / link).exists():
                 issues.append((ERROR, f"llms.txt links to non-existent file: {link}"))
+
+    # Per-kind dispatch
+    if kind == "integration":
+        issues.extend(_validate_integration(module_dir, manifest, info_path))
+    elif kind == "workflow":
+        issues.extend(_validate_workflow(module_dir, manifest))
+    elif kind == "task":
+        issues.extend(_validate_task(module_dir, manifest))
 
     return issues
 

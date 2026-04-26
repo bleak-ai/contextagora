@@ -74,12 +74,14 @@ class JobSpec(BaseModel):
 
 class ModuleManifest(BaseModel):
     name: str
-    kind: str = "integration"   # "integration" | "task"
+    kind: str = "integration"   # "integration" | "task" | "workflow"
     summary: str = ""
     secrets: list[str] = []
     dependencies: list[str] = []
     archived: bool = False
     jobs: list[JobSpec] = []
+    entry_step: str | None = None       # workflow only — filename in steps/
+    parent_workflow: str | None = None  # task only — workflow this run came from
 
 
 def read_manifest(module_dir: Path) -> ModuleManifest:
@@ -109,6 +111,10 @@ def write_manifest(module_dir: Path, manifest: ModuleManifest) -> None:
         data["dependencies"] = manifest.dependencies
     if manifest.archived:
         data["archived"] = manifest.archived
+    if manifest.entry_step is not None:
+        data["entry_step"] = manifest.entry_step
+    if manifest.parent_workflow is not None:
+        data["parent_workflow"] = manifest.parent_workflow
     if manifest.jobs:
         data["jobs"] = [
             {"name": j.name, "script": j.script, "every": j.every}
@@ -120,20 +126,25 @@ def write_manifest(module_dir: Path, manifest: ModuleManifest) -> None:
 
 
 class ModuleKind(str, Enum):
-    """The two kinds of modules the system knows about.
+    """The three kinds of modules the system knows about.
 
     `INTEGRATION` — a context package describing a tool/service. Never
     auto-loaded — users toggle them manually.
     `TASK` — a time-bound piece of work; always loaded into the workspace
     while unarchived.
+    `WORKFLOW` — a multi-step orchestrated process authored on disk; always
+    loaded into the workspace while unarchived. Workflows are not created
+    via the modal — they must be authored manually on disk.
     """
 
     INTEGRATION = "integration"
     TASK = "task"
+    WORKFLOW = "workflow"
 
     @property
     def auto_load(self) -> bool:
-        return self is ModuleKind.TASK
+        # Tasks and workflows are always present in the workspace.
+        return self is ModuleKind.TASK or self is ModuleKind.WORKFLOW
 
     @property
     def label(self) -> str:
@@ -143,8 +154,16 @@ class ModuleKind(str, Enum):
         """Write kind-specific starter files into the module directory."""
         if self is ModuleKind.INTEGRATION:
             _scaffold_integration(slug, body)
-        else:
+        elif self is ModuleKind.TASK:
             _scaffold_task(slug, body)
+        elif self is ModuleKind.WORKFLOW:
+            # Workflows are authored manually on disk — there is no
+            # opinionated scaffold for them in v1.
+            raise NotImplementedError(
+                "Workflow modules must be authored on disk, not created via the modal"
+            )
+        else:
+            raise AssertionError(f"Unhandled ModuleKind: {self!r}")
 
 
 _SLUG_NON_ALPHANUM = re.compile(r"[^a-z0-9-]")

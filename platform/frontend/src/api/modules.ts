@@ -2,9 +2,10 @@ import { apiFetch } from "./client";
 
 export interface ModuleInfo {
   name: string;
-  kind: "integration" | "task";
+  kind: "integration" | "task" | "workflow";
   summary: string;
   archived: boolean;
+  parent_workflow: string | null;
 }
 
 export interface ModuleDetail {

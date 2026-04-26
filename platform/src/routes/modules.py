@@ -45,6 +45,7 @@ async def api_list_modules():
             kind=manifest.kind,
             summary=manifest.summary,
             archived=manifest.archived,
+            parent_workflow=manifest.parent_workflow,
         ))
     return {"modules": modules}
 
@@ -113,6 +114,12 @@ async def api_create_module(body: CreateModuleRequest):
     except ValueError:
         return JSONResponse(
             {"error": f"Invalid kind '{body.kind}'. Must be one of: {', '.join(k.value for k in ModuleKind)}"},
+            status_code=400,
+        )
+
+    if kind is ModuleKind.WORKFLOW:
+        return JSONResponse(
+            {"error": "Workflow modules must be authored on disk; they cannot be created via this endpoint."},
             status_code=400,
         )
 

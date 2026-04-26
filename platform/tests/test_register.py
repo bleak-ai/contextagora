@@ -122,3 +122,21 @@ def test_register_is_idempotent_for_already_loaded(tmp_path):
         asyncio.run(api_register_module("stripe"))
 
     mock_reload.assert_called_once_with(["stripe", "linear"])
+
+
+def test_list_modules_returns_parent_workflow(tmp_path, monkeypatch):
+    """Task modules created from a workflow expose parent_workflow on /api/modules."""
+    import asyncio
+    from src.services import git_repo
+    from src.routes.modules import api_list_modules
+    monkeypatch.setattr(git_repo.settings, "MODULES_REPO_DIR", tmp_path)
+
+    (tmp_path / "maat-support-run-sup-42").mkdir()
+    (tmp_path / "maat-support-run-sup-42" / "module.yaml").write_text(
+        "name: maat-support-run-sup-42\nkind: task\nparent_workflow: maat-support\n"
+    )
+
+    payload = asyncio.run(api_list_modules())
+    runs = [m for m in payload["modules"] if m.name == "maat-support-run-sup-42"]
+    assert len(runs) == 1
+    assert runs[0].parent_workflow == "maat-support"

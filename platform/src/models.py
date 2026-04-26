@@ -44,6 +44,7 @@ class ModuleInfo(BaseModel):
     kind: str = "integration"
     summary: str = ""
     archived: bool = False
+    parent_workflow: str | None = None
 
 
 class PushRequest(BaseModel):

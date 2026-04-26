@@ -48,7 +48,7 @@ class CommandDef:
     prompt: str
 
 
-COMMANDS: list[CommandDef] = [
+_STATIC_COMMANDS: list[CommandDef] = [
     CommandDef(
         name="download",
         description="Download files written in this session",
@@ -90,3 +90,38 @@ COMMANDS: list[CommandDef] = [
         prompt=_load_prompt("commands/cron_jobs.md", inject_conventions=True),
     ),
 ]
+
+_WORKFLOW_PROMPT_TEMPLATE = (
+    "Begin a new run of the {workflow_name} workflow.\n"
+    "Read steps/{entry_step} from the workflow folder and follow it exactly.\n"
+    "The step's prose will tell you to call POST /api/workflows/"
+    "{workflow_name}/runs with a one-line title to create the run task."
+)
+
+
+def _workflow_command(name: str, entry_step: str) -> CommandDef:
+    return CommandDef(
+        name=name,
+        description=f"Start a new run of the '{name}' workflow",
+        prompt=_WORKFLOW_PROMPT_TEMPLATE.format(workflow_name=name, entry_step=entry_step),
+    )
+
+
+def list_commands() -> list[CommandDef]:
+    """Return static commands plus one auto-registered command per workflow.
+
+    Recomputed on every call. Reads the modules repo directly.
+    """
+    # Local imports to avoid a circular at module load (services may import commands).
+    from src.services import git_repo
+    from src.services.manifest import read_manifest
+
+    workflow_cmds: list[CommandDef] = []
+    for name in git_repo.list_modules():
+        try:
+            m = read_manifest(git_repo.module_dir(name))
+        except (OSError, ValueError):
+            continue
+        if m.kind == "workflow" and m.entry_step:
+            workflow_cmds.append(_workflow_command(name, m.entry_step))
+    return [*_STATIC_COMMANDS, *workflow_cmds]

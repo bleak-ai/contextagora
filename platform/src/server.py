@@ -22,6 +22,7 @@ from src.routes.root_context import router as root_context_router
 from src.routes.social_post import router as social_post_router
 from src.routes.sync import router as sync_router
 from src.routes.jobs import router as jobs_router
+from src.routes.workflows import router as workflows_router
 from src.routes.linkedin import router as linkedin_router
 from src.routes.tweet import router as tweet_router
 from src.routes.workspace import router as workspace_router
@@ -123,6 +124,7 @@ app.include_router(social_post_router)
 app.include_router(tweet_router)
 app.include_router(linkedin_router)
 app.include_router(jobs_router)
+app.include_router(workflows_router)
 
 
 if settings.STATIC_DIR.exists():

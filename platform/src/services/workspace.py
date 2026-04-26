@@ -28,12 +28,13 @@ def get_loaded_module_names() -> list[str]:
     return list_loaded_modules(settings.CONTEXT_DIR)
 
 
-def _active_task_names() -> list[str]:
-    """Return names of all non-archived tasks in the modules repo.
+def _always_loaded_module_names() -> list[str]:
+    """Return names of all modules the server forces into the workspace.
 
-    Tasks are loaded iff `archived=False`; this invariant is owned by the
-    server so that incomplete client-supplied module lists cannot silently
-    orphan active tasks.
+    Tasks: loaded iff `archived=False`. Workflows: always loaded (no
+    archived state). This invariant is owned by the server so that
+    incomplete client-supplied module lists cannot silently orphan
+    active tasks or hide workflows from the agent.
     """
     out: list[str] = []
     for name in git_repo.list_modules():
@@ -42,6 +43,8 @@ def _active_task_names() -> list[str]:
         except (OSError, ValueError):
             continue
         if manifest.kind == "task" and not manifest.archived:
+            out.append(name)
+        elif manifest.kind == "workflow":
             out.append(name)
     return out
 
@@ -70,8 +73,8 @@ def reload_workspace(module_names: list[str]) -> dict[str, list[str] | list[dict
 
     Returns a dict with 'modules' (loaded names) and optionally 'errors'.
     """
-    # Merge active tasks with requested list (deduped, preserving first-seen order).
-    module_names = list(dict.fromkeys([*module_names, *_active_task_names()]))
+    # Merge always-loaded modules with requested list (deduped, preserving first-seen order).
+    module_names = list(dict.fromkeys([*module_names, *_always_loaded_module_names()]))
     # 1. Clear context/: unlink symlinks, delete real subdirs (legacy copies),
     #    delete loose files except settings.PRESERVED_FILES.
     for p in settings.CONTEXT_DIR.iterdir():

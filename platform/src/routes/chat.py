@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from src.commands import COMMANDS
+from src.commands import list_commands
 from src.models import ChatRequest
 from src.config import settings
 from src.services import claude, sessions_store
@@ -22,16 +22,18 @@ log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
-_COMMANDS_BY_NAME = {c.name: c for c in COMMANDS}
-
-
 def _expand_slash_command(prompt: str) -> str:
     """If prompt starts with /<registered-command>, replace with the
-    command's full prompt text, appending any trailing args."""
+    command's full prompt text, appending any trailing args.
+
+    The command set is recomputed each call so auto-registered workflow
+    commands (added/removed when modules change on disk) are always seen.
+    """
     if not prompt.startswith("/"):
         return prompt
     head, _, rest = prompt[1:].partition(" ")
-    cmd_def = _COMMANDS_BY_NAME.get(head)
+    commands_by_name = {c.name: c for c in list_commands()}
+    cmd_def = commands_by_name.get(head)
     if cmd_def is None:
         return prompt
     if rest.strip():

@@ -22,6 +22,7 @@ import { invalidateModuleQueries } from "../lib/queryClient";
 import { DecisionTreePanel } from "./chat/DecisionTreePanel";
 import { SyncControls } from "./SyncControls";
 import { WorkspaceGroup } from "./sidebar/WorkspaceGroup";
+import { WorkflowsGroup } from "./sidebar/WorkflowsGroup";
 import { TaskCard } from "./sidebar/cards/TaskCard";
 import { ArchiveModal } from "./sidebar/ArchiveModal";
 import { CreateTaskModal } from "./sidebar/CreateTaskModal";
@@ -258,6 +259,11 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
       <div className="flex-1 overflow-y-auto px-2.5 py-2.5">
         {tab === "context" && (
           <div>
+            {/* ---- Workflows Zone (above Active Tasks) ---- */}
+            <div className="mb-3">
+              <WorkflowsGroup tasks={activeTasks} />
+            </div>
+
             {/* ---- Active Tasks Zone ---- */}
             <div className="mb-1">
               <div className="flex items-center justify-between mb-2 px-1">
