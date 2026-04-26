@@ -126,34 +126,24 @@ def list_module_files(
     *,
     clone_dir: Path | None = None,
 ) -> list[dict[str, str]]:
-    """List top-level non-managed files + `docs/**/*.md` + `scripts/*.py` for a module."""
+    """List top-level non-managed files + every nested file for a module."""
     root = _resolve_clone(clone_dir) / module
     if not root.is_dir():
         raise FileNotFoundError(f"Module '{module}' not found")
 
-    result: list[dict[str, str]] = []
+    top: list[dict[str, str]] = []
+    nested: list[dict[str, str]] = []
+    for entry in sorted(root.rglob("*")):
+        if not entry.is_file():
+            continue
+        rel = entry.relative_to(root)
+        if rel.parent == Path("."):
+            if entry.name not in managed_files:
+                top.append({"name": entry.name, "path": entry.name})
+        else:
+            nested.append({"name": entry.name, "path": str(rel)})
 
-    # Pass 1: top-level non-managed files (sorted, dirs excluded)
-    for entry in sorted(root.iterdir()):
-        if entry.is_file() and entry.name not in managed_files:
-            result.append({"name": entry.name, "path": entry.name})
-
-    # Pass 2: docs/**/*.md (recursive)
-    docs_dir = root / "docs"
-    if docs_dir.is_dir():
-        for doc in sorted(docs_dir.rglob("*.md")):
-            if doc.is_file():
-                rel = doc.relative_to(root)
-                result.append({"name": doc.name, "path": str(rel)})
-
-    # Pass 3: scripts/*.py
-    scripts_dir = root / "scripts"
-    if scripts_dir.is_dir():
-        for script in sorted(scripts_dir.iterdir()):
-            if script.is_file() and script.name.endswith(".py"):
-                result.append({"name": script.name, "path": f"scripts/{script.name}"})
-
-    return result
+    return top + nested
 
 
 def write_file(

@@ -16,6 +16,8 @@ interface Props {
   isLoading?: boolean;
   error?: boolean;
   runnable?: Runnable;
+  imageSrc?: string;
+  downloadHref?: string;
   onClose: () => void;
 }
 
@@ -48,6 +50,8 @@ export function FilePreviewModal({
   isLoading,
   error,
   runnable,
+  imageSrc,
+  downloadHref,
   onClose,
 }: Props) {
   const renderAsMarkdown = titleEndsWith(title, ".md");
@@ -72,20 +76,46 @@ export function FilePreviewModal({
           </button>
         </div>
         <div className="overflow-auto bg-black/40 px-4 py-3">
-          {isLoading && <p className="text-xs text-text-muted">loading…</p>}
-          {error && <p className="text-xs text-red-400">failed to load file</p>}
-          {content !== null && !isLoading && !error && (
-            renderAsMarkdown ? (
-              <div className="aui-md text-sm text-text">
-                <Markdown remarkPlugins={REMARK_PLUGINS}>{content}</Markdown>
-              </div>
-            ) : renderAsCsv ? (
-              <CsvTable rows={parseCsv(content)} />
-            ) : (
-              <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-text">
-                {content}
-              </pre>
-            )
+          {imageSrc ? (
+            <div className="flex justify-center">
+              <img
+                src={imageSrc}
+                alt=""
+                className="max-h-[75vh] max-w-full rounded border border-border bg-black/30"
+              />
+            </div>
+          ) : (
+            <>
+              {isLoading && <p className="text-xs text-text-muted">loading…</p>}
+              {error && (
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs text-red-400">failed to load file</p>
+                  {downloadHref && (
+                    <a
+                      href={downloadHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-accent hover:underline"
+                    >
+                      Open in new tab
+                    </a>
+                  )}
+                </div>
+              )}
+              {content !== null && !isLoading && !error && (
+                renderAsMarkdown ? (
+                  <div className="aui-md text-sm text-text">
+                    <Markdown remarkPlugins={REMARK_PLUGINS}>{content}</Markdown>
+                  </div>
+                ) : renderAsCsv ? (
+                  <CsvTable rows={parseCsv(content)} />
+                ) : (
+                  <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-text">
+                    {content}
+                  </pre>
+                )
+              )}
+            </>
           )}
         </div>
         {canRun && runnable && (

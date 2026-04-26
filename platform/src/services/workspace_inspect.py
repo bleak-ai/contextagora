@@ -14,31 +14,24 @@ def list_workspace_files(
 ) -> list[str]:
     """Return relative paths of user-visible files inside a workspace module.
 
-    Includes top-level files (excluding managed ones), all `.md` files
-    anywhere under `docs/`, and `.py` files one level deep under `scripts/`.
-    Order: top-level alphabetical, then docs alphabetical, then scripts alphabetical.
+    Top level: any non-managed file. Nested (any depth): every file.
+    Order: top-level alphabetical first, then nested alphabetical.
     """
     if not module_dir.is_dir():
         raise FileNotFoundError(f"Module dir not found: {module_dir}")
 
-    paths: list[str] = []
-    for entry in sorted(module_dir.iterdir()):
-        if entry.is_file() and entry.name not in managed_files:
-            paths.append(entry.name)
-
-    docs = module_dir / "docs"
-    if docs.is_dir():
-        for doc in sorted(docs.rglob("*.md")):
-            if doc.is_file():
-                paths.append(str(doc.relative_to(module_dir)))
-
-    scripts = module_dir / "scripts"
-    if scripts.is_dir():
-        for script in sorted(scripts.iterdir()):
-            if script.is_file() and script.name.endswith(".py"):
-                paths.append(f"scripts/{script.name}")
-
-    return paths
+    top: list[str] = []
+    nested: list[str] = []
+    for entry in sorted(module_dir.rglob("*")):
+        if not entry.is_file():
+            continue
+        rel = entry.relative_to(module_dir)
+        if rel.parent == Path("."):
+            if entry.name not in managed_files:
+                top.append(str(rel))
+        else:
+            nested.append(str(rel))
+    return top + nested
 
 
 def inspect_module_packages(module_dir: Path) -> list[dict[str, str | bool | None]]:

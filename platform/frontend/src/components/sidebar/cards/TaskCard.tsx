@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Zap, FileText, Archive, Trash2 } from "lucide-react";
+import { Archive, Trash2 } from "lucide-react";
 import type { ModuleInfo } from "../../../api/modules";
 import type { LoadedModule } from "../../../api/workspace";
 import { useModuleEditorStore } from "../../../hooks/useModuleEditorStore";
 import { ModuleCardShell } from "./ModuleCardShell";
 import { ModuleFilePreview } from "./ModuleFilePreview";
+import { FileTree } from "./FileTree";
 
 interface TaskCardProps {
   info: ModuleInfo;
@@ -86,23 +87,7 @@ export function TaskCard({
           <p className="text-[11px] text-text-muted mb-2">{info.summary}</p>
         )}
         {isOn && loaded.files.length > 0 && (
-          <div className="space-y-px">
-            {loaded.files.map((f) => (
-              <button
-                key={f}
-                type="button"
-                onClick={() => setPreviewFile(f)}
-                className="group flex w-full items-center gap-1.5 rounded px-1.5 py-1 text-left font-mono text-[11px] transition-colors hover:bg-accent/10"
-              >
-                {f.endsWith(".py")
-                  ? <Zap className="w-3 h-3 text-accent shrink-0" />
-                  : <FileText className="w-3 h-3 text-text-muted shrink-0" />}
-                <span className="flex-1 truncate text-text font-medium">
-                  {f}
-                </span>
-              </button>
-            ))}
-          </div>
+          <FileTree paths={loaded.files} onSelect={setPreviewFile} />
         )}
         {!isOn && (
           <div className="space-y-1.5 animate-pulse">
@@ -121,3 +106,4 @@ export function TaskCard({
     </ModuleCardShell>
   );
 }
+
