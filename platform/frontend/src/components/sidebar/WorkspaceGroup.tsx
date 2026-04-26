@@ -19,6 +19,7 @@ interface WorkspaceGroupProps {
   onRefreshSecrets: () => void;
   isRefreshingSecrets: boolean;
   onEditModule: (name: string) => void;
+  onDeleteIntegration: (name: string) => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -52,6 +53,7 @@ export function WorkspaceGroup({
   onRefreshSecrets,
   isRefreshingSecrets,
   onEditModule,
+  onDeleteIntegration,
 }: WorkspaceGroupProps) {
   const [expanded, setExpanded] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -181,6 +183,7 @@ export function WorkspaceGroup({
                 loaded={loaded.find((l) => l.name === m.name) ?? null}
                 onToggle={(enabled) => onToggleIntegration(m.name, enabled)}
                 onEdit={() => onEditModule(m.name)}
+                onDelete={() => onDeleteIntegration(m.name)}
               />
             ))}
           </div>

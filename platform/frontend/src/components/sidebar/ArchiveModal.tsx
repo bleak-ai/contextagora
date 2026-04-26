@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { deleteModule, type ModuleInfo } from "../../api/modules";
 import { invalidateModuleQueries } from "../../lib/queryClient";
 import { Modal } from "../Modal";
+import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 
 interface ArchiveModalProps {
   archivedTasks: ModuleInfo[];
@@ -16,6 +18,7 @@ export function ArchiveModal({
   onUnarchive,
 }: ArchiveModalProps) {
   const queryClient = useQueryClient();
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   const deleteMutation = useMutation({
     mutationFn: deleteModule,
@@ -75,19 +78,13 @@ export function ArchiveModal({
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          `Delete task "${task.name}"? This cannot be undone.`,
-                        )
-                      ) {
-                        deleteMutation.mutate(task.name);
-                      }
-                    }}
+                    onClick={() => setPendingDelete(task.name)}
                     disabled={deleteMutation.isPending}
                     className="text-[9px] text-red-400/60 hover:text-red-400 disabled:opacity-50"
                   >
-                    {deleteMutation.isPending ? "..." : "Delete"}
+                    {deleteMutation.isPending && pendingDelete === task.name
+                      ? "..."
+                      : "Delete"}
                   </button>
                 </div>
               </div>
@@ -95,6 +92,16 @@ export function ArchiveModal({
           )}
         </div>
       </div>
+      {pendingDelete && (
+        <ConfirmDeleteModal
+          title="Delete task"
+          name={pendingDelete}
+          onClose={() => setPendingDelete(null)}
+          onConfirm={async () => {
+            await deleteMutation.mutateAsync(pendingDelete);
+          }}
+        />
+      )}
     </Modal>
   );
 }

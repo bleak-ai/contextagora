@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { ChevronDown, ChevronRight, Play, Edit2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Play, Edit2, Trash2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { ModuleInfo } from "../../api/modules";
 import { fetchWorkflows } from "../../api/workflows";
@@ -11,9 +11,10 @@ interface WorkflowsGroupProps {
   tasks: ModuleInfo[];
   loadedNames: Set<string>;
   renderRun?: (task: ModuleInfo) => ReactNode;
+  onDelete?: (name: string) => void;
 }
 
-export function WorkflowsGroup({ tasks, loadedNames, renderRun }: WorkflowsGroupProps) {
+export function WorkflowsGroup({ tasks, loadedNames, renderRun, onDelete }: WorkflowsGroupProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [startRunFor, setStartRunFor] = useState<string | null>(null);
   const openModuleEditor = useModuleEditorStore((s) => s.openModuleEditor);
@@ -117,7 +118,7 @@ export function WorkflowsGroup({ tasks, loadedNames, renderRun }: WorkflowsGroup
                     </div>
                   </div>
                 )}
-                <div className="flex items-center justify-end border-t border-border/50 pt-1.5 mt-1.5">
+                <div className="flex items-center justify-end gap-3 border-t border-border/50 pt-1.5 mt-1.5">
                   <button
                     type="button"
                     onClick={() => openModuleEditor(w.name)}
@@ -125,6 +126,15 @@ export function WorkflowsGroup({ tasks, loadedNames, renderRun }: WorkflowsGroup
                   >
                     <Edit2 className="w-3 h-3" /> Edit
                   </button>
+                  {onDelete && (
+                    <button
+                      type="button"
+                      onClick={() => onDelete(w.name)}
+                      className="text-[10px] text-text-muted hover:text-red-400 flex items-center gap-1"
+                    >
+                      <Trash2 className="w-3 h-3" /> Delete
+                    </button>
+                  )}
                 </div>
               </div>
             )}

@@ -26,6 +26,7 @@ import { WorkflowsGroup } from "./sidebar/WorkflowsGroup";
 import { TaskCard } from "./sidebar/cards/TaskCard";
 import { ArchiveModal } from "./sidebar/ArchiveModal";
 import { CreateTaskModal } from "./sidebar/CreateTaskModal";
+import { ConfirmDeleteModal } from "./sidebar/ConfirmDeleteModal";
 import { SocialPostModal } from "./social-post/SocialPostModal";
 
 interface ContextPanelProps {
@@ -53,6 +54,9 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [showCreateTask, setShowCreateTask] = useState(false);
   const [postSessionId, setPostSessionId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<
+    { name: string; kind: "task" | "integration" | "workflow" } | null
+  >(null);
   const openEditor = useModuleEditorStore((s) => s.openModuleEditor);
 
   const rawModel = useChatStore((s) => s.model);
@@ -193,13 +197,7 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
       onArchive={async () => {
         await archiveMutation.mutateAsync(task.name);
       }}
-      onDelete={async () => {
-        if (
-          confirm(`Delete task "${task.name}"? This cannot be undone.`)
-        ) {
-          await deleteMutation.mutateAsync(task.name);
-        }
-      }}
+      onDelete={() => setPendingDelete({ name: task.name, kind: "task" })}
     />
   );
 
@@ -290,6 +288,9 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
                 tasks={allModuleInfos.filter((m) => m.kind === "task" && !m.archived)}
                 loadedNames={new Set(loaded.map((m) => m.name))}
                 renderRun={renderTaskCard}
+                onDelete={(name) =>
+                  setPendingDelete({ name, kind: "workflow" })
+                }
               />
             </div>
 
@@ -350,6 +351,9 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
                 onRefreshSecrets={() => secretsMutation.mutate()}
                 isRefreshingSecrets={secretsMutation.isPending}
                 onEditModule={(name) => openEditor(name)}
+                onDeleteIntegration={(name) =>
+                  setPendingDelete({ name, kind: "integration" })
+                }
               />
             </div>
 
@@ -469,6 +473,17 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
         <SocialPostModal
           sessionId={postSessionId}
           onClose={() => setPostSessionId(null)}
+        />
+      )}
+      {pendingDelete && (
+        <ConfirmDeleteModal
+          title={`Delete ${pendingDelete.kind}`}
+          name={pendingDelete.name}
+          onClose={() => setPendingDelete(null)}
+          onConfirm={async () => {
+            await deleteMutation.mutateAsync(pendingDelete.name);
+            queryClient.invalidateQueries({ queryKey: ["workflows"] });
+          }}
         />
       )}
     </>

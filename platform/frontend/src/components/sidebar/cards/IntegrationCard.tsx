@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, Zap, Key, Package, Clock, ChevronDown, ChevronRight, Edit2 } from "lucide-react";
+import { FileText, Zap, Key, Package, Clock, ChevronDown, ChevronRight, Edit2, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchModule, type ModuleInfo } from "../../../api/modules";
 import { installModuleDeps, type LoadedModule } from "../../../api/workspace";
@@ -36,6 +36,7 @@ interface IntegrationCardProps {
   loaded: LoadedModule | null;
   onToggle?: (enabled: boolean) => void;
   onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -47,6 +48,7 @@ export function IntegrationCard({
   loaded,
   onToggle,
   onEdit,
+  onDelete,
 }: IntegrationCardProps) {
   const isOn = loaded !== null;
   const status = isOn ? statusOf(loaded) : null;
@@ -324,6 +326,15 @@ export function IntegrationCard({
                 >
                   <Edit2 className="w-3 h-3" /> Edit
                 </button>
+                {onDelete && (
+                  <button
+                    type="button"
+                    onClick={onDelete}
+                    className="text-[10px] text-text-muted hover:text-red-400 flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3 h-3" /> Delete
+                  </button>
+                )}
               </div>
             </>
           )}
@@ -367,6 +378,25 @@ export function IntegrationCard({
                   </Section>
                 </>
               )}
+
+              <div className="mt-3 pt-1.5 border-t border-border/50 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handleEdit}
+                  className="text-[10px] text-text-muted hover:text-accent flex items-center gap-1"
+                >
+                  <Edit2 className="w-3 h-3" /> Edit
+                </button>
+                {onDelete && (
+                  <button
+                    type="button"
+                    onClick={onDelete}
+                    className="text-[10px] text-text-muted hover:text-red-400 flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3 h-3" /> Delete
+                  </button>
+                )}
+              </div>
             </>
           )}
         </div>
