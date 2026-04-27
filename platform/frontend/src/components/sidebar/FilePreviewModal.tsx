@@ -4,6 +4,7 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Modal } from "../Modal";
 import { runModuleFile, type RunResult } from "../../api/modules";
+import { MarkdownEditor } from "./MarkdownEditor";
 
 interface Runnable {
   moduleName: string;
@@ -57,6 +58,8 @@ export function FilePreviewModal({
   const renderAsMarkdown = titleEndsWith(title, ".md");
   const renderAsCsv = titleEndsWith(title, ".csv");
   const canRun = !!runnable && runnable.path.endsWith(".py");
+  const isEditableMarkdown = renderAsMarkdown && !!runnable;
+  const [toolbarSlot, setToolbarSlot] = useState<HTMLDivElement | null>(null);
 
   return (
     <Modal onClose={onClose} backdropClass="bg-black/90 p-6">
@@ -64,16 +67,19 @@ export function FilePreviewModal({
         onClick={(e) => e.stopPropagation()}
         className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-border bg-bg-raised shadow-2xl"
       >
-        <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
-          <span className="font-mono text-xs text-text">{title}</span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded p-1 text-text-muted hover:bg-bg-hover hover:text-text"
-            aria-label="Close"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5">
+          <span className="font-mono text-xs text-text truncate">{title}</span>
+          <div className="flex items-center gap-3">
+            {isEditableMarkdown && <div ref={setToolbarSlot} />}
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded p-1 text-text-muted hover:bg-bg-hover hover:text-text"
+              aria-label="Close"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
         <div className="overflow-auto bg-black/40 px-4 py-3">
           {imageSrc ? (
@@ -104,9 +110,20 @@ export function FilePreviewModal({
               )}
               {content !== null && !isLoading && !error && (
                 renderAsMarkdown ? (
-                  <div className="aui-md text-sm text-text">
-                    <Markdown remarkPlugins={REMARK_PLUGINS}>{content}</Markdown>
-                  </div>
+                  runnable ? (
+                    <div className="text-sm text-text">
+                      <MarkdownEditor
+                        moduleName={runnable.moduleName}
+                        path={runnable.path}
+                        initialContent={content}
+                        toolbarTarget={toolbarSlot}
+                      />
+                    </div>
+                  ) : (
+                    <div className="aui-md text-sm text-text">
+                      <Markdown remarkPlugins={REMARK_PLUGINS}>{content}</Markdown>
+                    </div>
+                  )
                 ) : renderAsCsv ? (
                   <CsvTable rows={parseCsv(content)} />
                 ) : (
