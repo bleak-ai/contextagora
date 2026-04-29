@@ -30,8 +30,8 @@ const TONE: Record<ModuleCardTone, ToneClasses> = {
     dot: "bg-accent shadow-[0_0_6px_rgba(107,138,253,0.6)]",
   },
   "task-off": {
-    border: "border-accent/70",
-    bg: "bg-accent/[0.10]",
+    border: "border-border opacity-60",
+    bg: "bg-bg-hover",
     dot: "bg-text-muted",
   },
 };
