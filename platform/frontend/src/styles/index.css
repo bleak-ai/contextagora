@@ -25,7 +25,8 @@
   --color-accent-dim: rgba(196, 163, 90, 0.1);
   --color-accent-text: #0a0a0a;
   --color-danger: #e06060;
-  --color-success: #5cb87a;
+  /* Global success green — used for completion badges, healthy states, run-ok feedback */
+  --color-success: #4ade80;
 }
 
 html,
@@ -102,8 +103,25 @@ summary {
   margin: 0.6em 0;
 }
 
+.aui-md ul {
+  list-style: disc;
+}
+
+.aui-md ol {
+  list-style: decimal;
+}
+
 .aui-md li {
-  margin: 0.3em 0;
+  margin: 0.5em 0;
+  padding-left: 0.25em;
+}
+
+.aui-md li::marker {
+  color: var(--color-text-muted);
+}
+
+.aui-md li > p {
+  margin: 0.15em 0;
 }
 
 .aui-md blockquote {
@@ -118,19 +136,26 @@ summary {
 .aui-md h3,
 .aui-md h4 {
   font-weight: 600;
-  margin: 0.75em 0 0.25em;
+  margin: 1.6em 0 0.5em;
+}
+
+.aui-md h1:first-child,
+.aui-md h2:first-child,
+.aui-md h3:first-child,
+.aui-md h4:first-child {
+  margin-top: 0;
 }
 
 .aui-md h1 {
-  font-size: 1.25em;
+  font-size: 1.6em;
 }
 
 .aui-md h2 {
-  font-size: 1.15em;
+  font-size: 1.35em;
 }
 
 .aui-md h3 {
-  font-size: 1.05em;
+  font-size: 1.1em;
 }
 
 .aui-md a {

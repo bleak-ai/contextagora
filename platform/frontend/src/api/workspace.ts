@@ -6,9 +6,15 @@ export interface PackageInfo {
   installed: boolean;
 }
 
+export interface CheckboxCount {
+  checked: number;
+  total: number;
+}
+
 export interface LoadedModule {
   name: string;
   files: string[];
+  checkboxes?: Record<string, CheckboxCount>; // keyed by file path, only for .md files with task-list items
   secrets: Record<string, string | null>; // null = missing, otherwise masked preview
   packages: PackageInfo[];
 }

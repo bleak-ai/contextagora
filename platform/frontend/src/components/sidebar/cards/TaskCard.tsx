@@ -107,7 +107,11 @@ export function TaskCard({
             <p className="text-[11px] text-text-muted mb-2">{info.summary}</p>
           )}
           {isOn && loaded.files.length > 0 && (
-            <FileTree paths={loaded.files} onSelect={setPreviewFile} />
+            <FileTree
+              paths={loaded.files}
+              onSelect={setPreviewFile}
+              checkboxes={loaded.checkboxes}
+            />
           )}
           {!isOn && (
             <p className="text-[10px] italic text-text-muted">

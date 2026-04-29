@@ -4,8 +4,32 @@ These helpers operate on the workspace *copy* of a module — not the
 local clone in modules-repo/. They are read by GET /api/workspace to
 build the per-module response.
 """
+import re
 from pathlib import Path
 from importlib.metadata import PackageNotFoundError, version as _version
+
+_TASK_CHECKBOX_RE = re.compile(r"^\s*[-*+]\s+\[(?P<state>[ xX])\]\s", re.MULTILINE)
+
+
+def count_md_checkboxes(file_path: Path) -> dict[str, int] | None:
+    """Count GFM task-list checkboxes in a markdown file.
+
+    Returns {"checked": int, "total": int} when the file has at least one
+    checkbox, otherwise None.
+    """
+    try:
+        text = file_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    total = 0
+    checked = 0
+    for m in _TASK_CHECKBOX_RE.finditer(text):
+        total += 1
+        if m.group("state").lower() == "x":
+            checked += 1
+    if total == 0:
+        return None
+    return {"checked": checked, "total": total}
 
 
 def list_workspace_files(

@@ -22,7 +22,7 @@ const EXTENSIONS = [
   StarterKit,
   TaskList.configure({ HTMLAttributes: { class: "ctx-task-list" } }),
   TaskItem.configure({ nested: true, HTMLAttributes: { class: "ctx-task-item" } }),
-  Markdown.configure({ html: false, tightLists: true, breaks: false, transformPastedText: true }),
+  Markdown.configure({ html: false, tightLists: true, breaks: true, transformPastedText: true }),
 ];
 
 function getMarkdown(editor: ReturnType<typeof useEditor>): string {

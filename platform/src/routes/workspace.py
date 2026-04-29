@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from src.models import WorkspaceLoadRequest
 from src.config import settings
 from src.services.workspace_inspect import (
+    count_md_checkboxes,
     inspect_module_packages,
     list_workspace_files,
 )
@@ -29,9 +30,16 @@ async def api_workspace():
             files = list_workspace_files(module_dir, settings.MANAGED_FILES)
         except FileNotFoundError:
             files = []
+        checkboxes: dict[str, dict[str, int]] = {}
+        for rel in files:
+            if rel.endswith(".md"):
+                counts = count_md_checkboxes(module_dir / rel)
+                if counts is not None:
+                    checkboxes[rel] = counts
         modules.append({
             "name": name,
             "files": files,
+            "checkboxes": checkboxes,
             "secrets": _secrets_cache.get(name, {}),
             "packages": inspect_module_packages(module_dir),
         })

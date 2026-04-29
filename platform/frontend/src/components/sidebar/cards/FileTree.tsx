@@ -7,10 +7,12 @@ import {
   FolderOpen,
   Zap,
 } from "lucide-react";
+import type { CheckboxCount } from "../../../api/workspace";
 
 interface FileTreeProps {
   paths: string[];
   onSelect: (path: string) => void;
+  checkboxes?: Record<string, CheckboxCount>;
 }
 
 type FileNode = { kind: "file"; name: string; path: string };
@@ -57,7 +59,37 @@ function buildTree(paths: string[]): TreeNode[] {
   return toNodes(root);
 }
 
-export function FileTree({ paths, onSelect }: FileTreeProps) {
+function CheckboxBadge({ counts }: { counts: CheckboxCount }) {
+  const pct = counts.total > 0 ? counts.checked / counts.total : 0;
+  const ratio = Math.round(pct * 100);
+  const done = counts.total > 0 && counts.checked === counts.total;
+  const started = counts.checked > 0 && !done;
+  // 3-state signal: gray (untouched) → gold (in progress) → green (done).
+  const color = done
+    ? "var(--color-success)"
+    : started
+      ? "var(--color-accent)"
+      : "var(--color-text-secondary)";
+  return (
+    <span
+      className="shrink-0 inline-flex items-center gap-1.5 transition-colors"
+      style={{ color }}
+      title={`${counts.checked} of ${counts.total} tasks done (${ratio}%)`}
+    >
+      <span className="relative h-3 w-3 shrink-0 overflow-hidden rounded-[2px] bg-bg-input ring-1 ring-border">
+        <span
+          className="absolute inset-x-0 bottom-0 bg-current transition-all duration-300"
+          style={{ height: `${ratio}%` }}
+        />
+      </span>
+      <span className="font-mono text-[10px] font-semibold tabular-nums">
+        {counts.checked}/{counts.total}
+      </span>
+    </span>
+  );
+}
+
+export function FileTree({ paths, onSelect, checkboxes }: FileTreeProps) {
   const tree = buildTree(paths);
   return (
     <div className="space-y-px">
@@ -67,6 +99,7 @@ export function FileTree({ paths, onSelect }: FileTreeProps) {
           node={node}
           depth={0}
           onSelect={onSelect}
+          checkboxes={checkboxes}
         />
       ))}
     </div>
@@ -77,13 +110,15 @@ interface RowProps {
   node: TreeNode;
   depth: number;
   onSelect: (path: string) => void;
+  checkboxes?: Record<string, CheckboxCount>;
 }
 
-function TreeRow({ node, depth, onSelect }: RowProps) {
+function TreeRow({ node, depth, onSelect, checkboxes }: RowProps) {
   const [open, setOpen] = useState(true);
   const indent = { paddingLeft: `${depth * 10 + 6}px` };
 
   if (node.kind === "file") {
+    const counts = checkboxes?.[node.path];
     return (
       <button
         type="button"
@@ -97,6 +132,7 @@ function TreeRow({ node, depth, onSelect }: RowProps) {
         <span className="flex-1 truncate text-text font-medium">
           {node.name}
         </span>
+        {counts && <CheckboxBadge counts={counts} />}
       </button>
     );
   }
@@ -125,6 +161,7 @@ function TreeRow({ node, depth, onSelect }: RowProps) {
               node={child}
               depth={depth + 1}
               onSelect={onSelect}
+              checkboxes={checkboxes}
             />
           ))}
         </div>
