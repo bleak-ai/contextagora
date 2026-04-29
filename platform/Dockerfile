@@ -1,11 +1,12 @@
 # Stage 1: Build React frontend
 FROM node:20-slim AS frontend
 WORKDIR /app/frontend
-COPY frontend/package*.json .
-RUN npm ci
+RUN corepack enable
+COPY frontend/package.json frontend/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 COPY frontend/ .
 COPY pyproject.toml ../pyproject.toml
-RUN npm run build
+RUN pnpm run build
 
 # Stage 2: Python backend + built frontend
 FROM python:3.12-slim
