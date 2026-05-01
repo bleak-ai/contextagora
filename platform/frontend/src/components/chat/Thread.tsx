@@ -16,7 +16,7 @@ import { MarkdownText } from "./MarkdownText";
 import { ToolCallDisplay } from "./ToolCallDisplay";
 import { ThinkingDisplay } from "./ThinkingDisplay";
 import { useChatStore, NEW_CHAT_KEY } from "../../hooks/useChatStore";
-import { useSessionStore } from "../../hooks/useSessionStore";
+import { useActiveSessionId } from "../../hooks/useActiveSession";
 
 interface ThreadProps {
   emptyState?: ReactNode;
@@ -115,7 +115,7 @@ const AssistantMessage: FC = () => (
  * stream and are dropped from localStorage when the page reloads.
  */
 const StreamSuggestions: FC = () => {
-  const activeSessionId = useSessionStore((s) => s.activeClaudeSessionId);
+  const activeSessionId = useActiveSessionId();
   const key = activeSessionId ?? NEW_CHAT_KEY;
   const sendMessage = useChatStore((s) => s.sendMessage);
   const suggestions = useChatStore((s) => {

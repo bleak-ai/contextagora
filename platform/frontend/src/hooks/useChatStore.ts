@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { streamChat, type ChatEvent } from "../api/chat";
-import { useSessionStore } from "./useSessionStore";
 import { queryClient, invalidateModuleQueries } from "../lib/queryClient";
 
 export const NEW_CHAT_KEY = "__new_chat__";
@@ -199,7 +198,6 @@ export const useChatStore = create<ChatState>()(
                 if (event.model) {
                   set({ model: event.model });
                 }
-                useSessionStore.getState().setActiveClaudeSessionId(newId);
                 if (newId && newId !== sessionId) {
                   const oldId = sessionId;
                   set((state) => {

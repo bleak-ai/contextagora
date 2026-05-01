@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from "./routes/__root"
 import { Route as BenchmarksRouteImport } from "./routes/benchmarks"
 import { Route as IndexRouteImport } from "./routes/index"
 import { Route as BenchmarksIndexRouteImport } from "./routes/benchmarks.index"
+import { Route as SessionsSessionIdRouteImport } from "./routes/sessions.$sessionId"
 import { Route as BenchmarksTaskIdRouteImport } from "./routes/benchmarks.$taskId"
 import { Route as BenchmarksTaskIdIndexRouteImport } from "./routes/benchmarks.$taskId.index"
 import { Route as BenchmarksTaskIdRunIdRouteImport } from "./routes/benchmarks.$taskId.$runId"
@@ -31,6 +32,13 @@ const BenchmarksIndexRoute = BenchmarksIndexRouteImport.update({
   path: "/",
   getParentRoute: () => BenchmarksRoute,
 } as any)
+const SessionsSessionIdRoute = SessionsSessionIdRouteImport.update({
+  id: "/sessions/$sessionId",
+  path: "/sessions/$sessionId",
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() =>
+  import("./routes/sessions.$sessionId.lazy").then((d) => d.Route),
+)
 const BenchmarksTaskIdRoute = BenchmarksTaskIdRouteImport.update({
   id: "/$taskId",
   path: "/$taskId",
@@ -53,12 +61,14 @@ export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
   "/benchmarks": typeof BenchmarksRouteWithChildren
   "/benchmarks/$taskId": typeof BenchmarksTaskIdRouteWithChildren
+  "/sessions/$sessionId": typeof SessionsSessionIdRoute
   "/benchmarks/": typeof BenchmarksIndexRoute
   "/benchmarks/$taskId/$runId": typeof BenchmarksTaskIdRunIdRoute
   "/benchmarks/$taskId/": typeof BenchmarksTaskIdIndexRoute
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
+  "/sessions/$sessionId": typeof SessionsSessionIdRoute
   "/benchmarks": typeof BenchmarksIndexRoute
   "/benchmarks/$taskId/$runId": typeof BenchmarksTaskIdRunIdRoute
   "/benchmarks/$taskId": typeof BenchmarksTaskIdIndexRoute
@@ -68,6 +78,7 @@ export interface FileRoutesById {
   "/": typeof IndexRoute
   "/benchmarks": typeof BenchmarksRouteWithChildren
   "/benchmarks/$taskId": typeof BenchmarksTaskIdRouteWithChildren
+  "/sessions/$sessionId": typeof SessionsSessionIdRoute
   "/benchmarks/": typeof BenchmarksIndexRoute
   "/benchmarks/$taskId/$runId": typeof BenchmarksTaskIdRunIdRoute
   "/benchmarks/$taskId/": typeof BenchmarksTaskIdIndexRoute
@@ -78,16 +89,23 @@ export interface FileRouteTypes {
     | "/"
     | "/benchmarks"
     | "/benchmarks/$taskId"
+    | "/sessions/$sessionId"
     | "/benchmarks/"
     | "/benchmarks/$taskId/$runId"
     | "/benchmarks/$taskId/"
   fileRoutesByTo: FileRoutesByTo
-  to: "/" | "/benchmarks" | "/benchmarks/$taskId/$runId" | "/benchmarks/$taskId"
+  to:
+    | "/"
+    | "/sessions/$sessionId"
+    | "/benchmarks"
+    | "/benchmarks/$taskId/$runId"
+    | "/benchmarks/$taskId"
   id:
     | "__root__"
     | "/"
     | "/benchmarks"
     | "/benchmarks/$taskId"
+    | "/sessions/$sessionId"
     | "/benchmarks/"
     | "/benchmarks/$taskId/$runId"
     | "/benchmarks/$taskId/"
@@ -96,6 +114,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BenchmarksRoute: typeof BenchmarksRouteWithChildren
+  SessionsSessionIdRoute: typeof SessionsSessionIdRoute
 }
 
 declare module "@tanstack/react-router" {
@@ -120,6 +139,13 @@ declare module "@tanstack/react-router" {
       fullPath: "/benchmarks/"
       preLoaderRoute: typeof BenchmarksIndexRouteImport
       parentRoute: typeof BenchmarksRoute
+    }
+    "/sessions/$sessionId": {
+      id: "/sessions/$sessionId"
+      path: "/sessions/$sessionId"
+      fullPath: "/sessions/$sessionId"
+      preLoaderRoute: typeof SessionsSessionIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     "/benchmarks/$taskId": {
       id: "/benchmarks/$taskId"
@@ -175,6 +201,7 @@ const BenchmarksRouteWithChildren = BenchmarksRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BenchmarksRoute: BenchmarksRouteWithChildren,
+  SessionsSessionIdRoute: SessionsSessionIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

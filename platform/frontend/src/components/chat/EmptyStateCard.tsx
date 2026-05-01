@@ -2,7 +2,7 @@ import type { FC } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getOnboardingState } from "../../api/onboarding";
 import { useChatStore } from "../../hooks/useChatStore";
-import { useSessionStore } from "../../hooks/useSessionStore";
+import { useActiveSessionId } from "../../hooks/useActiveSession";
 
 export const EmptyStateCard: FC = () => {
   const { data, isLoading } = useQuery({
@@ -13,7 +13,7 @@ export const EmptyStateCard: FC = () => {
   });
 
   const sendMessage = useChatStore((s) => s.sendMessage);
-  const activeSessionId = useSessionStore((s) => s.activeClaudeSessionId);
+  const activeSessionId = useActiveSessionId();
 
   if (isLoading || !data) return null;
 

@@ -12,6 +12,7 @@ __pycache__/
 
 platform/frontend/node_modules/
 platform/frontend/dist/
+platform/frontend/package-lock.json
 .superpowers/
 .worktrees/
 
