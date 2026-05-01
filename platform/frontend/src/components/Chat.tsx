@@ -1,16 +1,21 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { fetchWorkspace } from "../api/workspace";
 import { fetchModules } from "../api/modules";
-import { useSessionStore } from "../hooks/useSessionStore";
+import {
+  useActiveSessionId,
+  useNavigateToSession,
+} from "../hooks/useActiveSession";
+import { useChatStore, NEW_CHAT_KEY } from "../hooks/useChatStore";
 import { useContextChatRuntime } from "../hooks/useContextChatRuntime";
 import { Thread } from "./chat/Thread";
 import { ContextPanel } from "./ContextPanel";
 import { EmptyStateCard } from "./chat/EmptyStateCard";
 
 export function Chat() {
-  const activeClaudeSessionId = useSessionStore((s) => s.activeClaudeSessionId);
+  const activeClaudeSessionId = useActiveSessionId();
+  const navigateToSession = useNavigateToSession();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const { data: workspace } = useQuery({
@@ -26,15 +31,33 @@ export function Chat() {
   const loaded = workspace?.modules.map((m) => m.name) || [];
   const allModules = (modulesData?.modules || []).map((m) => m.name);
 
-  const setActiveClaudeSessionId = useSessionStore((s) => s.setActiveClaudeSessionId);
-
   const { runtime, hasMessages } = useContextChatRuntime({
     isDisabled: false,
     sessionId: activeClaudeSessionId,
   });
 
+  // When the chat store learns a server-assigned session id mid-stream, upgrade
+  // the URL so the chat becomes shareable + survives refresh. We only navigate
+  // when we're on `/` (no id in the URL yet) — once the URL is on a session, we
+  // leave it alone.
+  useEffect(() => {
+    let prev = useChatStore.getState().streamingSessionId;
+    return useChatStore.subscribe((state) => {
+      const next = state.streamingSessionId;
+      if (
+        next &&
+        next !== prev &&
+        next !== NEW_CHAT_KEY &&
+        activeClaudeSessionId === null
+      ) {
+        navigateToSession(next);
+      }
+      prev = next;
+    });
+  }, [activeClaudeSessionId, navigateToSession]);
+
   const startNewSession = () => {
-    setActiveClaudeSessionId(null);
+    navigateToSession(null);
   };
 
   return (

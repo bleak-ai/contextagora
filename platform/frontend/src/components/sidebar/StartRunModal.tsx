@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Modal } from "../Modal";
 import { useChatStore } from "../../hooks/useChatStore";
-import { useSessionStore } from "../../hooks/useSessionStore";
+import { useNavigateToSession } from "../../hooks/useActiveSession";
 
 interface StartRunModalProps {
   workflow: string;
@@ -11,9 +11,7 @@ interface StartRunModalProps {
 export function StartRunModal({ workflow, onClose }: StartRunModalProps) {
   const [title, setTitle] = useState("");
   const sendMessage = useChatStore((s) => s.sendMessage);
-  const setActiveClaudeSessionId = useSessionStore(
-    (s) => s.setActiveClaudeSessionId,
-  );
+  const navigateToSession = useNavigateToSession();
 
   const handleSubmit = () => {
     const trimmed = title.trim();
@@ -24,7 +22,7 @@ export function StartRunModal({ workflow, onClose }: StartRunModalProps) {
       `Read the entry step from the ${workflow} workflow folder and follow it exactly.`,
       `The step's prose will tell you to call POST /api/workflows/${workflow}/runs with this title to create the run task.`,
     ].join("\n");
-    setActiveClaudeSessionId(null);
+    navigateToSession(null);
     sendMessage(null, seed);
     onClose();
   };

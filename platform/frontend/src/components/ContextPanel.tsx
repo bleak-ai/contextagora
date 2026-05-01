@@ -16,7 +16,10 @@ import {
 } from "../api/workspace";
 import { fetchSessions } from "../api/sessions";
 import { useChatStore } from "../hooks/useChatStore";
-import { useSessionStore } from "../hooks/useSessionStore";
+import {
+  useActiveSessionId,
+  useNavigateToSession,
+} from "../hooks/useActiveSession";
 import { useModuleEditorStore } from "../hooks/useModuleEditorStore";
 import { invalidateModuleQueries } from "../lib/queryClient";
 import { DecisionTreePanel } from "./chat/DecisionTreePanel";
@@ -64,12 +67,8 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
     ? rawModel.replace("claude-", "").replace(/-\d{8}$/, "")
     : null;
 
-  const activeClaudeSessionId = useSessionStore(
-    (s) => s.activeClaudeSessionId,
-  );
-  const setActiveClaudeSessionId = useSessionStore(
-    (s) => s.setActiveClaudeSessionId,
-  );
+  const activeClaudeSessionId = useActiveSessionId();
+  const navigateToSession = useNavigateToSession();
   const { data: sessionsData } = useQuery({
     queryKey: ["sessions"],
     queryFn: fetchSessions,
@@ -405,7 +404,7 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
                 SESSIONS
               </span>
               <button
-                onClick={() => setActiveClaudeSessionId(null)}
+                onClick={() => navigateToSession(null)}
                 className="text-[10px] text-accent hover:text-accent-hover"
               >
                 + New chat
@@ -420,7 +419,7 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
               {sessions.map((s) => (
                 <div
                   key={s.id}
-                  onClick={() => setActiveClaudeSessionId(s.id)}
+                  onClick={() => navigateToSession(s.id)}
                   className={`group flex items-center gap-1 px-1.5 py-1.5 rounded cursor-pointer transition-colors ${
                     s.id === activeClaudeSessionId
                       ? "bg-accent/10 text-accent"
