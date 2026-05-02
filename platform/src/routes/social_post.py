@@ -7,8 +7,8 @@ from fastapi.responses import JSONResponse
 
 from src.config import settings
 from src.models import SocialPostPayload
-from src.services import social_post
-from src.services.claude_sessions import claude_project_dir
+from src.services.social import social_post
+from src.services.chat.claude_sessions import claude_project_dir
 
 router = APIRouter(prefix="/api/sessions", tags=["social-post"])
 

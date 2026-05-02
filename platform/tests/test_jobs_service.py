@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from src.services.jobs import JobScheduler, RunRecord
-from src.services.manifest import JobSpec, ModuleManifest
+from src.services.modules.manifest import JobSpec, ModuleManifest
 
 
 @dataclass

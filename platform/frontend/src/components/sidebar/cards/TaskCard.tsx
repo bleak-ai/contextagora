@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  Archive,
   Trash2,
   Edit2,
   ChevronDown,
@@ -17,7 +16,6 @@ interface TaskCardProps {
   info: ModuleInfo;
   loaded: LoadedModule | null;
   onToggle?: (enabled: boolean) => void;
-  onArchive?: () => void | Promise<void>;
   onDelete?: () => void | Promise<void>;
   onEdit?: () => void;
 }
@@ -26,7 +24,6 @@ export function TaskCard({
   info,
   loaded,
   onToggle,
-  onArchive,
   onDelete,
   onEdit,
 }: TaskCardProps) {
@@ -38,7 +35,6 @@ export function TaskCard({
 
   const [expanded, setExpanded] = useState(isOn);
   const [previewFile, setPreviewFile] = useState<string | null>(null);
-  const [archiving, setArchiving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   const headerMiddle = (
@@ -98,6 +94,8 @@ export function TaskCard({
   return (
     <ModuleCardShell
       tone={tone}
+      kind="task"
+      hasGrowthAreas={info.has_growth_areas}
       headerMiddle={headerMiddle}
       headerRight={headerRight}
     >
@@ -127,21 +125,6 @@ export function TaskCard({
             >
               <Edit2 className="w-3 h-3" /> Edit
             </button>
-            {onArchive && (
-              <button
-                type="button"
-                disabled={archiving}
-                onClick={() => {
-                  setArchiving(true);
-                  Promise.resolve(onArchive()).finally(() =>
-                    setArchiving(false),
-                  );
-                }}
-                className="text-[10px] text-text-muted hover:text-text flex items-center gap-1 disabled:opacity-50"
-              >
-                <Archive className="w-3 h-3" /> Archive
-              </button>
-            )}
             {onDelete && (
               <button
                 type="button"

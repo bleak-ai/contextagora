@@ -15,6 +15,8 @@ from pathlib import Path
 
 import yaml
 
+from src.services.modules.growth_areas import parse as parse_growth_areas, NAMING_REGEXES
+
 # Severity
 
 ERROR = "ERROR"
@@ -101,7 +103,7 @@ def _extract_code_blocks(content: str) -> list[str]:
 Issue = tuple[str, str]  # (severity, message)
 
 
-def _validate_integration(module_dir: Path, manifest: dict, info_path: Path) -> list[Issue]:
+def _validate_module(module_dir: Path, manifest: dict, info_path: Path) -> list[Issue]:
     issues: list[Issue] = []
 
     info_content = ""
@@ -143,7 +145,7 @@ def _validate_integration(module_dir: Path, manifest: dict, info_path: Path) -> 
                 parts.append(f"in info.md but not module.yaml: {only_info}")
             if only_manifest:
                 parts.append(f"in module.yaml but not info.md: {only_manifest}")
-            issues.append((ERROR, f"Secrets mismatch — {'; '.join(parts)}"))
+            issues.append((ERROR, f"Secrets mismatch -- {'; '.join(parts)}"))
 
         # Cross-validate dependencies
         info_packages = sorted(set(_extract_packages_from_info(info_content)))
@@ -165,7 +167,7 @@ def _validate_integration(module_dir: Path, manifest: dict, info_path: Path) -> 
                 parts.append(f"in info.md but not module.yaml: {only_info}")
             if only_manifest:
                 parts.append(f"in module.yaml but not info.md: {only_manifest}")
-            issues.append((ERROR, f"Dependencies mismatch — {'; '.join(parts)}"))
+            issues.append((ERROR, f"Dependencies mismatch -- {'; '.join(parts)}"))
 
         # Example convention checks
         code_blocks = _extract_code_blocks(info_content)
@@ -175,13 +177,13 @@ def _validate_integration(module_dir: Path, manifest: dict, info_path: Path) -> 
             block_label = f"code block #{i}"
 
             if "load_dotenv" in block:
-                issues.append((ERROR, f"{block_label}: uses load_dotenv() — forbidden"))
+                issues.append((ERROR, f"{block_label}: uses load_dotenv() -- forbidden"))
 
             if re.search(r"(?<!uv run )python -c", block):
                 issues.append((WARN, f"{block_label}: uses bare 'python' instead of 'uv run python'"))
 
             if "pip install" in block:
-                issues.append((WARN, f"{block_label}: uses pip — use uv instead"))
+                issues.append((WARN, f"{block_label}: uses pip -- use uv instead"))
 
             if has_secrets and "os.environ" in block and "varlock run" not in block:
                 issues.append(
@@ -191,34 +193,38 @@ def _validate_integration(module_dir: Path, manifest: dict, info_path: Path) -> 
     return issues
 
 
-def _validate_workflow(module_dir: Path, manifest: dict) -> list[Issue]:
-    issues: list[Issue] = []
-    entry = manifest.get("entry_step")
-    if not entry:
-        issues.append((ERROR, "Workflow module.yaml missing 'entry_step' field"))
-    steps_dir = module_dir / "steps"
-    if not steps_dir.is_dir():
-        issues.append((ERROR, "Workflow missing required 'steps/' directory"))
-    elif entry and not (steps_dir / entry).is_file():
-        issues.append((ERROR, f"Workflow entry_step '{entry}' not found in steps/"))
-    return issues
+def _validate_growth_areas(module_dir: Path, llms_text: str) -> list[Issue]:
+    out: list[Issue] = []
+    areas = parse_growth_areas(llms_text)
+    for area in areas:
+        # Template file existence (WARN).
+        template_path = module_dir / area.template
+        if not template_path.exists():
+            out.append(
+                (WARN, f"growth area '{area.name}': template '{area.template}' does not exist")
+            )
 
-
-def _validate_task(module_dir: Path, manifest: dict) -> list[Issue]:
-    issues: list[Issue] = []
-    parent = manifest.get("parent_workflow")
-    if parent:
-        parent_dir = module_dir.parent / parent
-        if not parent_dir.is_dir():
-            issues.append((WARN, f"parent_workflow '{parent}' does not exist in modules repo"))
-        else:
-            try:
-                parent_manifest = yaml.safe_load((parent_dir / "module.yaml").read_text()) or {}
-                if parent_manifest.get("kind") != "workflow":
-                    issues.append((WARN, f"parent_workflow '{parent}' exists but is not kind: workflow"))
-            except (OSError, yaml.YAMLError):
-                issues.append((WARN, f"parent_workflow '{parent}' has unreadable manifest"))
-    return issues
+        # Pre-existing entries naming-pattern check (WARN).
+        directory = (module_dir / area.path).parent
+        token_match = re.search(r"<[a-z-]+>(?:-<[a-z-]+>)?", area.path)
+        if not directory.is_dir() or not token_match:
+            continue
+        token = token_match.group(0)
+        regex = NAMING_REGEXES.get(token)
+        if not regex:
+            continue
+        for entry in directory.iterdir():
+            if not entry.is_file():
+                continue
+            if entry.name.startswith("_"):
+                # Skip _template.md and other underscore-prefixed files
+                continue
+            stem = entry.stem
+            if not regex.fullmatch(stem):
+                out.append(
+                    (WARN, f"growth area '{area.name}': entry '{entry.name}' does not match naming pattern '{token}'")
+                )
+    return out
 
 
 def validate_module(module_dir: Path) -> list[Issue]:
@@ -228,8 +234,6 @@ def validate_module(module_dir: Path) -> list[Issue]:
     # Universal: required + forbidden files
     info_path = module_dir / "info.md"
     manifest_path = module_dir / "module.yaml"
-    if not info_path.exists():
-        issues.append((ERROR, "Missing required file: info.md"))
     if not manifest_path.exists():
         issues.append((ERROR, "Missing required file: module.yaml"))
     for forbidden in (".env", ".env.schema", "requirements.txt"):
@@ -249,28 +253,22 @@ def validate_module(module_dir: Path) -> list[Issue]:
                 issues.append((ERROR, "module.yaml missing 'name' field"))
             elif manifest["name"] != name:
                 issues.append((ERROR, f"module.yaml name '{manifest['name']}' does not match directory name '{name}'"))
-            if not manifest.get("summary"):
-                issues.append((WARN, "module.yaml missing 'summary' field"))
-
     kind = (manifest.get("kind") or "integration") if manifest else "integration"
 
     # Universal: llms.txt + link integrity
     llms_path = module_dir / "llms.txt"
     if not llms_path.exists():
-        issues.append((WARN, "Missing recommended file: llms.txt"))
+        issues.append((ERROR, "Missing required file: llms.txt"))
     else:
         llms_content = llms_path.read_text()
         for link in re.findall(r"\[.*?\]\((.*?)\)", llms_content):
             if not (module_dir / link).exists():
                 issues.append((ERROR, f"llms.txt links to non-existent file: {link}"))
+        # Growth-area checks (advisory WARN only).
+        issues.extend(_validate_growth_areas(module_dir, llms_content))
 
-    # Per-kind dispatch
-    if kind == "integration":
-        issues.extend(_validate_integration(module_dir, manifest, info_path))
-    elif kind == "workflow":
-        issues.extend(_validate_workflow(module_dir, manifest))
-    elif kind == "task":
-        issues.extend(_validate_task(module_dir, manifest))
+    # Universal module validation (handles any kind)
+    issues.extend(_validate_module(module_dir, manifest, info_path))
 
     return issues
 

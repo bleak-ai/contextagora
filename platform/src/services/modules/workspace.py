@@ -6,9 +6,9 @@ from pathlib import Path
 
 from src.config import settings
 from src.llms import generate_root_llms_txt
-from src.services import git_repo
-from src.services.manifest import read_manifest
-from src.services.schemas import generate_global_schema
+from src.services.modules import git_repo
+from src.services.modules.manifest import read_manifest
+from src.services.modules.schemas import generate_global_schema
 
 log = logging.getLogger(__name__)
 
@@ -28,26 +28,6 @@ def get_loaded_module_names() -> list[str]:
     return list_loaded_modules(settings.CONTEXT_DIR)
 
 
-def _always_loaded_module_names() -> list[str]:
-    """Return names of all modules the server forces into the workspace.
-
-    Workflows are always loaded so the agent can read their step prose to
-    spawn runs. Tasks (including workflow runs) are client-controlled via
-    /workspace/load, the same as integrations. Task creation flows
-    (api_create_module, start_run, api_unarchive_module) are responsible
-    for explicitly adding the new task to the loaded set when appropriate.
-    """
-    out: list[str] = []
-    for name in git_repo.list_modules():
-        try:
-            manifest = read_manifest(git_repo.module_dir(name))
-        except (OSError, ValueError):
-            continue
-        if manifest.kind == "workflow":
-            out.append(name)
-    return out
-
-
 def all_integration_names() -> list[str]:
     """Return names of every integration module in the repo."""
     out: list[str] = []
@@ -65,16 +45,13 @@ def reload_workspace(module_names: list[str]) -> dict[str, list[str] | list[dict
     """Clear workspace and (re)link selected modules into context/.
 
     Each loaded module becomes a symlink context/<name> -> modules-repo/<name>.
-    Workflows are always force-merged into the loaded set so the agent
-    can always read workflow step prose. Tasks (including runs) are now
-    client-controlled and only loaded when present in `module_names`. A
-    global context/.env.schema is generated with Infisical config for all
-    modules so varlock resolves secrets directly from the workspace root.
+    The client controls the full set of loaded modules; nothing is force-loaded
+    by the server. A global context/.env.schema is generated with Infisical
+    config for all modules so varlock resolves secrets directly from the
+    workspace root.
 
     Returns a dict with 'modules' (loaded names) and optionally 'errors'.
     """
-    # Merge always-loaded modules with requested list (deduped, preserving first-seen order).
-    module_names = list(dict.fromkeys([*module_names, *_always_loaded_module_names()]))
     # 1. Clear context/: unlink symlinks, delete real subdirs (legacy copies),
     #    delete loose files except settings.PRESERVED_FILES.
     for p in settings.CONTEXT_DIR.iterdir():

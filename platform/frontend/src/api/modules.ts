@@ -6,6 +6,7 @@ export interface ModuleInfo {
   summary: string;
   archived: boolean;
   parent_workflow: string | null;
+  has_growth_areas?: boolean;
 }
 
 export interface ModuleDetail {
@@ -37,14 +38,6 @@ export function createModule(data: {
     method: "POST",
     body: JSON.stringify(data),
   });
-}
-
-export function archiveModule(name: string): Promise<{ status: string }> {
-  return apiFetch(`/modules/${name}/archive`, { method: "POST" });
-}
-
-export function unarchiveModule(name: string): Promise<{ status: string }> {
-  return apiFetch(`/modules/${name}/unarchive`, { method: "POST" });
 }
 
 export interface RunResult {
@@ -111,26 +104,7 @@ export function deleteModuleFile(
   return apiFetch(`/modules/${name}/files/${path}`, { method: "DELETE" });
 }
 
-export interface GenerateResult {
-  summary: string;
+export function fetchLegacyArchived(): Promise<string[]> {
+  return apiFetch<string[]>("/legacy-archived");
 }
 
-export function generateModule(
-  name: string,
-  content: string,
-): Promise<GenerateResult> {
-  return apiFetch(`/modules/${name}/generate`, {
-    method: "POST",
-    body: JSON.stringify({ content }),
-  });
-}
-
-export function detectPackages(
-  name: string,
-  content: string,
-): Promise<{ packages: string[] }> {
-  return apiFetch(`/modules/${name}/detect-packages`, {
-    method: "POST",
-    body: JSON.stringify({ content }),
-  });
-}

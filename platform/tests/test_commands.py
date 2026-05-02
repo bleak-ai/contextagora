@@ -22,11 +22,11 @@ def test_list_commands_includes_static_set():
     """Existing static commands remain in the list."""
     names = {c.name for c in list_commands()}
     assert "download" in names
-    assert "add-integration" in names
+    assert "introduction" in names
 
 
 def test_list_commands_auto_registers_workflows(tmp_path, monkeypatch):
-    from src.services import git_repo
+    from src.services.modules import git_repo
     from src import commands as cmd_module
     monkeypatch.setattr(git_repo.settings, "MODULES_REPO_DIR", tmp_path)
     (tmp_path / "maat-support").mkdir()
@@ -44,7 +44,7 @@ def test_list_commands_auto_registers_workflows(tmp_path, monkeypatch):
 
 
 def test_list_commands_excludes_non_workflow_modules(tmp_path, monkeypatch):
-    from src.services import git_repo
+    from src.services.modules import git_repo
     from src import commands as cmd_module
     monkeypatch.setattr(git_repo.settings, "MODULES_REPO_DIR", tmp_path)
     (tmp_path / "linear").mkdir()
@@ -57,7 +57,7 @@ def test_list_commands_excludes_non_workflow_modules(tmp_path, monkeypatch):
 
 def test_chat_expands_workflow_slash_command(tmp_path, monkeypatch):
     """The chat interceptor must recognize auto-registered workflow commands."""
-    from src.services import git_repo
+    from src.services.modules import git_repo
     from src.routes.chat import _expand_slash_command
     monkeypatch.setattr(git_repo.settings, "MODULES_REPO_DIR", tmp_path)
     (tmp_path / "maat-support").mkdir()

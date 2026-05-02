@@ -20,7 +20,7 @@ def _load_prompt(name: str, inject_conventions: bool = False,
     If inject_conventions is True, replace {conventions} placeholders
     with the shared conventions block.
     extra_replacements allows injecting other prompt content (e.g.
-    composing /introduction with /add-integration).
+    composing prompts from multiple sources).
     Always replaces {base_url} with the configured server URL and
     {modules_repo} with the absolute MODULES_REPO_DIR path.
     """
@@ -34,11 +34,6 @@ def _load_prompt(name: str, inject_conventions: bool = False,
     raw = raw.replace("{modules_repo}", _MODULES_REPO)
     return raw
 
-
-# Internal prompts — not user-facing slash commands, so NOT added to COMMANDS.
-# Used by routes/modules.py for module-summary / package-detection calls.
-_SUMMARY_PROMPT = _load_prompt("templates/summary.md", inject_conventions=True)
-_DETECT_PACKAGES_PROMPT = _load_prompt("templates/detect_packages.md", inject_conventions=True)
 
 
 @dataclass(frozen=True)
@@ -55,16 +50,6 @@ _STATIC_COMMANDS: list[CommandDef] = [
         prompt=_load_prompt("commands/download.md"),
     ),
     CommandDef(
-        name="add-integration",
-        description="Create a new context module from a generated info.md",
-        prompt=_load_prompt("commands/add_integration.md", inject_conventions=True),
-    ),
-    CommandDef(
-        name="add-workflow",
-        description="Create a new workflow module: a folder of numbered Markdown step files",
-        prompt=_load_prompt("commands/add_workflow.md"),
-    ),
-    CommandDef(
         name="introduction",
         description="First-time setup: explain Context Agora and choose your first integration",
         prompt=_load_prompt("commands/introduction.md", inject_conventions=True),
@@ -73,11 +58,6 @@ _STATIC_COMMANDS: list[CommandDef] = [
         name="guide",
         description="Show what's loaded right now and prompts to try",
         prompt=_load_prompt("commands/guide.md", inject_conventions=True),
-    ),
-    CommandDef(
-        name="improve-integration",
-        description="Improve an existing context module",
-        prompt=_load_prompt("commands/improve_integration.md", inject_conventions=True),
     ),
     CommandDef(
         name="add-verify",
@@ -118,8 +98,8 @@ def list_commands() -> list[CommandDef]:
     Recomputed on every call. Reads the modules repo directly.
     """
     # Local imports to avoid a circular at module load (services may import commands).
-    from src.services import git_repo
-    from src.services.manifest import read_manifest
+    from src.services.modules import git_repo
+    from src.services.modules.manifest import read_manifest
 
     workflow_cmds: list[CommandDef] = []
     for name in git_repo.list_modules():

@@ -2,7 +2,7 @@ import json
 import sqlite3
 from pathlib import Path
 
-from src.services import sessions_store
+from src.services.chat import sessions_store
 
 
 def _conn():

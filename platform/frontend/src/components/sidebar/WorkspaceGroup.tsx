@@ -5,21 +5,23 @@ import { fetchRootContext } from "../../api/rootContext";
 import type { ModuleInfo } from "../../api/modules";
 import type { LoadedModule } from "../../api/workspace";
 import { IntegrationCard } from "./cards/IntegrationCard";
+import { TaskCard } from "./cards/TaskCard";
 import { FilePreviewModal } from "./FilePreviewModal";
 import { CreateModuleModal } from "./CreateModuleModal";
+import { LegacyArchivedBanner } from "./LegacyArchivedBanner";
 
 /* ------------------------------------------------------------------ */
 /*  Props                                                              */
 /* ------------------------------------------------------------------ */
 
 interface WorkspaceGroupProps {
-  integrations: ModuleInfo[];
+  modules: ModuleInfo[];
   loaded: LoadedModule[];
-  onToggleIntegration: (name: string, enabled: boolean) => void;
+  onToggleModule: (name: string, enabled: boolean) => void;
   onRefreshSecrets: () => void;
   isRefreshingSecrets: boolean;
   onEditModule: (name: string) => void;
-  onDeleteIntegration: (name: string) => void;
+  onDeleteModule: (name: string, kind: "task" | "integration" | "workflow") => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -28,13 +30,13 @@ interface WorkspaceGroupProps {
 
 function computeHealth(
   loaded: LoadedModule[],
-  integrationNames: Set<string>,
+  moduleNames: Set<string>,
 ): "ok" | "warn" | "none" {
-  const loadedIntegrations = loaded.filter((m) =>
-    integrationNames.has(m.name),
+  const loadedModules = loaded.filter((m) =>
+    moduleNames.has(m.name),
   );
-  if (loadedIntegrations.length === 0) return "none";
-  const hasIssue = loadedIntegrations.some((m) => {
+  if (loadedModules.length === 0) return "none";
+  const hasIssue = loadedModules.some((m) => {
     const missingSecret = Object.values(m.secrets).some((v) => v === null);
     const failedPackage = m.packages.some((p) => !p.installed);
     return missingSecret || failedPackage;
@@ -47,13 +49,13 @@ function computeHealth(
 /* ------------------------------------------------------------------ */
 
 export function WorkspaceGroup({
-  integrations,
+  modules,
   loaded,
-  onToggleIntegration,
+  onToggleModule,
   onRefreshSecrets,
   isRefreshingSecrets,
   onEditModule,
-  onDeleteIntegration,
+  onDeleteModule,
 }: WorkspaceGroupProps) {
   const [expanded, setExpanded] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -69,30 +71,30 @@ export function WorkspaceGroup({
   });
 
   /* --- derived data --- */
-  const integrationNames = useMemo(
-    () => new Set(integrations.map((m) => m.name)),
-    [integrations],
+  const moduleNames = useMemo(
+    () => new Set(modules.map((m) => m.name)),
+    [modules],
   );
 
   const loadedCount = useMemo(
-    () => loaded.filter((m) => integrationNames.has(m.name)).length,
-    [loaded, integrationNames],
+    () => loaded.filter((m) => moduleNames.has(m.name)).length,
+    [loaded, moduleNames],
   );
 
   const health = useMemo(
-    () => computeHealth(loaded, integrationNames),
-    [loaded, integrationNames],
+    () => computeHealth(loaded, moduleNames),
+    [loaded, moduleNames],
   );
 
   /* --- sort: loaded first, then idle --- */
-  const sortedIntegrations = useMemo(() => {
+  const sortedModules = useMemo(() => {
     const loadedSet = new Set(loaded.map((l) => l.name));
-    return [...integrations].sort((a, b) => {
+    return [...modules].sort((a, b) => {
       const aLoaded = loadedSet.has(a.name) ? 0 : 1;
       const bLoaded = loadedSet.has(b.name) ? 0 : 1;
       return aLoaded - bLoaded;
     });
-  }, [integrations, loaded]);
+  }, [modules, loaded]);
 
   /* --- health dot styling --- */
   const dotClass =
@@ -118,10 +120,10 @@ export function WorkspaceGroup({
       >
         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dotClass}`} />
         <span className="flex-1 text-xs font-semibold text-text">
-          {loadedCount} Integration{loadedCount !== 1 ? "s" : ""} Loaded
+          {loadedCount} Module{loadedCount !== 1 ? "s" : ""} Loaded
         </span>
         <span className="text-[9px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full font-semibold">
-          {integrations.length}
+          {modules.length}
         </span>
         {expanded
           ? <ChevronDown className="w-3 h-3 text-text-muted" />
@@ -131,6 +133,9 @@ export function WorkspaceGroup({
       {/* ---- Expanded body ---- */}
       {expanded && (
         <div className="border border-t-0 border-border rounded-b-md px-2.5 pb-2.5 pt-2">
+          {/* ---- Legacy archived banner ---- */}
+          <LegacyArchivedBanner />
+
           {/* ---- Root Files sub-section ---- */}
           <div className="pb-2 mb-2 border-b border-border/60">
             <span className="text-[8px] font-bold uppercase tracking-wider text-text-muted mb-1.5 block">
@@ -167,25 +172,40 @@ export function WorkspaceGroup({
             )}
           </div>
 
-          {/* ---- Integrations sub-section ---- */}
+          {/* ---- Modules sub-section ---- */}
           <div className="mb-1.5">
             <span className="text-[8px] font-bold uppercase tracking-wider text-text-muted">
-              Integrations
+              Modules
             </span>
           </div>
 
           {/* ---- Module cards ---- */}
           <div className="space-y-0">
-            {sortedIntegrations.map((m) => (
-              <IntegrationCard
-                key={m.name}
-                info={m}
-                loaded={loaded.find((l) => l.name === m.name) ?? null}
-                onToggle={(enabled) => onToggleIntegration(m.name, enabled)}
-                onEdit={() => onEditModule(m.name)}
-                onDelete={() => onDeleteIntegration(m.name)}
-              />
-            ))}
+            {sortedModules.map((m) => {
+              const loadedRecord = loaded.find((l) => l.name === m.name) ?? null;
+              if (m.kind === "task") {
+                return (
+                  <TaskCard
+                    key={m.name}
+                    info={m}
+                    loaded={loadedRecord}
+                    onToggle={(enabled) => onToggleModule(m.name, enabled)}
+                    onEdit={() => onEditModule(m.name)}
+                    onDelete={() => onDeleteModule(m.name, m.kind)}
+                  />
+                );
+              }
+              return (
+                <IntegrationCard
+                  key={m.name}
+                  info={m}
+                  loaded={loadedRecord}
+                  onToggle={(enabled) => onToggleModule(m.name, enabled)}
+                  onEdit={() => onEditModule(m.name)}
+                  onDelete={() => onDeleteModule(m.name, m.kind)}
+                />
+              );
+            })}
           </div>
 
           {/* ---- Footer row ---- */}
@@ -195,7 +215,7 @@ export function WorkspaceGroup({
               onClick={() => setShowCreate(true)}
               className="text-[9px] text-accent hover:text-accent-hover"
             >
-              + New Integration
+              + New Module
             </button>
             <button
               type="button"

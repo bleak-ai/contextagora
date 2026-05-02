@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from src.config import settings
-from src.services.claude_sessions import claude_project_dir
+from src.services.chat.claude_sessions import claude_project_dir
 
 from .judge import judge
 from .parser import ParsedSession, parse_session

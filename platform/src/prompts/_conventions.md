@@ -59,11 +59,13 @@ creds = service_account.Credentials.from_service_account_info(
 
 A context module folder contains:
 
-- `info.md` — integration description, entities, operations, examples
-- `module.yaml` — declares `secrets:` and `dependencies:`
-- `docs/*.md` — optional supplementary documentation
-- `verify.py` — optional read-only smoke test at module root; open from the sidebar and hit **Run** to execute under varlock
-- `scripts/*.py` — optional additional runnable scripts (read or write) for the integration; authored via `/add-script`; open from the sidebar and hit **Run** to execute under varlock
+- `module.yaml` (required) — declares `name`, `kind`, optional `secrets`, optional `dependencies`, optional `jobs`. No `summary`, no `archived`, no workflow-specific fields.
+- `llms.txt` (required) — agent's entry point. Starts with `# <name>` and a `> <one-line summary>`. Lists files and directories with one-line descriptions.
+- `info.md` (optional, conventional) — long-form documentation: purpose, entities, operations, examples.
+- `verify.py` (optional) — read-only smoke test at module root; runnable from the sidebar.
+- `scripts/*.py`, `docs/*.md`, growth-area subdirectories — any other content the module needs.
+
+The summary is the `> line` of `llms.txt`. The system reads it from there; do not duplicate it elsewhere.
 
 ## 6. Python Packages
 
@@ -73,42 +75,40 @@ Declared in `module.yaml` under `dependencies:`, one per entry, no versions unle
 
 Module files live at the absolute path `{modules_repo}/<name>/`. ALWAYS use that absolute path in Write/Bash tool calls — never a relative `modules-repo/<name>/...`, which would resolve under the current cwd and end up in the wrong place.
 
-To save a new or updated module:
+To save a new or updated module, write the files directly:
 
-1. Write `info.md` to `{modules_repo}/<name>/info.md` using the Write tool
-2. Write `module.yaml` to `{modules_repo}/<name>/module.yaml`
-3. Register: `curl -sS -X POST {base_url}/api/modules/<name>/register`
+1. Write `info.md` (optional) to `{modules_repo}/<name>/info.md` using the Write tool.
+2. Write `module.yaml` to `{modules_repo}/<name>/module.yaml`.
+3. Write `llms.txt` to `{modules_repo}/<name>/llms.txt` with `# <name>`, `> <summary>`, and a list of files.
+
+No registration step. The server picks up the new folder on the next listing call.
 
 ### module.yaml fields
 
 | Field | Required | Description |
 |---|---|---|
-| `name` | yes | folder-safe slug |
-| `kind` | yes | `integration`, `task` |
-| `summary` | yes | one-sentence description |
+| `name` | yes | folder-safe slug, must match the directory name |
+| `kind` | yes | `integration`, `task`, or `workflow` (tag only; no behavioral effect beyond a sidebar badge) |
 | `secrets` | if any | env var names needed to connect |
 | `dependencies` | if any | Python packages needed |
+| `jobs` | if any | scheduled scripts (see jobs documentation) |
 
-Only include fields that apply. Examples:
-
-Integration:
+Example integration:
 
 ```yaml
 name: stripe
 kind: integration
-summary: Stripe billing API for SaaS subscriptions
 secrets:
   - STRIPE_KEY_RO
 dependencies:
   - stripe
 ```
 
-Task:
+Example task:
 
 ```yaml
 name: fix-billing-bug
 kind: task
-summary: Fix double-charge on plan upgrades
 ```
 
 ## 8. Script Contract
@@ -190,3 +190,7 @@ except Exception as e:
 ```
 
 **When to skip drafting one.** If the integration has no clear read-only "list something real" operation (e.g. write-only webhooks, OAuth flows requiring interactive token refresh), skip the draft and suggest `/add-verify` for later.
+
+## 10. Where to write
+
+When writing a new file inside a module, first read the module's `llms.txt`. If it has a `## Where to write` section, follow it: use the declared path, naming pattern, and template. Do not invent a new location. Each line in the section reads as `<name> -> <path-with-pattern> (template: <template-path>)`. Read the template, fill it in, and write the entry at the path with the chosen pattern (replacing `<date-slug>`, `<seq>-<slug>`, etc. as appropriate). If the module has no `## Where to write` section, fall back to writing in the module root and append a new line to the section list in `llms.txt` to keep the entry navigable.

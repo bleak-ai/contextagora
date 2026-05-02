@@ -9,15 +9,15 @@ from __future__ import annotations
 from pathlib import Path
 
 from src.models import SocialPostPayload
-from src.services.claude import run_headless
-from src.services.social_post import ExtractionError, _strip_fences
-from src.services.tweet import _format_card
+from src.services.chat.claude import run_headless
+from src.services.social.social_post import ExtractionError, _strip_fences
+from src.services.social.tweet import _format_card
 
 __all__ = ["ExtractionError", "extract_linkedin", "generate_linkedin"]
 
 
 _PROMPT_PATH = (
-    Path(__file__).parent.parent / "prompts" / "commands" / "linkedin_extraction.md"
+    Path(__file__).parent.parent.parent / "prompts" / "commands" / "linkedin_extraction.md"
 )
 
 

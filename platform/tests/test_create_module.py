@@ -1,6 +1,6 @@
 import yaml
 from unittest.mock import patch, MagicMock
-from src.services.manifest import ModuleManifest, read_manifest
+from src.services.modules.manifest import ModuleManifest, read_manifest
 
 
 def test_create_module_uses_body_secrets(tmp_path):
@@ -32,16 +32,16 @@ def test_create_module_uses_body_secrets(tmp_path):
     assert manifest.dependencies == ["requests"]
 
 
-def test_update_module_preserves_kind_and_archived(tmp_path):
-    """PUT should not reset kind or archived."""
+def test_update_module_preserves_kind(tmp_path):
+    """PUT should not reset kind."""
     import asyncio
     from src.models import UpdateModuleRequest
     from src.routes.modules import api_update_module
-    from src.services.manifest import write_manifest
+    from src.services.modules.manifest import write_manifest
 
-    # Pre-existing manifest: kind=task, archived=True
+    # Pre-existing manifest: kind=task
     existing = ModuleManifest(
-        name="my-task", kind="task", summary="old", archived=True,
+        name="my-task", kind="task", summary="old",
         secrets=["OLD_SECRET"], dependencies=["old-pkg"],
     )
     write_manifest(tmp_path, existing)
@@ -55,7 +55,6 @@ def test_update_module_preserves_kind_and_archived(tmp_path):
     )
 
     with patch("src.routes.modules.git_repo") as mock_repo, \
-         patch("src.routes.modules.regenerate_module_llms_txt"), \
          patch("src.routes.modules.settings") as mock_settings:
         mock_repo.module_exists.return_value = True
         mock_repo.module_dir.return_value = tmp_path
@@ -66,7 +65,6 @@ def test_update_module_preserves_kind_and_archived(tmp_path):
 
     manifest = read_manifest(tmp_path)
     assert manifest.kind == "task"           # preserved
-    assert manifest.archived is True         # preserved
     assert manifest.summary == "new summary" # updated
     assert manifest.secrets == ["NEW_SECRET"]  # from body
     assert manifest.dependencies == ["new-pkg"]  # from body
@@ -89,3 +87,21 @@ def test_create_module_rejects_workflow_kind():
     import json
     payload = json.loads(resp.body)
     assert "workflow" in payload["error"].lower()
+
+
+def test_list_modules_returns_parent_workflow(tmp_path, monkeypatch):
+    """Task modules created from a workflow expose parent_workflow on /api/modules."""
+    import asyncio
+    from src.services.modules import git_repo
+    from src.routes.modules import api_list_modules
+    monkeypatch.setattr(git_repo.settings, "MODULES_REPO_DIR", tmp_path)
+
+    (tmp_path / "maat-support-run-sup-42").mkdir()
+    (tmp_path / "maat-support-run-sup-42" / "module.yaml").write_text(
+        "name: maat-support-run-sup-42\nkind: task\nparent_workflow: maat-support\n"
+    )
+
+    payload = asyncio.run(api_list_modules())
+    runs = [m for m in payload["modules"] if m.name == "maat-support-run-sup-42"]
+    assert len(runs) == 1
+    assert runs[0].parent_workflow == "maat-support"

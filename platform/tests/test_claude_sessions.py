@@ -1,10 +1,10 @@
-"""Tests for src.services.claude_sessions.read_transcript."""
+"""Tests for src.services.chat.claude_sessions.read_transcript."""
 import json
 import sqlite3
 from pathlib import Path
 
-from src.services import sessions_store
-from src.services.claude_sessions import load_session_messages, read_transcript
+from src.services.chat import sessions_store
+from src.services.chat.claude_sessions import load_session_messages, read_transcript
 
 
 def _write_jsonl(tmp_path: Path, events: list[dict]) -> Path:

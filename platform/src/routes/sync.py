@@ -5,8 +5,8 @@ from fastapi.responses import JSONResponse
 
 from src.config import settings
 from src.models import PushRequest
-from src.services import git_repo
-from src.services.workspace import list_loaded_modules, reload_workspace
+from src.services.modules import git_repo
+from src.services.modules.workspace import list_loaded_modules, reload_workspace
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/sync", tags=["sync"])

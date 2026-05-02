@@ -6,30 +6,26 @@ from fastapi.responses import JSONResponse
 
 from src.llms import (
     extract_module_summary,
-    regenerate_module_llms_txt,
 )
+from src.services.modules.growth_areas import parse as parse_growth_areas
 from src.models import (
     CreateModuleRequest,
     FileContentRequest,
-    GenerateModuleRequest,
-    GenerateModuleResponse,
     ModuleInfo,
     UpdateModuleRequest,
 )
-from src.commands import _SUMMARY_PROMPT, _DETECT_PACKAGES_PROMPT
 from src.config import settings
-from src.services import git_repo
-from src.services.claude import run_headless
-from src.services.manifest import (
-    ModuleKind,
+from src.services.modules import git_repo
+from src.services.modules.manifest import (
+    KINDS,
     ModuleManifest,
     read_manifest,
-    set_archived,
+    scaffold_module,
     slugify_task_name,
     write_manifest,
 )
-from src.services.schemas import validate_module_file_path, validate_module_name
-from src.services.workspace import get_loaded_module_names, reload_workspace
+from src.services.modules.schemas import validate_module_file_path
+from src.services.modules.workspace import get_loaded_module_names, reload_workspace
 
 router = APIRouter(prefix="/api/modules", tags=["modules"])
 
@@ -40,45 +36,20 @@ async def api_list_modules():
     modules = []
     for name in git_repo.list_modules():
         manifest = read_manifest(git_repo.module_dir(name))
+        try:
+            llms_text = git_repo.read_file(name, "llms.txt")
+            summary = extract_module_summary(llms_text)
+            has_growth_areas = bool(parse_growth_areas(llms_text))
+        except FileNotFoundError:
+            summary = ""
+            has_growth_areas = False
         modules.append(ModuleInfo(
             name=name,
             kind=manifest.kind,
-            summary=manifest.summary,
-            archived=manifest.archived,
-            parent_workflow=manifest.parent_workflow,
+            summary=summary,
+            has_growth_areas=has_growth_areas,
         ))
     return {"modules": modules}
-
-
-@router.post("/{name}/archive")
-async def api_archive_module(name: str):
-    """Set archived=true on a module and unload it if loaded."""
-    if not git_repo.module_exists(name):
-        return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
-
-    set_archived(name, True)
-
-    current = get_loaded_module_names()
-    if name in current:
-        current.remove(name)
-        reload_workspace(current)
-
-    return {"status": "ok"}
-
-
-@router.post("/{name}/unarchive")
-async def api_unarchive_module(name: str):
-    """Set archived=false on a module and re-add it to the loaded set."""
-    if not git_repo.module_exists(name):
-        return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
-
-    set_archived(name, False)
-    current = get_loaded_module_names()
-    if name not in current:
-        current.append(name)
-    reload_workspace(current)
-
-    return {"status": "ok"}
 
 
 @router.get("/{name}")
@@ -91,13 +62,11 @@ async def api_get_module(name: str):
 
     manifest = read_manifest(git_repo.module_dir(name))
 
-    summary = manifest.summary
-    if not summary:
-        try:
-            llms_text = git_repo.read_file(name, "llms.txt")
-            summary = extract_module_summary(llms_text)
-        except FileNotFoundError:
-            pass
+    try:
+        llms_text = git_repo.read_file(name, "llms.txt")
+        summary = extract_module_summary(llms_text)
+    except FileNotFoundError:
+        summary = ""
 
     return {
         "name": name,
@@ -110,25 +79,14 @@ async def api_get_module(name: str):
 
 @router.post("", status_code=201)
 async def api_create_module(body: CreateModuleRequest):
-    """Create a new module. Scaffolded files depend on body.kind."""
-    try:
-        kind = ModuleKind(body.kind)
-    except ValueError:
+    """Create a new module. kind is a labeling tag; scaffold is uniform."""
+    if body.kind not in KINDS:
         return JSONResponse(
-            {"error": f"Invalid kind '{body.kind}'. Must be one of: {', '.join(k.value for k in ModuleKind)}"},
+            {"error": f"Invalid kind '{body.kind}'. Must be one of: {', '.join(KINDS)}"},
             status_code=400,
         )
 
-    if kind is ModuleKind.WORKFLOW:
-        return JSONResponse(
-            {"error": "Workflow modules must be authored on disk; they cannot be created via this endpoint."},
-            status_code=400,
-        )
-
-    slug = (
-        slugify_task_name(body.name) if kind is not ModuleKind.INTEGRATION
-        else validate_module_name(body.name)
-    )
+    slug = slugify_task_name(body.name)
 
     try:
         git_repo.create_module_dir(slug)
@@ -137,78 +95,22 @@ async def api_create_module(body: CreateModuleRequest):
             {"error": f"Module '{slug}' already exists"}, status_code=409
         )
 
-    summary = body.summary or body.description or ""
     manifest = ModuleManifest(
         name=slug,
-        kind=kind.value,
-        summary=summary,
+        kind=body.kind,
         secrets=body.secrets,
         dependencies=body.requirements,
     )
     write_manifest(git_repo.module_dir(slug), manifest)
 
-    kind.scaffold(slug, body)
+    scaffold_module(slug, body)
 
-    if kind.auto_load:
-        current = get_loaded_module_names()
-        if slug not in current:
-            current.append(slug)
-        reload_workspace(current)
-
-    return {"name": slug}
-
-
-@router.post("/{name}/register")
-async def api_register_module(name: str):
-    """Register a module from files already written to disk.
-
-    Reads info.md and module.yaml from modules-repo/{name}/, generates
-    llms.txt, and optionally auto-loads non-integration modules.
-    """
-    if not git_repo.module_exists(name):
-        return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
-
-    module_dir = git_repo.module_dir(name)
-
-    # Validate info.md exists
-    try:
-        git_repo.read_file(name, "info.md")
-    except FileNotFoundError:
-        return JSONResponse(
-            {"error": f"Module '{name}' is missing info.md"}, status_code=400
-        )
-
-    # Validate and read module.yaml
-    manifest_path = module_dir / "module.yaml"
-    if not manifest_path.exists():
-        return JSONResponse(
-            {"error": f"Module '{name}' is missing module.yaml"}, status_code=400
-        )
-    try:
-        manifest = read_manifest(module_dir)
-    except Exception as exc:
-        return JSONResponse(
-            {"error": f"Module '{name}' has invalid module.yaml: {exc}"}, status_code=400
-        )
-
-    # Generate llms.txt
-    regenerate_module_llms_txt(name, settings.MANAGED_FILES, summary=manifest.summary)
-
-    # Always load on register so the module is immediately usable:
-    # - Symlink into CONTEXT_DIR so claude can read it
-    # - Secrets populated into .env.schema for varlock
-    # Already-loaded modules keep their state (reload_workspace is idempotent
-    # on membership). Users can still opt out later via the sidebar toggle.
     current = get_loaded_module_names()
-    if name not in current:
-        current.append(name)
+    if slug not in current:
+        current.append(slug)
     reload_workspace(current)
 
-    return {
-        "name": manifest.name,
-        "kind": manifest.kind,
-        "summary": manifest.summary,
-    }
+    return {"name": slug}
 
 
 
@@ -277,13 +179,10 @@ async def api_update_module(name: str, body: UpdateModuleRequest):
 
     existing = read_manifest(git_repo.module_dir(name))
     manifest = existing.model_copy(update={
-        "summary": body.summary,
         "secrets": body.secrets,
         "dependencies": body.requirements,
     })
     write_manifest(git_repo.module_dir(name), manifest)
-
-    regenerate_module_llms_txt(name, settings.MANAGED_FILES, summary=body.summary)
 
     return {"name": name}
 
@@ -294,8 +193,8 @@ async def api_delete_module(name: str):
     if not git_repo.module_exists(name):
         return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
 
-    # Remove the module dir first so reload_workspace's task invariant
-    # (non-archived tasks always loaded) can't resurrect its symlink.
+    # Remove the module dir first so reload_workspace's workflow invariant
+    # can't resurrect its symlink.
     git_repo.delete_module_dir(name)
 
     current = get_loaded_module_names()
@@ -305,49 +204,6 @@ async def api_delete_module(name: str):
 
     return {"status": "ok"}
 
-
-@router.post("/{name}/generate")
-def api_generate_module(name: str, body: GenerateModuleRequest):
-    """Use Claude to generate a summary from raw info.md content.
-
-    Sync ``def`` so FastAPI runs it in a threadpool (run_headless blocks).
-    """
-    if not body.content.strip():
-        return JSONResponse({"error": "Content is empty"}, status_code=400)
-
-    prompt = (
-        _SUMMARY_PROMPT
-        .replace("{module_name}", name)
-        .replace("{raw_content}", body.content)
-    )
-    proc = run_headless(prompt)
-
-    if proc.returncode != 0:
-        return JSONResponse(
-            {"error": f"Claude failed: {proc.stderr.strip()}"}, status_code=502
-        )
-    return GenerateModuleResponse(summary=proc.stdout.strip())
-
-
-@router.post("/{name}/detect-packages")
-def api_detect_packages(name: str, body: GenerateModuleRequest):
-    """Use Claude to detect Python packages from info.md content."""
-    if not body.content.strip():
-        return JSONResponse({"error": "Content is empty"}, status_code=400)
-
-    prompt = _DETECT_PACKAGES_PROMPT.replace("{raw_content}", body.content)
-    proc = run_headless(prompt)
-
-    if proc.returncode != 0:
-        return JSONResponse(
-            {"error": f"Claude failed: {proc.stderr.strip()}"}, status_code=502
-        )
-
-    raw = proc.stdout.strip()
-    if raw.upper() == "NONE":
-        return {"packages": []}
-    packages = [p.strip().strip("`").lower() for p in raw.split(",") if p.strip().strip("`")]
-    return {"packages": packages}
 
 
 @router.get("/{name}/files")
@@ -382,7 +238,6 @@ async def api_save_module_file(name: str, file_path: str, body: FileContentReque
     except ValueError as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
     git_repo.write_file(name, file_path, body.content)
-    regenerate_module_llms_txt(name, settings.MANAGED_FILES)
     return {"path": file_path}
 
 
@@ -398,5 +253,4 @@ async def api_delete_module_file(name: str, file_path: str):
         git_repo.delete_file(name, file_path)
     except FileNotFoundError:
         return JSONResponse({"error": f"File '{file_path}' not found"}, status_code=404)
-    regenerate_module_llms_txt(name, settings.MANAGED_FILES)
     return {"status": "ok"}

@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from src.config import settings
-from src.services.manifest import ModuleManifest
+from src.services.modules.manifest import ModuleManifest
 
 log = logging.getLogger(__name__)
 
@@ -50,12 +50,12 @@ ReadManifestFn = Callable[[str], ModuleManifest]
 
 
 def _default_list_loaded() -> list[str]:
-    from src.services.workspace import list_loaded_modules
+    from src.services.modules.workspace import list_loaded_modules
     return list_loaded_modules(settings.CONTEXT_DIR)
 
 
 def _default_read_manifest(module: str) -> ModuleManifest:
-    from src.services.manifest import read_manifest
+    from src.services.modules.manifest import read_manifest
     return read_manifest(settings.CONTEXT_DIR / module)
 
 
@@ -95,7 +95,7 @@ def build_job_command(module: str, script: str) -> list[str]:
 
 def build_job_env() -> dict[str, str]:
     """Env for job subprocesses. Mirrors services.claude.build_env (telemetry off)."""
-    from src.services.claude import build_env
+    from src.services.chat.claude import build_env
     return build_env()
 
 

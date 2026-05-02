@@ -4,14 +4,14 @@ from fastapi import APIRouter
 
 from src.models import WorkspaceLoadRequest
 from src.config import settings
-from src.services.workspace_inspect import (
+from src.services.modules.workspace_inspect import (
     count_md_checkboxes,
     inspect_module_packages,
     list_workspace_files,
 )
-from src.services.deps import install_module_deps
-from src.services.secrets import get_secrets_status, prune_schema_for_resolved
-from src.services.workspace import list_loaded_modules, reload_workspace
+from src.services.modules.deps import install_module_deps
+from src.services.modules.secrets import get_secrets_status, prune_schema_for_resolved
+from src.services.modules.workspace import list_loaded_modules, reload_workspace
 
 log = logging.getLogger(__name__)
 

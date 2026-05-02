@@ -6,11 +6,11 @@ interface EditorSidebarProps {
   secrets: string[];
   requirements: string[];
   activeFile: string | null;
-  mode: "files" | "secrets" | "requirements";
+  mode: "files" | "secrets" | "requirements" | "where-to-write";
   onSelectFile: (path: string) => void;
   onDeleteFile: (path: string) => void;
   onAddFile: (path: string) => void;
-  onSetMode: (mode: "files" | "secrets" | "requirements") => void;
+  onSetMode: (mode: "files" | "secrets" | "requirements" | "where-to-write") => void;
 }
 
 export function EditorSidebar({
@@ -203,6 +203,31 @@ export function EditorSidebar({
         ))}
         {requirements.length === 0 && (
           <p className="text-[10px] text-text-muted px-2">No packages defined</p>
+        )}
+      </div>
+
+      {/* Divider */}
+      <div className="border-t border-border my-3" />
+
+      {/* Where to write section */}
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] text-text-muted uppercase tracking-wide">
+          Where to write
+        </span>
+        {mode === "where-to-write" ? (
+          <button
+            onClick={() => onSetMode("files")}
+            className="text-[10px] text-accent hover:text-accent-hover"
+          >
+            &larr; Back
+          </button>
+        ) : (
+          <button
+            onClick={() => onSetMode("where-to-write")}
+            className="text-[10px] text-accent hover:text-accent-hover"
+          >
+            Manage
+          </button>
         )}
       </div>
     </div>

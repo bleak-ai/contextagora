@@ -6,7 +6,7 @@ Must walk top-level non-managed files, docs/*.md, and scripts/*.py.
 import pytest
 from pathlib import Path
 
-from src.services.git_repo import list_module_files
+from src.services.modules.git_repo import list_module_files
 
 MANAGED = frozenset({"module.yaml", "llms.txt"})
 

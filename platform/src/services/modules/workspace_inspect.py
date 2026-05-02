@@ -65,7 +65,7 @@ def inspect_module_packages(module_dir: Path) -> list[dict[str, str | bool | Non
     Uses importlib.metadata to look up the currently-installed version
     of each package in the platform's shared venv.
     """
-    from src.services.manifest import read_manifest
+    from src.services.modules.manifest import read_manifest
 
     manifest = read_manifest(module_dir)
     if not manifest.dependencies:

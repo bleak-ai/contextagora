@@ -7,7 +7,6 @@ import {
   saveModuleFile,
   deleteModuleFile,
   updateModule,
-  generateModule,
 } from "../api/modules";
 import { EditorHeader } from "./modules/EditorHeader";
 import { EditorSidebar } from "./modules/EditorSidebar";
@@ -35,38 +34,31 @@ export function ModuleEditor({ name, onClose, onDirtyChange }: ModuleEditorProps
 
   const files = filesData?.files || [];
 
-  const [summary, setSummary] = useState("");
   const [secrets, setSecrets] = useState<string[]>([]);
   const [requirements, setRequirements] = useState<string[]>([]);
   const [openFiles, setOpenFiles] = useState<Map<string, OpenFile>>(new Map());
   const [activeFile, setActiveFile] = useState<string | null>(null);
-  const [mode, setMode] = useState<"files" | "secrets" | "requirements">("files");
+  const [mode, setMode] = useState<"files" | "secrets" | "requirements" | "where-to-write">("files");
   const [isSaving, setIsSaving] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generateError, setGenerateError] = useState<string | null>(null);
 
-  const serverSummary = useRef("");
   const serverSecrets = useRef<string[]>([]);
   const serverRequirements = useRef<string[]>([]);
 
   useEffect(() => {
     if (detail) {
-      setSummary(detail.summary);
       setSecrets(detail.secrets);
       setRequirements(detail.requirements);
-      serverSummary.current = detail.summary;
       serverSecrets.current = detail.secrets;
       serverRequirements.current = detail.requirements;
     }
   }, [detail]);
 
-  const summaryDirty = summary !== serverSummary.current;
   const secretsDirty =
     JSON.stringify(secrets) !== JSON.stringify(serverSecrets.current);
   const requirementsDirty =
     JSON.stringify(requirements) !== JSON.stringify(serverRequirements.current);
   const filesDirty = Array.from(openFiles.values()).some((f) => f.dirty);
-  const isDirty = summaryDirty || secretsDirty || requirementsDirty || filesDirty;
+  const isDirty = secretsDirty || requirementsDirty || filesDirty;
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -155,15 +147,14 @@ export function ModuleEditor({ name, onClose, onDirtyChange }: ModuleEditorProps
     try {
       const promises: Promise<unknown>[] = [];
 
-      if (summaryDirty || secretsDirty || requirementsDirty) {
+      if (secretsDirty || requirementsDirty) {
         promises.push(
           updateModule(name, {
             content: currentInfoContent,
-            summary,
+            summary: detail.summary,
             secrets,
             requirements,
           }).then(() => {
-            serverSummary.current = summary;
             serverSecrets.current = secrets;
             serverRequirements.current = requirements;
           }),
@@ -202,32 +193,13 @@ export function ModuleEditor({ name, onClose, onDirtyChange }: ModuleEditorProps
     detail,
     isSaving,
     name,
-    summary,
     secrets,
     requirements,
-    summaryDirty,
     secretsDirty,
     requirementsDirty,
     openFiles,
     queryClient,
   ]);
-
-  const handleGenerate = useCallback(async () => {
-    const infoFile = openFiles.get("info.md");
-    const content = infoFile ? infoFile.content : detail?.content || "";
-    if (!content.trim()) return;
-
-    setIsGenerating(true);
-    setGenerateError(null);
-    try {
-      const result = await generateModule(name, content);
-      setSummary(result.summary);
-    } catch (err) {
-      setGenerateError((err as Error).message || "Generate failed");
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [name, openFiles, detail]);
 
   if (detailLoading || !detail) {
     return (
@@ -236,8 +208,6 @@ export function ModuleEditor({ name, onClose, onDirtyChange }: ModuleEditorProps
       </div>
     );
   }
-
-  const canGenerate = (openFiles.get("info.md")?.content ?? detail?.content ?? "").trim().length > 0 && !isGenerating && !isSaving;
 
   const contentOpenFiles = new Map<string, OpenFile>();
   for (const [path, file] of openFiles) {
@@ -250,28 +220,9 @@ export function ModuleEditor({ name, onClose, onDirtyChange }: ModuleEditorProps
         name={name}
         isDirty={isDirty}
         isSaving={isSaving}
-        isGenerating={isGenerating}
-        canGenerate={canGenerate}
         onSave={handleSave}
-        onGenerate={handleGenerate}
         onClose={onClose}
       />
-
-      {/* Summary bar */}
-      <div className="flex items-start gap-3 px-4 py-2 border-b border-border bg-bg-raised/50">
-        <span className="text-[10px] text-text-muted uppercase tracking-wide mt-2 flex-shrink-0">
-          Summary
-        </span>
-        <textarea
-          value={summary}
-          onChange={(e) => setSummary(e.target.value)}
-          rows={2}
-          className="flex-1 bg-bg-input border border-border rounded px-3 py-1.5 text-sm text-text resize-none outline-none focus:border-accent/40"
-        />
-        {generateError && (
-          <span className="text-xs text-red-400 mt-1 flex-shrink-0">{generateError}</span>
-        )}
-      </div>
 
       {/* Main area */}
       <div className="flex flex-1 min-h-0">
@@ -289,7 +240,6 @@ export function ModuleEditor({ name, onClose, onDirtyChange }: ModuleEditorProps
         <EditorContent
           mode={mode}
           moduleName={name}
-          infoContent={openFiles.get("info.md")?.content ?? detail?.content ?? ""}
           openFiles={contentOpenFiles}
           activeFile={activeFile}
           secrets={secrets}

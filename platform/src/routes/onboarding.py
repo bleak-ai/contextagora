@@ -3,8 +3,8 @@ import logging
 
 from fastapi import APIRouter
 
-from src.services import git_repo
-from src.services.workspace import get_loaded_module_names
+from src.services.modules import git_repo
+from src.services.modules.workspace import get_loaded_module_names
 
 log = logging.getLogger(__name__)
 

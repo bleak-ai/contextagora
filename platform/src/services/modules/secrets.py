@@ -121,7 +121,7 @@ def prune_schema_for_resolved(
     from Infisical. The UI still shows missing secrets correctly because the
     display is driven by module manifests, not the schema.
     """
-    from src.services.schemas import generate_global_schema
+    from src.services.modules.schemas import generate_global_schema
 
     modules_with_resolved: dict[str, list[str]] = {}
     pruned: list[str] = []
@@ -154,7 +154,7 @@ async def get_secrets_status(
     if not (directory / ".env.schema").exists():
         return {}
 
-    from src.services.manifest import read_manifest
+    from src.services.modules.manifest import read_manifest
 
     var_to_module: dict[str, str] = {}
     modules = list_modules_fn(directory)

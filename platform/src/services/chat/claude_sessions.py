@@ -15,7 +15,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-from src.services import sessions_store
+from src.services.chat import sessions_store
 
 
 def claude_project_dir(cwd: Path, home: Path | None = None) -> Path:

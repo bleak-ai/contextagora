@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
 
-from src.services import sessions_store
+from src.services.chat import sessions_store
 
 
 def _stream_json_lines(events):
@@ -46,7 +46,7 @@ def test_chat_stream_persists_user_and_assistant(tmp_path, monkeypatch):
         {"type": "result"},
     ]
 
-    with patch("src.services.claude.subprocess.Popen",
+    with patch("src.services.chat.claude.subprocess.Popen",
                return_value=_make_fake_proc(fake_events)):
         with TestClient(server_mod.app) as client:
             with client.stream("POST", "/api/chat",

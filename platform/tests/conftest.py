@@ -12,7 +12,7 @@ original. Going through `git_repo.settings` gets the right one regardless.
 """
 import pytest
 
-from src.services import git_repo
+from src.services.modules import git_repo
 
 
 @pytest.fixture

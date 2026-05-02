@@ -1,10 +1,10 @@
 import { useState } from "react";
 import type { OpenFile } from "./types";
+import { WhereToWriteTab } from "../module-editor/WhereToWriteTab";
 
 interface EditorContentProps {
-  mode: "files" | "secrets" | "requirements";
+  mode: "files" | "secrets" | "requirements" | "where-to-write";
   moduleName: string;
-  infoContent: string;
   openFiles: Map<string, OpenFile>;
   activeFile: string | null;
   secrets: string[];
@@ -18,7 +18,6 @@ interface EditorContentProps {
 export function EditorContent({
   mode,
   moduleName,
-  infoContent,
   openFiles,
   activeFile,
   secrets,
@@ -28,6 +27,15 @@ export function EditorContent({
   onSecretsChange,
   onRequirementsChange,
 }: EditorContentProps) {
+  if (mode === "where-to-write") {
+    return (
+      <div className="flex-1 p-6 overflow-y-auto">
+        <h3 className="text-sm font-semibold text-accent mb-1">Where to write</h3>
+        <WhereToWriteTab moduleName={moduleName} />
+      </div>
+    );
+  }
+
   if (mode === "secrets") {
     return (
       <SecretsPanel secrets={secrets} onChange={onSecretsChange} />
@@ -38,8 +46,6 @@ export function EditorContent({
     return (
       <RequirementsPanel
         requirements={requirements}
-        moduleName={moduleName}
-        infoContent={infoContent}
         onChange={onRequirementsChange}
       />
     );
@@ -86,8 +92,7 @@ export function EditorContent({
         <div className="flex-1 flex flex-col min-h-0">
           {activeFile === "info.md" && (
             <div className="px-4 py-2 text-xs text-text-muted border-b border-border/50 bg-bg-raised/30">
-              Write or paste everything you know about this tool — setup details, API docs, account info, credentials.
-              Then use <span className="text-accent font-medium">Generate Summary</span> to create a description.
+              Write or paste everything you know about this tool: setup details, API docs, account info, credentials.
             </div>
           )}
           <textarea
@@ -183,18 +188,12 @@ function SecretsPanel({
 
 function RequirementsPanel({
   requirements,
-  moduleName,
-  infoContent,
   onChange,
 }: {
   requirements: string[];
-  moduleName: string;
-  infoContent: string;
   onChange: (requirements: string[]) => void;
 }) {
   const [newPkg, setNewPkg] = useState("");
-  const [isDetecting, setIsDetecting] = useState(false);
-  const [detectError, setDetectError] = useState<string | null>(null);
 
   const handleAdd = () => {
     const name = newPkg.trim().toLowerCase();
@@ -215,46 +214,15 @@ function RequirementsPanel({
     }
   };
 
-  const handleDetect = async () => {
-    if (!infoContent.trim() || isDetecting) return;
-    setIsDetecting(true);
-    setDetectError(null);
-    try {
-      const { detectPackages } = await import("../../api/modules");
-      const result = await detectPackages(moduleName, infoContent);
-      const merged = [...requirements];
-      for (const pkg of result.packages) {
-        if (!merged.includes(pkg)) {
-          merged.push(pkg);
-        }
-      }
-      onChange(merged);
-    } catch (err) {
-      setDetectError((err as Error).message || "Detection failed");
-    } finally {
-      setIsDetecting(false);
-    }
-  };
-
   return (
     <div className="flex-1 p-6 overflow-y-auto">
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-sm font-semibold text-accent">
           Python Packages
         </h3>
-        <button
-          onClick={handleDetect}
-          disabled={!infoContent.trim() || isDetecting}
-          className="px-3 py-1 text-[10px] font-medium rounded border border-accent/30 text-accent hover:bg-accent/10 disabled:opacity-50 disabled:cursor-default"
-        >
-          {isDetecting ? "Detecting..." : "Detect from info.md"}
-        </button>
       </div>
-      {detectError && (
-        <p className="text-xs text-red-400 mb-2">{detectError}</p>
-      )}
       <p className="text-xs text-text-muted mb-4">
-        Python packages this module needs for PTC scripts. Installed automatically when the module is loaded.
+        Python packages this module needs for scripts. Installed automatically when the module is loaded.
       </p>
 
       <div className="space-y-1 mb-4">

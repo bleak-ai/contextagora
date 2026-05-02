@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { MapPin } from "lucide-react";
 
 export type ModuleCardTone = "ok" | "warn" | "idle" | "task-on" | "task-off";
 
@@ -38,6 +39,8 @@ const TONE: Record<ModuleCardTone, ToneClasses> = {
 
 interface ModuleCardShellProps {
   tone: ModuleCardTone;
+  kind?: "integration" | "task" | "workflow";
+  hasGrowthAreas?: boolean;
   headerMiddle: ReactNode;
   headerRight?: ReactNode;
   children?: ReactNode;
@@ -45,6 +48,8 @@ interface ModuleCardShellProps {
 
 export function ModuleCardShell({
   tone,
+  kind,
+  hasGrowthAreas,
   headerMiddle,
   headerRight,
   children,
@@ -55,6 +60,16 @@ export function ModuleCardShell({
       <div className="flex w-full items-center gap-2 px-2.5 py-2">
         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${t.dot}`} />
         {headerMiddle}
+        {kind && (
+          <span className="text-[10px] uppercase tracking-wide px-1 py-0.5 rounded bg-neutral-200 text-neutral-700 font-medium shrink-0">
+            {kind}
+          </span>
+        )}
+        {hasGrowthAreas && (
+          <span title="Has declared growth areas" className="text-neutral-500 shrink-0">
+            <MapPin className="w-3 h-3" />
+          </span>
+        )}
         {headerRight}
       </div>
       {children}

@@ -9,8 +9,8 @@ import re
 import sqlite3
 from pathlib import Path
 
-from src.services.claude import run_headless
-from src.services.claude_sessions import load_session_messages
+from src.services.chat.claude import run_headless
+from src.services.chat.claude_sessions import load_session_messages
 
 
 def compute_stats(messages: list[dict]) -> dict:
@@ -91,7 +91,7 @@ class ExtractionError(Exception):
     """Raised when Claude fails to return valid JSON after retry."""
 
 
-_PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "commands" / "social_post_extraction.md"
+_PROMPT_PATH = Path(__file__).parent.parent.parent / "prompts" / "commands" / "social_post_extraction.md"
 _FENCE_RE = re.compile(r"^\s*```(?:json)?\s*\n(.*)\n```\s*$", re.DOTALL)
 
 

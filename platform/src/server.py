@@ -23,12 +23,13 @@ from src.routes.social_post import router as social_post_router
 from src.routes.sync import router as sync_router
 from src.routes.uploads import router as uploads_router
 from src.routes.jobs import router as jobs_router
-from src.routes.workflows import router as workflows_router
+from src.routes.legacy_archived import router as legacy_archived_router
 from src.routes.linkedin import router as linkedin_router
 from src.routes.tweet import router as tweet_router
 from src.routes.workspace import router as workspace_router
-from src.services import git_repo, sessions_store
-from src.services.workspace import (
+from src.services.chat import sessions_store
+from src.services.modules import git_repo
+from src.services.modules.workspace import (
     all_integration_names,
     list_loaded_modules,
     reload_workspace,
@@ -50,9 +51,8 @@ def _bootstrap_modules_repo() -> None:
     except git_repo.GitRepoError as exc:
         log.error("Failed to init modules repo: %s", exc)
         return
-    # Enforce the "non-archived tasks are always loaded" invariant on boot:
-    # reload the workspace with whatever is currently symlinked, which merges
-    # in active tasks via reload_workspace's own logic. On a fresh install
+    # Reload the workspace with whatever is currently symlinked, which merges
+    # in always-loaded workflows via reload_workspace's own logic. On a fresh install
     # (no symlinks yet), default to enabling all integrations so users land
     # on a populated workspace instead of an empty one.
     try:
@@ -75,7 +75,7 @@ async def _bootstrap_install_module_deps() -> None:
     """
     import asyncio
 
-    from src.services.deps import install_all_module_deps
+    from src.services.modules.deps import install_all_module_deps
 
     task = asyncio.create_task(asyncio.to_thread(install_all_module_deps))
     _background_tasks.add(task)
@@ -126,7 +126,7 @@ app.include_router(uploads_router)
 app.include_router(tweet_router)
 app.include_router(linkedin_router)
 app.include_router(jobs_router)
-app.include_router(workflows_router)
+app.include_router(legacy_archived_router)
 
 
 if settings.STATIC_DIR.exists():

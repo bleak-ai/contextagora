@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.services import tweet
+from src.services.social import tweet
 
 
 def _msg(role: str, parts: list[dict], thinking: str = "") -> dict:
@@ -48,14 +48,14 @@ class _FakeConn:
 
 
 def test_extract_tweet_returns_stripped_text():
-    with patch("src.services.tweet.run_headless", return_value=_proc(_VALID_TWEET + "\n")):
+    with patch("src.services.social.tweet.run_headless", return_value=_proc(_VALID_TWEET + "\n")):
         result = tweet.extract_tweet("some transcript")
     assert result == _VALID_TWEET  # trailing whitespace stripped
 
 
 def test_extract_tweet_strips_markdown_fences():
     fenced = "```\n" + _VALID_TWEET + "\n```"
-    with patch("src.services.tweet.run_headless", return_value=_proc(fenced)):
+    with patch("src.services.social.tweet.run_headless", return_value=_proc(fenced)):
         result = tweet.extract_tweet("t")
     assert result == _VALID_TWEET
 
@@ -67,7 +67,7 @@ def test_extract_tweet_injects_transcript_and_elapsed_into_prompt():
         captured["prompt"] = prompt
         return _proc(_VALID_TWEET)
 
-    with patch("src.services.tweet.run_headless", side_effect=fake_run):
+    with patch("src.services.social.tweet.run_headless", side_effect=fake_run):
         tweet.extract_tweet("MY UNIQUE TRANSCRIPT MARKER", elapsed_seconds=42)
 
     assert "MY UNIQUE TRANSCRIPT MARKER" in captured["prompt"]
@@ -79,7 +79,7 @@ def test_extract_tweet_injects_transcript_and_elapsed_into_prompt():
 def test_extract_tweet_retries_once_on_subprocess_failure_then_succeeds():
     bad = CompletedProcess(args=["claude"], returncode=1, stdout="", stderr="rate limited")
     good = _proc(_VALID_TWEET)
-    with patch("src.services.tweet.run_headless", side_effect=[bad, good]) as m:
+    with patch("src.services.social.tweet.run_headless", side_effect=[bad, good]) as m:
         result = tweet.extract_tweet("t")
     assert m.call_count == 2
     assert result == _VALID_TWEET
@@ -87,13 +87,13 @@ def test_extract_tweet_retries_once_on_subprocess_failure_then_succeeds():
 
 def test_extract_tweet_raises_after_two_subprocess_failures():
     bad = CompletedProcess(args=["claude"], returncode=1, stdout="", stderr="boom")
-    with patch("src.services.tweet.run_headless", return_value=bad):
+    with patch("src.services.social.tweet.run_headless", return_value=bad):
         with pytest.raises(tweet.ExtractionError, match="claude CLI exited"):
             tweet.extract_tweet("t")
 
 
 def test_extract_tweet_raises_on_empty_output():
-    with patch("src.services.tweet.run_headless", return_value=_proc("   \n  ")):
+    with patch("src.services.social.tweet.run_headless", return_value=_proc("   \n  ")):
         with pytest.raises(tweet.ExtractionError, match="empty"):
             tweet.extract_tweet("t")
 
@@ -107,8 +107,8 @@ def test_generate_tweet_returns_text_and_session_block():
         ]),
         _assistant_text("Done."),
     ]
-    with patch("src.services.tweet.load_session_messages", return_value=messages), \
-         patch("src.services.tweet.run_headless", return_value=_proc(_VALID_TWEET)):
+    with patch("src.services.social.tweet.load_session_messages", return_value=messages), \
+         patch("src.services.social.tweet.run_headless", return_value=_proc(_VALID_TWEET)):
         payload = tweet.generate_tweet(
             session_id="abc",
             conn=_FakeConn(),
@@ -119,14 +119,14 @@ def test_generate_tweet_returns_text_and_session_block():
 
 
 def test_generate_tweet_raises_session_not_found_when_no_messages():
-    with patch("src.services.tweet.load_session_messages", return_value=[]):
+    with patch("src.services.social.tweet.load_session_messages", return_value=[]):
         with pytest.raises(tweet.SessionNotFoundError):
             tweet.generate_tweet("x", _FakeConn(), Path("/tmp/x"))
 
 
 def test_generate_tweet_raises_no_tool_calls():
     messages = [_user("hi"), _assistant_text("hello")]
-    with patch("src.services.tweet.load_session_messages", return_value=messages):
+    with patch("src.services.social.tweet.load_session_messages", return_value=messages):
         with pytest.raises(tweet.NoToolCallsError):
             tweet.generate_tweet("x", _FakeConn(), Path("/tmp/x"))
 
@@ -146,8 +146,8 @@ def test_generate_tweet_passes_elapsed_seconds_from_stats_into_prompt():
         captured["prompt"] = prompt
         return _proc(_VALID_TWEET)
 
-    with patch("src.services.tweet.load_session_messages", return_value=messages), \
-         patch("src.services.tweet.run_headless", side_effect=fake_run):
+    with patch("src.services.social.tweet.load_session_messages", return_value=messages), \
+         patch("src.services.social.tweet.run_headless", side_effect=fake_run):
         tweet.generate_tweet("x", _FakeConn(), Path("/tmp/x"))
 
     # 1_017_000 - 1_000_000 = 17_000 ms -> 17 seconds

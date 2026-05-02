@@ -3,9 +3,7 @@ import { Camera } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchModules,
-  archiveModule,
   deleteModule,
-  unarchiveModule,
   type ModuleInfo,
 } from "../api/modules";
 import {
@@ -25,10 +23,6 @@ import { invalidateModuleQueries } from "../lib/queryClient";
 import { DecisionTreePanel } from "./chat/DecisionTreePanel";
 import { SyncControls } from "./SyncControls";
 import { WorkspaceGroup } from "./sidebar/WorkspaceGroup";
-import { WorkflowsGroup } from "./sidebar/WorkflowsGroup";
-import { TaskCard } from "./sidebar/cards/TaskCard";
-import { ArchiveModal } from "./sidebar/ArchiveModal";
-import { CreateTaskModal } from "./sidebar/CreateTaskModal";
 import { ConfirmDeleteModal } from "./sidebar/ConfirmDeleteModal";
 import { SocialPostModal } from "./social-post/SocialPostModal";
 
@@ -54,8 +48,6 @@ function useIsDesktop() {
 export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanelProps = {}) {
   const queryClient = useQueryClient();
   const isDesktop = useIsDesktop();
-  const [showArchiveModal, setShowArchiveModal] = useState(false);
-  const [showCreateTask, setShowCreateTask] = useState(false);
   const [postSessionId, setPostSessionId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<
     { name: string; kind: "task" | "integration" | "workflow" } | null
@@ -160,16 +152,6 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
   const allModuleInfos: ModuleInfo[] = modulesData?.modules || [];
   const loaded = workspace?.modules || [];              // LoadedModule[] — currently loaded
 
-  const activeTasks = allModuleInfos.filter(
-    (m) => m.kind === "task" && !m.archived && !m.parent_workflow,
-  );
-  const archivedTasks = allModuleInfos.filter((m) => m.kind === "task" && m.archived);
-  const integrations = allModuleInfos.filter((m) => m.kind === "integration");
-
-  const archiveMutation = useMutation({
-    mutationFn: archiveModule,
-    onSuccess: () => invalidateModuleQueries(queryClient),
-  });
   const deleteMutation = useMutation({
     mutationFn: deleteModule,
     onSuccess: () => invalidateModuleQueries(queryClient),
@@ -182,23 +164,6 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
       : currentNames.filter((n) => n !== name);
     loadMutation.mutate(nextNames);
   };
-
-  const handleToggleIntegration = (name: string, enabled: boolean) =>
-    handleToggleModule(name, enabled);
-
-  const renderTaskCard = (task: ModuleInfo) => (
-    <TaskCard
-      key={task.name}
-      info={task}
-      loaded={loaded.find((m) => m.name === task.name) ?? null}
-      onToggle={(enabled) => handleToggleModule(task.name, enabled)}
-      onEdit={() => openEditor(task.name)}
-      onArchive={async () => {
-        await archiveMutation.mutateAsync(task.name);
-      }}
-      onDelete={() => setPendingDelete({ name: task.name, kind: "task" })}
-    />
-  );
 
   const panelBody = (
     <>
@@ -281,77 +246,20 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
       <div className="flex-1 overflow-y-auto px-2.5 py-2.5">
         {tab === "context" && (
           <div>
-            {/* ---- Workflows Zone (above Active Tasks) ---- */}
-            <div className="mb-3">
-              <WorkflowsGroup
-                tasks={allModuleInfos.filter((m) => m.kind === "task" && !m.archived)}
-                loadedNames={new Set(loaded.map((m) => m.name))}
-                renderRun={renderTaskCard}
-                onDelete={(name) =>
-                  setPendingDelete({ name, kind: "workflow" })
-                }
-              />
-            </div>
-
-            {/* ---- Active Tasks Zone ---- */}
-            <div className="mb-1">
-              <div className="flex items-center justify-between mb-2 px-1">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-text-muted">
-                  Active Tasks
-                </span>
-                <span className="flex items-center gap-2">
-                  {archivedTasks.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setShowArchiveModal(true)}
-                      className="text-[9px] text-accent hover:text-accent-hover"
-                    >
-                      Archive ↗
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateTask(true)}
-                    className="text-[9px] text-accent hover:text-accent-hover"
-                  >
-                    + New
-                  </button>
-                </span>
-              </div>
-
-              {activeTasks.length === 0 ? (
-                <div className="text-center py-5 text-text-muted text-[10px]">
-                  No active tasks
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateTask(true)}
-                    className="block mx-auto mt-2 text-[10px] text-accent bg-accent/10 border border-accent/30 px-3 py-1 rounded"
-                  >
-                    + New
-                  </button>
-                </div>
-              ) : (
-                activeTasks.map(renderTaskCard)
-              )}
-            </div>
-
-            {/* ---- Divider ---- */}
-            <div className="my-3 border-t border-border" />
-
             {/* ---- Workspace Zone ---- */}
             <div>
               <div className="text-[9px] font-bold uppercase tracking-wider text-text-muted mb-2 px-1">
                 Workspace
               </div>
               <WorkspaceGroup
-                integrations={integrations}
+                modules={allModuleInfos}
                 loaded={loaded}
-                onToggleIntegration={handleToggleIntegration}
+                onToggleModule={handleToggleModule}
                 onRefreshSecrets={() => secretsMutation.mutate()}
                 isRefreshingSecrets={secretsMutation.isPending}
                 onEditModule={(name) => openEditor(name)}
-                onDeleteIntegration={(name) =>
-                  setPendingDelete({ name, kind: "integration" })
+                onDeleteModule={(name, kind) =>
+                  setPendingDelete({ name, kind })
                 }
               />
             </div>
@@ -455,19 +363,6 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
 
   const modals = (
     <>
-      {showArchiveModal && (
-        <ArchiveModal
-          archivedTasks={archivedTasks}
-          onClose={() => setShowArchiveModal(false)}
-          onUnarchive={async (name) => {
-            await unarchiveModule(name);
-            invalidateModuleQueries(queryClient);
-          }}
-        />
-      )}
-      {showCreateTask && (
-        <CreateTaskModal onClose={() => setShowCreateTask(false)} />
-      )}
       {postSessionId !== null && (
         <SocialPostModal
           sessionId={postSessionId}

@@ -8,7 +8,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 from src.models import TweetGenerateRequest, TweetPayload
-from src.services import tweet
+from src.services.social import tweet
 
 router = APIRouter(prefix="/api", tags=["tweet"])
 

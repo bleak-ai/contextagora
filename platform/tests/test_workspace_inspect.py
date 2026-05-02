@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from src.services.workspace_inspect import list_workspace_files
+from src.services.modules.workspace_inspect import list_workspace_files
 
 MANAGED = frozenset({"module.yaml", "llms.txt"})
 

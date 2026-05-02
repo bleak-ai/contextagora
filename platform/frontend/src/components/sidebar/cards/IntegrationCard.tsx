@@ -169,6 +169,8 @@ export function IntegrationCard({
   return (
     <ModuleCardShell
       tone={tone}
+      kind="integration"
+      hasGrowthAreas={info.has_growth_areas}
       headerMiddle={headerMiddle}
       headerRight={headerRight}
     >

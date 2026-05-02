@@ -27,7 +27,6 @@
 - [platform/src/routes/workflows.py](platform/src/routes/workflows.py) — Workflow routes (GET /api/workflows lists kind=workflow modules; POST /api/workflows/{workflow}/runs creates a run task — maps WorkflowNotFound → 404, WorkflowEntryStepMissing/ValueError → 400)
 - [platform/frontend/src/api/sync.ts](platform/frontend/src/api/sync.ts) — Sync API client (fetchSyncStatus, pullSync, pushSync)
 - [platform/frontend/src/api/jobs.ts](platform/frontend/src/api/jobs.ts) — Jobs API client (fetchJobs, fetchJobRuns, triggerJob; Job and JobRun types)
-- [platform/frontend/src/api/workflows.ts](platform/frontend/src/api/workflows.ts) — Workflows API client (fetchWorkflows; Workflow type — name, summary, entry_step, steps, in_flight_runs)
 - [platform/frontend/src/components/SyncControls.tsx](platform/frontend/src/components/SyncControls.tsx) — Pull/Push buttons driven by sync status
 - [platform/src/services/manifest.py](platform/src/services/manifest.py) — ModuleManifest Pydantic model + read_manifest/write_manifest I/O; replaces per-module .env.schema and requirements.txt with a single module.yaml
 - [platform/src/services/jobs.py](platform/src/services/jobs.py) — In-process JobScheduler: ticks every 30s, fires due module cron jobs as subprocesses, supports manual trigger_now; RunRecord + module-level singleton
@@ -35,6 +34,7 @@
 - [platform/src/services/workflows.py](platform/src/services/workflows.py) — Workflow listing and run-creation service: list_workflows() returns WorkflowSummary list (kind=workflow modules with in-flight run counts); start_run(workflow_name, title) creates a run task directory with module.yaml/status.md/info.md/llms.txt and triggers reload_workspace
 - [platform/src/services/workspace.py](platform/src/services/workspace.py) — Workspace management: list_loaded_modules, get_loaded_module_names, reload_workspace (clear and re-link modules into context directory)
 - [platform/src/services/secrets.py](platform/src/services/secrets.py) — Varlock secret status and loading
+- [platform/src/services/modules/growth_areas.py](platform/src/services/modules/growth_areas.py) — Parser/serializer for `## Where to write` sections in module llms.txt; GrowthArea dataclass, parse(), replace_section(), NAMING_REGEXES
 - [platform/frontend/](platform/frontend/) — React SPA (Vite + TanStack Router + TanStack Query)
 - [platform/frontend/src/api/](platform/frontend/src/api/) — API client layer (fetch wrapper, modules, workspace, chat, sessions, commands)
 - [platform/frontend/src/api/commands.ts](platform/frontend/src/api/commands.ts) — Slash commands API client (fetchCommands, Command type)
@@ -50,11 +50,7 @@
 - [platform/frontend/src/components/sidebar/WorkspaceGroup.tsx](platform/frontend/src/components/sidebar/WorkspaceGroup.tsx) — Collapsible integrations group with root files (CLAUDE.md, llms.txt), integration cards with ON/OFF toggles, and create/refresh actions
 - [platform/frontend/src/components/sidebar/JobsPanel.tsx](platform/frontend/src/components/sidebar/JobsPanel.tsx) — Sidebar panel listing all scheduled jobs with status dots, schedule cadence, last-run time, and inline Run button; polls every 5s
 - [platform/frontend/src/components/sidebar/JobRunsModal.tsx](platform/frontend/src/components/sidebar/JobRunsModal.tsx) — Modal showing the run history for a single job with expandable stdout/stderr panes; polls every 5s
-- [platform/frontend/src/components/sidebar/WorkflowsGroup.tsx](platform/frontend/src/components/sidebar/WorkflowsGroup.tsx) — Workflows sidebar zone (above Active Tasks): collapsible per-workflow cards showing steps, in-flight runs (filtered from active tasks by parent_workflow), Start-run + Edit actions
-- [platform/frontend/src/components/sidebar/StartRunModal.tsx](platform/frontend/src/components/sidebar/StartRunModal.tsx) — Modal that collects a run title, resets activeClaudeSessionId to null, and seeds a new chat with the canonical workflow start message (so each run lives in its own chat)
 - [platform/frontend/src/components/Modal.tsx](platform/frontend/src/components/Modal.tsx) — Shared modal wrapper: backdrop, click-outside, Escape-key handling with opt-out props
-- [platform/frontend/src/components/sidebar/ArchiveModal.tsx](platform/frontend/src/components/sidebar/ArchiveModal.tsx) — Modal for managing archived tasks with unarchive and delete actions
-- [platform/frontend/src/components/sidebar/CreateTaskModal.tsx](platform/frontend/src/components/sidebar/CreateTaskModal.tsx) — Modal dialog for creating a new task module; posts to createTask API and invalidates modules/workspace queries on success
 - [platform/frontend/src/routes/](platform/frontend/src/routes/) — TanStack Router file-based routes
 - [platform/frontend/src/utils/humanizeToolCall.ts](platform/frontend/src/utils/humanizeToolCall.ts) — Utility to translate raw tool call names/args into human-readable labels with module resolution
 - [platform/Dockerfile](platform/Dockerfile) — Multi-stage container image (Node build + Python runtime)

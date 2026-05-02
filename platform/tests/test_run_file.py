@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.services.schemas import validate_module_file_path
+from src.services.modules.schemas import validate_module_file_path
 
 
 # ---------------------------------------------------------------------------

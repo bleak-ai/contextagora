@@ -10,14 +10,14 @@ from fastapi.responses import StreamingResponse
 from src.commands import list_commands
 from src.models import ChatRequest
 from src.config import settings
-from src.services import claude, sessions_store
-from src.services.claude_sessions import (
+from src.services.chat import claude, sessions_store
+from src.services.chat.claude_sessions import (
     claude_project_dir,
     list_sessions,
     load_session_messages,
 )
-from src.services.suggestion_parser import SuggestionBuffer
-from src.services.transcript_recorder import TranscriptRecorder
+from src.services.chat.suggestion_parser import SuggestionBuffer
+from src.services.chat.transcript_recorder import TranscriptRecorder
 
 log = logging.getLogger(__name__)
 

@@ -1,5 +1,5 @@
 # platform/tests/test_transcript_recorder.py
-from src.services.transcript_recorder import TranscriptRecorder
+from src.services.chat.transcript_recorder import TranscriptRecorder
 
 
 def test_empty_recorder_has_no_messages():

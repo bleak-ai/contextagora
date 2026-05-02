@@ -7,7 +7,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 from src.models import LinkedinGenerateRequest, LinkedinPayload
-from src.services import linkedin
+from src.services.social import linkedin
 
 router = APIRouter(prefix="/api", tags=["linkedin"])
 

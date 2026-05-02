@@ -11,14 +11,14 @@ from __future__ import annotations
 from pathlib import Path
 
 from src.models import SocialPostPayload
-from src.services.claude import run_headless
-from src.services.social_post import ExtractionError, _strip_fences
+from src.services.chat.claude import run_headless
+from src.services.social.social_post import ExtractionError, _strip_fences
 
 __all__ = ["ExtractionError", "extract_tweet", "generate_tweet"]
 
 
 _PROMPT_PATH = (
-    Path(__file__).parent.parent / "prompts" / "commands" / "tweet_extraction.md"
+    Path(__file__).parent.parent.parent / "prompts" / "commands" / "tweet_extraction.md"
 )
 
 

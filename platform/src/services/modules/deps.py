@@ -13,7 +13,7 @@ def install_module_deps(module_dir: Path) -> subprocess.CompletedProcess | None:
     Reads the manifest to get the dependency list. Returns the
     CompletedProcess if there are deps to install, None otherwise.
     """
-    from src.services.manifest import read_manifest
+    from src.services.modules.manifest import read_manifest
 
     manifest = read_manifest(module_dir)
     if not manifest.dependencies:
@@ -35,8 +35,8 @@ def install_all_module_deps() -> None:
     so runtime-installed packages vanish. Iterates every module in
     modules-repo/ (persistent via git clone), skipping ones with no deps.
     """
-    from src.services import git_repo
-    from src.services.manifest import read_manifest
+    from src.services.modules import git_repo
+    from src.services.modules.manifest import read_manifest
 
     names = git_repo.list_modules()
     targets = [
