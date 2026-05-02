@@ -33,6 +33,7 @@ class ModuleInfo(BaseModel):
     kind: str = "integration"
     summary: str = ""
     has_growth_areas: bool = False
+    archived: bool = False
 
 
 class PushRequest(BaseModel):

@@ -74,7 +74,12 @@ export function Chat() {
           </div>
           {/* Thread */}
           <Thread
-            emptyState={<WelcomeScreen modules={allModules} />}
+            emptyState={
+              <WelcomeScreen
+                modules={allModules}
+                sessionId={activeClaudeSessionId}
+              />
+            }
             onNewSession={hasMessages ? startNewSession : undefined}
           />
         </div>
@@ -87,21 +92,39 @@ export function Chat() {
   );
 }
 
-function WelcomeScreen({ modules }: { modules: ModuleInfo[] }) {
+function WelcomeScreen({
+  modules,
+  sessionId,
+}: {
+  modules: ModuleInfo[];
+  sessionId: string | null;
+}) {
   const composerRuntime = useComposerRuntime();
+  const setMode = useChatStore((s) => s.setMode);
   const tasks = modules.filter((m) => m.kind === "task");
   const workflows = modules.filter((m) => m.kind === "workflow");
   const integrations = modules.filter((m) => m.kind === "integration");
 
-  const prefillTask = (name: string) =>
+  // Tasks and workflows imply context offloading: the agent will likely need
+  // to update status, log findings, or write back into the module. Flip the
+  // toggle on so the user doesn't have to.
+  const enableOffloading = () => {
+    void setMode("normal", sessionId);
+  };
+
+  const prefillTask = (name: string) => {
+    enableOffloading();
     composerRuntime.setText(
       `Let's continue working on the ${name} task (context: modules-repo/${name}/). Read its info.md (and any status notes) and tell me where we left off and what to do next.`,
     );
+  };
 
-  const prefillWorkflow = (name: string) =>
+  const prefillWorkflow = (name: string) => {
+    enableOffloading();
     composerRuntime.setText(
       `Let's run the ${name} workflow (context: modules-repo/${name}/). Read its info.md, then walk me through it step by step starting with step 1.`,
     );
+  };
 
   return (
     <div className="w-full max-w-[900px] px-6 space-y-8">

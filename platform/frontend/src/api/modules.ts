@@ -53,6 +53,15 @@ export function deleteModule(name: string): Promise<{ status: string }> {
   return apiFetch(`/modules/${name}`, { method: "DELETE" });
 }
 
+export function archiveModule(
+  name: string,
+  archived: boolean,
+): Promise<{ name: string; archived: boolean }> {
+  return apiFetch(`/modules/${name}/archive?archived=${archived}`, {
+    method: "POST",
+  });
+}
+
 export interface ModuleFile {
   name: string;
   path: string;

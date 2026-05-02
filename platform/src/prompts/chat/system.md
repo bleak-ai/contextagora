@@ -14,6 +14,13 @@ template). Do NOT invent a new location.
 
 If no module matches, you may answer from general knowledge.
 
+## Module schema
+
+When you create or edit a `module.yaml`, follow exactly this schema. Unknown
+fields are rejected by the server.
+
+{module_schema}
+
 ## Mode contract
 
 {mode}

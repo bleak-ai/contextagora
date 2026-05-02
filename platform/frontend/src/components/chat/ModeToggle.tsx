@@ -5,36 +5,48 @@ type Props = {
   onChange: (mode: ChatMode) => void;
 };
 
+// Maps the binary chat mode to a switch state.
+// "normal" = context offloading ON (agent may propose writes with confirm).
+// "quick"  = context offloading OFF (read-only).
 export function ModeToggle({ mode, onChange }: Props) {
-  const base =
-    "px-2.5 py-1 text-[11px] font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-accent/60";
-  const active = "bg-accent text-accent-text";
-  const inactive = "bg-bg-raised text-text-secondary hover:text-text hover:bg-bg-hover";
+  const isOn = mode === "normal";
+  const next: ChatMode = isOn ? "quick" : "normal";
 
   return (
-    <div
-      className="inline-flex rounded-md border border-border overflow-hidden"
-      role="group"
-      aria-label="Chat mode"
+    <button
+      type="button"
+      role="switch"
+      aria-checked={isOn}
+      onClick={() => onChange(next)}
+      title={
+        isOn
+          ? "Context offloading is ON — the agent can propose writes (with confirm)."
+          : "Context offloading is OFF — read-only chat. The agent cannot write."
+      }
+      className="group inline-flex items-center gap-3 rounded-full border border-border bg-bg-raised pl-1.5 pr-4 py-1.5 text-xs font-medium text-text-secondary hover:bg-bg-hover hover:text-text transition-colors focus:outline-none focus:ring-1 focus:ring-accent/60"
     >
-      <button
-        type="button"
-        onClick={() => onChange("normal")}
-        aria-pressed={mode === "normal"}
-        title="Normal: agent can read and propose writes (with confirm)"
-        className={`${base} ${mode === "normal" ? active : inactive}`}
+      <span
+        className={`relative inline-flex items-center w-11 h-6 rounded-full transition-colors ${
+          isOn ? "bg-accent" : "bg-border"
+        }`}
+        aria-hidden="true"
       >
-        Normal
-      </button>
-      <button
-        type="button"
-        onClick={() => onChange("quick")}
-        aria-pressed={mode === "quick"}
-        title="Quick: read-only chat. Agent cannot write anything."
-        className={`${base} border-l border-border ${mode === "quick" ? active : inactive}`}
-      >
-        Quick
-      </button>
-    </div>
+        <span
+          className={`absolute top-0.5 inline-block w-5 h-5 rounded-full bg-bg shadow-sm transition-transform ${
+            isOn ? "translate-x-[22px]" : "translate-x-0.5"
+          }`}
+        />
+      </span>
+      <span className="leading-none">
+        Context offloading
+        <span
+          className={`ml-2 tabular-nums ${
+            isOn ? "text-accent" : "text-text-muted"
+          }`}
+        >
+          {isOn ? "On" : "Off"}
+        </span>
+      </span>
+    </button>
   );
 }

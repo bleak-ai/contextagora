@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 KINDS = ("integration", "task", "workflow")
 
@@ -47,9 +47,15 @@ def parse_every(value: str) -> int:
 
 
 class JobSpec(BaseModel):
-    name: str
-    script: str
-    every: str
+    name: str = Field(..., description="Job identifier; unique within the module.")
+    script: str = Field(
+        ...,
+        description="Relative path to the script inside the module directory. Absolute paths and `..` traversal are rejected.",
+    )
+    every: str = Field(
+        ...,
+        description="Cron-like cadence as `<digits><s|m|h>` (e.g. `30s`, `5m`, `1h`). Minimum 30s.",
+    )
 
     @field_validator("script")
     @classmethod
@@ -70,11 +76,30 @@ class JobSpec(BaseModel):
 
 
 class ModuleManifest(BaseModel):
-    name: str
-    kind: str = "integration"   # "integration" | "task" | "workflow"
-    secrets: list[str] = []
-    dependencies: list[str] = []
-    jobs: list[JobSpec] = []
+    name: str = Field(
+        ...,
+        description="Folder slug; must match the module directory name.",
+    )
+    kind: str = Field(
+        default="integration",
+        description='One of: "integration", "task", "workflow". Drives how the module is rendered in the sidebar.',
+    )
+    archived: bool = Field(
+        default=False,
+        description="Hide from the active sidebar without deleting. Archived modules appear under a collapsed Archived section and cannot be loaded into the workspace.",
+    )
+    secrets: list[str] = Field(
+        default_factory=list,
+        description="Environment variable names this module needs at runtime. Resolved via varlock from the workspace .env.schema.",
+    )
+    dependencies: list[str] = Field(
+        default_factory=list,
+        description="Python packages required at runtime. Installed into the platform venv at boot.",
+    )
+    jobs: list[JobSpec] = Field(
+        default_factory=list,
+        description="Cron-like scheduled scripts owned by this module.",
+    )
 
 
 def read_manifest(module_dir: Path) -> ModuleManifest:
@@ -96,6 +121,8 @@ def write_manifest(module_dir: Path, manifest: ModuleManifest) -> None:
     data: dict[str, str | bool | list[str]] = {"name": manifest.name}
     if manifest.kind != "integration":
         data["kind"] = manifest.kind
+    if manifest.archived:
+        data["archived"] = manifest.archived
     if manifest.secrets:
         data["secrets"] = manifest.secrets
     if manifest.dependencies:
@@ -120,3 +147,70 @@ def slugify_task_name(name: str) -> str:
     slug = _SLUG_NON_ALPHANUM.sub("-", slug)
     slug = _SLUG_DASH_RUN.sub("-", slug)
     return slug.strip("-")
+
+
+_PRIMITIVE_NAMES = {
+    str: "str",
+    int: "int",
+    float: "float",
+    bool: "bool",
+}
+
+
+def _format_default(field) -> str:
+    if field.is_required():
+        return "required"
+    factory = field.default_factory
+    if factory is not None:
+        try:
+            default = factory()
+        except TypeError:
+            default = None
+    else:
+        default = field.default
+    if isinstance(default, bool):
+        return "default false" if default is False else "default true"
+    if isinstance(default, str):
+        return f'default "{default}"'
+    if isinstance(default, list) and not default:
+        return "default []"
+    return f"default {default!r}"
+
+
+def _format_type(annotation) -> str:
+    if annotation in _PRIMITIVE_NAMES:
+        return _PRIMITIVE_NAMES[annotation]
+    origin = getattr(annotation, "__origin__", None)
+    if origin is list:
+        (inner,) = annotation.__args__
+        if inner is JobSpec:
+            return "list[JobSpec]"
+        return f"list[{_PRIMITIVE_NAMES.get(inner, inner.__name__)}]"
+    return getattr(annotation, "__name__", str(annotation))
+
+
+def render_schema_md() -> str:
+    """Render ModuleManifest as a markdown schema block for prompt injection.
+
+    Walks the model's fields and emits one bullet per field with type,
+    default, and description. Single source of truth for what the AI
+    should write into module.yaml — adding a new field here makes it
+    visible to the chat agent automatically.
+    """
+    lines = ["## module.yaml schema", ""]
+    for field_name, field in ModuleManifest.model_fields.items():
+        type_str = _format_type(field.annotation)
+        default_str = _format_default(field)
+        desc = field.description or ""
+        lines.append(f"- `{field_name}` ({type_str}, {default_str}) — {desc}")
+        if type_str == "list[JobSpec]":
+            for sub_name, sub in JobSpec.model_fields.items():
+                sub_type = _format_type(sub.annotation)
+                sub_default = _format_default(sub)
+                sub_desc = sub.description or ""
+                lines.append(f"  - `{sub_name}` ({sub_type}, {sub_default}) — {sub_desc}")
+    lines.append("")
+    lines.append(
+        "Omit fields that match their default. Unknown fields are rejected."
+    )
+    return "\n".join(lines)

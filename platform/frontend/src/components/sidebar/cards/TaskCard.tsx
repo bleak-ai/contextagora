@@ -4,6 +4,8 @@ import {
   Edit2,
   ChevronDown,
   ChevronRight,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
 import type { ModuleInfo } from "../../../api/modules";
 import type { LoadedModule } from "../../../api/workspace";
@@ -18,6 +20,7 @@ interface TaskCardProps {
   onToggle?: (enabled: boolean) => void;
   onDelete?: () => void | Promise<void>;
   onEdit?: () => void;
+  onArchiveToggle?: (archived: boolean) => void | Promise<void>;
 }
 
 export function TaskCard({
@@ -26,9 +29,11 @@ export function TaskCard({
   onToggle,
   onDelete,
   onEdit,
+  onArchiveToggle,
 }: TaskCardProps) {
   const isOn = loaded !== null;
-  const tone = isOn ? "task-on" : "task-off";
+  const isArchived = info.archived;
+  const tone = isArchived ? "task-off" : isOn ? "task-on" : "task-off";
 
   const openModuleEditor = useModuleEditorStore((s) => s.openModuleEditor);
   const handleEdit = () => (onEdit ? onEdit() : openModuleEditor(info.name));
@@ -54,7 +59,7 @@ export function TaskCard({
 
   const headerRight = (
     <>
-      {onToggle && (
+      {onToggle && !isArchived && (
         <button
           type="button"
           onClick={(e) => {
@@ -111,9 +116,14 @@ export function TaskCard({
               checkboxes={loaded.checkboxes}
             />
           )}
-          {!isOn && (
+          {!isOn && !isArchived && (
             <p className="text-[10px] italic text-text-muted">
               Off. Turn on to load this task into the workspace.
+            </p>
+          )}
+          {isArchived && (
+            <p className="text-[10px] italic text-text-muted">
+              Archived. Unarchive to load it again.
             </p>
           )}
 
@@ -125,6 +135,23 @@ export function TaskCard({
             >
               <Edit2 className="w-3 h-3" /> Edit
             </button>
+            {onArchiveToggle && (
+              <button
+                type="button"
+                onClick={() => onArchiveToggle(!isArchived)}
+                className="text-[10px] text-text-muted hover:text-accent flex items-center gap-1"
+              >
+                {isArchived ? (
+                  <>
+                    <ArchiveRestore className="w-3 h-3" /> Unarchive
+                  </>
+                ) : (
+                  <>
+                    <Archive className="w-3 h-3" /> Archive
+                  </>
+                )}
+              </button>
+            )}
             {onDelete && (
               <button
                 type="button"

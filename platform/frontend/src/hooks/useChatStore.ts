@@ -69,7 +69,7 @@ export const useChatStore = create<ChatState>()(
       streamingSessionId: null,
       abortController: null,
       model: null,
-      mode: "normal",
+      mode: "quick",
       currentTreeState: null,
 
       sendMessage: (inputSessionId: string | null, prompt: string) => {

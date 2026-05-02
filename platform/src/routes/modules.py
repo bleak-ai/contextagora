@@ -43,6 +43,7 @@ async def api_list_modules():
             kind=manifest.kind,
             summary=summary,
             has_growth_areas=has_growth_areas,
+            archived=manifest.archived,
         ))
     return {"modules": modules}
 
@@ -143,6 +144,30 @@ async def api_update_module(name: str, body: UpdateModuleRequest):
     write_manifest(git_repo.module_dir(name), manifest)
 
     return {"name": name}
+
+
+@router.post("/{name}/archive")
+async def api_archive_module(name: str, archived: bool = True):
+    """Toggle a module's archived flag.
+
+    Archiving while currently loaded auto-unloads from the workspace —
+    we never want an archived module to keep feeding context. Unarchive
+    does NOT auto-load: the user opts in via the regular toggle.
+    """
+    if not git_repo.module_exists(name):
+        return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
+
+    module_dir = git_repo.module_dir(name)
+    manifest = read_manifest(module_dir)
+    write_manifest(module_dir, manifest.model_copy(update={"archived": archived}))
+
+    if archived:
+        loaded = get_loaded_module_names()
+        if name in loaded:
+            loaded.remove(name)
+            reload_workspace(loaded)
+
+    return {"name": name, "archived": archived}
 
 
 @router.delete("/{name}")

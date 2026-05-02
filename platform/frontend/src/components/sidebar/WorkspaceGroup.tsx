@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ChevronDown, ChevronRight, RotateCw } from "lucide-react";
+import { ChevronDown, ChevronRight, RotateCw, Archive } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchRootContext } from "../../api/rootContext";
 import type { ModuleInfo } from "../../api/modules";
@@ -21,6 +21,7 @@ interface WorkspaceGroupProps {
   isRefreshingSecrets: boolean;
   onEditModule: (name: string) => void;
   onDeleteModule: (name: string, kind: "task" | "integration" | "workflow") => void;
+  onArchiveModule: (name: string, archived: boolean) => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -55,6 +56,7 @@ export function WorkspaceGroup({
   isRefreshingSecrets,
   onEditModule,
   onDeleteModule,
+  onArchiveModule,
 }: WorkspaceGroupProps) {
   const [expanded, setExpanded] = useState(false);
   const [rootPreview, setRootPreview] = useState<
@@ -84,14 +86,20 @@ export function WorkspaceGroup({
     [loaded, moduleNames],
   );
 
-  /* --- sort: loaded first, then idle --- */
-  const sortedModules = useMemo(() => {
+  /* --- partition: active (sorted: loaded first) vs archived --- */
+  const { activeModules, archivedModules } = useMemo(() => {
     const loadedSet = new Set(loaded.map((l) => l.name));
-    return [...modules].sort((a, b) => {
+    const active: ModuleInfo[] = [];
+    const archived: ModuleInfo[] = [];
+    for (const m of modules) {
+      (m.archived ? archived : active).push(m);
+    }
+    active.sort((a, b) => {
       const aLoaded = loadedSet.has(a.name) ? 0 : 1;
       const bLoaded = loadedSet.has(b.name) ? 0 : 1;
       return aLoaded - bLoaded;
     });
+    return { activeModules: active, archivedModules: archived };
   }, [modules, loaded]);
 
   /* --- health dot styling --- */
@@ -179,7 +187,7 @@ export function WorkspaceGroup({
 
           {/* ---- Module cards ---- */}
           <div className="space-y-0">
-            {sortedModules.map((m) => {
+            {activeModules.map((m) => {
               const loadedRecord = loaded.find((l) => l.name === m.name) ?? null;
               if (m.kind === "task") {
                 return (
@@ -190,6 +198,9 @@ export function WorkspaceGroup({
                     onToggle={(enabled) => onToggleModule(m.name, enabled)}
                     onEdit={() => onEditModule(m.name)}
                     onDelete={() => onDeleteModule(m.name, m.kind)}
+                    onArchiveToggle={(archived) =>
+                      onArchiveModule(m.name, archived)
+                    }
                   />
                 );
               }
@@ -205,6 +216,16 @@ export function WorkspaceGroup({
               );
             })}
           </div>
+
+          {/* ---- Archived section ---- */}
+          {archivedModules.length > 0 && (
+            <ArchivedSection
+              modules={archivedModules}
+              onUnarchive={(name) => onArchiveModule(name, false)}
+              onEditModule={onEditModule}
+              onDeleteModule={onDeleteModule}
+            />
+          )}
 
           {/* ---- Footer row ---- */}
           <div className="flex items-center justify-end border-t border-border/50 pt-1.5 mt-1.5">
@@ -232,5 +253,56 @@ export function WorkspaceGroup({
         />
       )}
     </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  ArchivedSection (inline)                                           */
+/* ------------------------------------------------------------------ */
+
+interface ArchivedSectionProps {
+  modules: ModuleInfo[];
+  onUnarchive: (name: string) => void;
+  onEditModule: (name: string) => void;
+  onDeleteModule: (name: string, kind: "task" | "integration" | "workflow") => void;
+}
+
+function ArchivedSection({
+  modules,
+  onUnarchive,
+  onEditModule,
+  onDeleteModule,
+}: ArchivedSectionProps) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-2 pt-2 border-t border-border/40">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-1.5 px-1 text-left text-text-muted hover:text-text"
+      >
+        <Archive className="w-3 h-3" />
+        <span className="text-[10px] font-semibold uppercase tracking-wider flex-1">
+          Archived ({modules.length})
+        </span>
+        {open
+          ? <ChevronDown className="w-3 h-3" />
+          : <ChevronRight className="w-3 h-3" />}
+      </button>
+      {open && (
+        <div className="mt-1.5 space-y-0 opacity-80">
+          {modules.map((m) => (
+            <TaskCard
+              key={m.name}
+              info={m}
+              loaded={null}
+              onEdit={() => onEditModule(m.name)}
+              onDelete={() => onDeleteModule(m.name, m.kind === "task" || m.kind === "workflow" ? m.kind : "integration")}
+              onArchiveToggle={() => onUnarchive(m.name)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

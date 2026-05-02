@@ -19,6 +19,7 @@ from src.services.chat.claude_sessions import (
 from src.services.chat.suggestion_parser import SuggestionBuffer
 from src.services.chat.transcript_recorder import TranscriptRecorder
 from src.services.modules import validator_runtime
+from src.services.modules.manifest import render_schema_md
 
 log = logging.getLogger(__name__)
 
@@ -33,6 +34,8 @@ except FileNotFoundError as e:
         f"chat system prompt missing at {_CHAT_SYSTEM_PROMPT_PATH}; "
         "the server cannot start without it"
     ) from e
+
+_MODULE_SCHEMA_MD = render_schema_md()
 
 _MODE_PROMPT_NORMAL = (
     "[mode: NORMAL — context offloading enabled]\n"
@@ -63,7 +66,11 @@ def _build_mode_prompt(mode: str) -> str:
 
 
 def _build_system_prompt(mode: str) -> str:
-    return _CHAT_SYSTEM_PROMPT.replace("{mode}", _build_mode_prompt(mode))
+    return (
+        _CHAT_SYSTEM_PROMPT
+        .replace("{mode}", _build_mode_prompt(mode))
+        .replace("{module_schema}", _MODULE_SCHEMA_MD)
+    )
 
 
 def _module_slug_for_path(path: Path, modules_repo: Path) -> str | None:

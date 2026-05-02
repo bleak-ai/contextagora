@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchModules,
   deleteModule,
+  archiveModule,
   type ModuleInfo,
 } from "../api/modules";
 import {
@@ -157,6 +158,12 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
     onSuccess: () => invalidateModuleQueries(queryClient),
   });
 
+  const archiveMutation = useMutation({
+    mutationFn: ({ name, archived }: { name: string; archived: boolean }) =>
+      archiveModule(name, archived),
+    onSuccess: () => invalidateModuleQueries(queryClient),
+  });
+
   const handleToggleModule = (name: string, enabled: boolean) => {
     const currentNames = loaded.map((m) => m.name);
     const nextNames = enabled
@@ -260,6 +267,9 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
                 onEditModule={(name) => openEditor(name)}
                 onDeleteModule={(name, kind) =>
                   setPendingDelete({ name, kind })
+                }
+                onArchiveModule={(name, archived) =>
+                  archiveMutation.mutate({ name, archived })
                 }
               />
             </div>
