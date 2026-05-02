@@ -1,18 +1,10 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
 class FileContentRequest(BaseModel):
     content: str
-
-
-class CreateModuleRequest(BaseModel):
-    name: str
-    kind: str = "integration"
-    content: str = ""
-    summary: str = ""
-    description: str = ""
-    secrets: list[str] = []
-    requirements: list[str] = []
 
 
 class UpdateModuleRequest(BaseModel):
@@ -25,6 +17,11 @@ class UpdateModuleRequest(BaseModel):
 class ChatRequest(BaseModel):
     prompt: str
     claude_session_id: str | None = None
+    mode: Literal["normal", "quick"] = "normal"
+
+
+class SessionModeRequest(BaseModel):
+    mode: Literal["normal", "quick"]
 
 
 class WorkspaceLoadRequest(BaseModel):

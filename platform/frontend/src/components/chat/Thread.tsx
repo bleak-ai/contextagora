@@ -10,6 +10,7 @@ import {
 } from "@assistant-ui/react";
 import { SlashCommandSelector, useSlashCommands } from "./SlashCommandSelector";
 import { MentionSelector, useMentionPicker } from "./MentionSelector";
+import { ModeToggle } from "./ModeToggle";
 import { SuggestionPill } from "./SuggestionPill";
 import type { WorkspaceFile } from "../../api/workspace";
 import { MarkdownText } from "./MarkdownText";
@@ -17,6 +18,59 @@ import { ToolCallDisplay } from "./ToolCallDisplay";
 import { ThinkingDisplay } from "./ThinkingDisplay";
 import { useChatStore, NEW_CHAT_KEY } from "../../hooks/useChatStore";
 import { useActiveSessionId } from "../../hooks/useActiveSession";
+import { useModuleEditorStore } from "../../hooks/useModuleEditorStore";
+
+// Matches the entire (context: modules-repo/a/, modules-repo/b/) line.
+// Inner regex captures one or more `modules-repo/<slug>/` segments
+// separated by ", ". MUST stay in sync with the prompt template's
+// "Context pointer" section (`platform/src/prompts/chat/system.md`).
+const CONTEXT_POINTER_RE = /\(context:\s*((?:modules-repo\/[a-z0-9-]+\/)(?:\s*,\s*modules-repo\/[a-z0-9-]+\/)*)\)/g;
+const SEGMENT_RE = /modules-repo\/([a-z0-9-]+)\//g;
+
+function linkifyContextPointers(
+  text: string,
+  onModuleClick: (slug: string) => void,
+): ReactNode {
+  const parts: ReactNode[] = [];
+  let last = 0;
+  let m: RegExpExecArray | null;
+  CONTEXT_POINTER_RE.lastIndex = 0;
+  while ((m = CONTEXT_POINTER_RE.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    const slugs: string[] = [];
+    let s: RegExpExecArray | null;
+    SEGMENT_RE.lastIndex = 0;
+    while ((s = SEGMENT_RE.exec(m[1])) !== null) slugs.push(s[1]);
+    parts.push(
+      <span key={`ptr-${m.index}`}>
+        (context:{" "}
+        {slugs.map((slug, i) => (
+          <span key={`${m!.index}-${i}`}>
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                onModuleClick(slug);
+              }}
+              className="text-accent hover:text-accent-hover underline"
+            >
+              modules-repo/{slug}/
+            </a>
+            {i < slugs.length - 1 ? ", " : ""}
+          </span>
+        ))}
+        )
+      </span>,
+    );
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+}
+
+function stripContextPointers(text: string): string {
+  return text.replace(CONTEXT_POINTER_RE, "").trimEnd();
+}
 
 interface ThreadProps {
   emptyState?: ReactNode;
@@ -47,6 +101,7 @@ export const Thread: FC<ThreadProps> = ({ emptyState, onNewSession }) => {
               AssistantMessage,
             }}
           />
+          <StreamValidationErrors />
           <StreamSuggestions />
         </div>
 
@@ -78,16 +133,43 @@ const UserMessage: FC = () => (
 /**
  * ErrorText detects the __ERROR__ marker injected by convertMessage
  * and renders it in red. Normal text goes through MarkdownText.
+ *
+ * If the assistant text ends with a `(context: modules-repo/<slug>/, ...)`
+ * pointer (see `platform/src/prompts/chat/system.md`), strip it from the
+ * markdown render and re-render it below as clickable links into the
+ * module editor.
  */
 const AssistantText: FC<TextMessagePartProps> = (props) => {
   const { text } = props;
+  const openModuleEditor = useModuleEditorStore((s) => s.openModuleEditor);
+
   if (text.startsWith("\n\n__ERROR__:")) {
     const errorMsg = text.replace("\n\n__ERROR__:", "");
     return (
       <p className="text-sm text-danger mt-2">{errorMsg}</p>
     );
   }
-  return <MarkdownText {...props} />;
+
+  CONTEXT_POINTER_RE.lastIndex = 0;
+  const hasPointer = CONTEXT_POINTER_RE.test(text);
+  CONTEXT_POINTER_RE.lastIndex = 0;
+
+  if (!hasPointer) {
+    return <MarkdownText {...props} />;
+  }
+
+  // Strip the pointer line so the markdown renderer doesn't show it
+  // verbatim, then render it below as a separate clickable element.
+  const pointerText = text.match(CONTEXT_POINTER_RE)?.join(" ") ?? "";
+  CONTEXT_POINTER_RE.lastIndex = 0;
+  return (
+    <>
+      <MarkdownText {...props} preprocess={stripContextPointers} />
+      <div className="text-sm mt-1 text-text-muted">
+        {linkifyContextPointers(pointerText, openModuleEditor)}
+      </div>
+    </>
+  );
 };
 
 const AssistantMessage: FC = () => (
@@ -108,6 +190,48 @@ const AssistantMessage: FC = () => (
     </div>
   </MessagePrimitive.Root>
 );
+
+/**
+ * Renders post-turn module validation errors from the last assistant message
+ * that has them. Backend emits `validation_error` SSE events after a turn
+ * touches any module whose validator returns errors. Like suggestions, these
+ * are ephemeral — they live on the assistant `ChatMessage` for the duration
+ * of the session in memory and are dropped on reload.
+ */
+const StreamValidationErrors: FC = () => {
+  const activeSessionId = useActiveSessionId();
+  const key = activeSessionId ?? NEW_CHAT_KEY;
+  const validationErrors = useChatStore((s) => {
+    const msgs = s.messagesBySession[key] ?? [];
+    const last = msgs[msgs.length - 1];
+    if (last?.role === "assistant" && last.validationErrors?.length) {
+      return last.validationErrors;
+    }
+    return null;
+  });
+
+  if (!validationErrors) return null;
+
+  return (
+    <div className="space-y-2">
+      {validationErrors.map((entry, i) => (
+        <div
+          key={`${entry.module}-${i}`}
+          className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-text"
+        >
+          <div className="font-medium text-danger">
+            Validation errors in module: {entry.module}
+          </div>
+          <ul className="mt-1 list-disc pl-5 text-text-secondary">
+            {entry.errors.map((err, j) => (
+              <li key={j}>{err}</li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 /**
  * Renders the suggestion pills from the last assistant message that has them.
@@ -158,6 +282,9 @@ const Composer: FC<{ onNewSession?: () => void }> = ({ onNewSession }) => {
   const [inputText, setInputText] = useState("");
   const [dismissed, setDismissed] = useState(false);
   const composerRuntime = useComposerRuntime();
+  const activeSessionId = useActiveSessionId();
+  const mode = useChatStore((s) => s.mode);
+  const setMode = useChatStore((s) => s.setMode);
 
   useEffect(() => {
     return composerRuntime.subscribe(() => {
@@ -221,6 +348,14 @@ const Composer: FC<{ onNewSession?: () => void }> = ({ onNewSession }) => {
   return (
     <div className="border-t border-border bg-bg px-4 sm:px-8 md:px-16 py-4">
       <div className="relative max-w-[900px] mx-auto">
+        <div className="mb-2 flex justify-end">
+          <ModeToggle
+            mode={mode}
+            onChange={(m) => {
+              void setMode(m, activeSessionId);
+            }}
+          />
+        </div>
         {showSelector && filtered.length > 0 && (
           <SlashCommandSelector
             filtered={filtered}
@@ -242,7 +377,7 @@ const Composer: FC<{ onNewSession?: () => void }> = ({ onNewSession }) => {
         <ComposerPrimitive.Root className="relative bg-bg-input border border-border rounded-2xl focus-within:border-accent/40 focus-within:shadow-[0_0_0_1px_rgba(196,163,90,0.1)] transition-all">
           <ComposerPrimitive.Input
             autoFocus
-            placeholder="Ask anything..."
+            placeholder={mode === "quick" ? "Ask anything... (read-only)" : "Ask anything..."}
             rows={1}
             maxRows={10}
             onKeyDown={

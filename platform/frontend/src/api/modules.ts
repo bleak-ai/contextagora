@@ -25,21 +25,6 @@ export function fetchModule(name: string): Promise<ModuleDetail> {
   return apiFetch(`/modules/${name}`);
 }
 
-export function createModule(data: {
-  name: string;
-  kind?: "integration" | "task";
-  content?: string;
-  summary?: string;
-  description?: string;
-  secrets?: string[];
-  requirements?: string[];
-}): Promise<{ name: string }> {
-  return apiFetch("/modules", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-
 export interface RunResult {
   exit_code: number;
   stdout: string;

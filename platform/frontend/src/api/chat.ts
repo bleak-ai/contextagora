@@ -1,3 +1,5 @@
+export type ChatMode = "normal" | "quick";
+
 export type ChatEvent =
   | { type: "thinking"; text: string }
   | { type: "text"; text: string }
@@ -9,11 +11,13 @@ export type ChatEvent =
   | { type: "error"; message: string }
   | { type: "done" }
   | { type: "tree_navigation"; active_path: string[]; accessed_files: string[]; module_counts: Record<string, number> }
-  | { type: "suggestion"; prompt: string };
+  | { type: "suggestion"; prompt: string }
+  | { type: "validation_error"; module: string; errors: string[] };
 
 export async function streamChat(
   prompt: string,
   claudeSessionId: string | null,
+  mode: ChatMode,
   onEvent: (event: ChatEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
@@ -23,6 +27,7 @@ export async function streamChat(
     body: JSON.stringify({
       prompt,
       claude_session_id: claudeSessionId ?? undefined,
+      mode,
     }),
     signal,
   });

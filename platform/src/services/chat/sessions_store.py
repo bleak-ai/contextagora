@@ -27,6 +27,10 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 CREATE INDEX IF NOT EXISTS idx_messages_session_created
     ON messages(session_id, created_at_ms);
+CREATE TABLE IF NOT EXISTS sessions (
+    session_id TEXT PRIMARY KEY,
+    mode       TEXT NOT NULL DEFAULT 'normal'
+);
 """
 
 
@@ -83,3 +87,25 @@ def list_messages(conn: sqlite3.Connection, session_id: str) -> list[dict]:
         }
         for mid, role, thinking, parts_json in rows
     ]
+
+
+_VALID_MODES = ("normal", "quick")
+
+
+def get_session_mode(conn: sqlite3.Connection, session_id: str) -> str:
+    row = conn.execute(
+        "SELECT mode FROM sessions WHERE session_id = ?",
+        (session_id,),
+    ).fetchone()
+    return row[0] if row else "normal"
+
+
+def set_session_mode(conn: sqlite3.Connection, session_id: str, mode: str) -> None:
+    if mode not in _VALID_MODES:
+        raise ValueError(f"invalid mode {mode!r}; expected one of {_VALID_MODES}")
+    conn.execute(
+        "INSERT INTO sessions (session_id, mode) VALUES (?, ?) "
+        "ON CONFLICT (session_id) DO UPDATE SET mode = excluded.mode",
+        (session_id, mode),
+    )
+    conn.commit()

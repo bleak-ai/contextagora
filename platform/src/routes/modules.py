@@ -9,7 +9,6 @@ from src.llms import (
 )
 from src.services.modules.growth_areas import parse as parse_growth_areas
 from src.models import (
-    CreateModuleRequest,
     FileContentRequest,
     ModuleInfo,
     UpdateModuleRequest,
@@ -17,11 +16,7 @@ from src.models import (
 from src.config import settings
 from src.services.modules import git_repo
 from src.services.modules.manifest import (
-    KINDS,
-    ModuleManifest,
     read_manifest,
-    scaffold_module,
-    slugify_task_name,
     write_manifest,
 )
 from src.services.modules.schemas import validate_module_file_path
@@ -75,43 +70,6 @@ async def api_get_module(name: str):
         "secrets": manifest.secrets,
         "requirements": manifest.dependencies,
     }
-
-
-@router.post("", status_code=201)
-async def api_create_module(body: CreateModuleRequest):
-    """Create a new module. kind is a labeling tag; scaffold is uniform."""
-    if body.kind not in KINDS:
-        return JSONResponse(
-            {"error": f"Invalid kind '{body.kind}'. Must be one of: {', '.join(KINDS)}"},
-            status_code=400,
-        )
-
-    slug = slugify_task_name(body.name)
-
-    try:
-        git_repo.create_module_dir(slug)
-    except FileExistsError:
-        return JSONResponse(
-            {"error": f"Module '{slug}' already exists"}, status_code=409
-        )
-
-    manifest = ModuleManifest(
-        name=slug,
-        kind=body.kind,
-        secrets=body.secrets,
-        dependencies=body.requirements,
-    )
-    write_manifest(git_repo.module_dir(slug), manifest)
-
-    scaffold_module(slug, body)
-
-    current = get_loaded_module_names()
-    if slug not in current:
-        current.append(slug)
-    reload_workspace(current)
-
-    return {"name": slug}
-
 
 
 @router.post("/{name}/files/{file_path:path}/run")

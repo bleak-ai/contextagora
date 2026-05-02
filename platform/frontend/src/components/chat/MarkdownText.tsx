@@ -148,12 +148,23 @@ const CopyableImage = (props: ImgProps) => {
 const REMARK_PLUGINS = [remarkGfm];
 const MD_COMPONENTS = { a: DownloadLink, pre: CopyablePre, img: CopyableImage };
 
-export const MarkdownText = (_props: TextMessagePartProps) => (
+type MarkdownTextProps = TextMessagePartProps & {
+  /**
+   * Optional text transform applied before markdown processing. Forwarded
+   * to MarkdownTextPrimitive. Used by AssistantText to strip the
+   * `(context: ...)` pointer line before rendering, so it can be
+   * re-rendered as a clickable element separately.
+   */
+  preprocess?: (text: string) => string;
+};
+
+export const MarkdownText = (props: MarkdownTextProps) => (
   <>
     <MarkdownTextPrimitive
       className="aui-md"
       remarkPlugins={REMARK_PLUGINS}
       components={MD_COMPONENTS}
+      preprocess={props.preprocess}
     />
     <MessagePartPrimitive.InProgress>
       <TypingIndicator />

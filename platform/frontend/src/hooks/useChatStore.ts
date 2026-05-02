@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { streamChat, type ChatEvent } from "../api/chat";
+import { streamChat, type ChatEvent, type ChatMode } from "../api/chat";
+import { setSessionMode } from "../api/sessions";
 import { queryClient, invalidateModuleQueries } from "../lib/queryClient";
 
 export const NEW_CHAT_KEY = "__new_chat__";
@@ -18,6 +19,11 @@ export type ContentPart =
   | { type: "text"; text: string }
   | { type: "tool_call"; toolCall: ToolCall };
 
+export interface ValidationErrorEntry {
+  module: string;
+  errors: string[];
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
@@ -26,6 +32,7 @@ export interface ChatMessage {
   streaming: boolean;
   error?: string;
   suggestions?: string[]; // ephemeral, never persisted
+  validationErrors?: ValidationErrorEntry[]; // ephemeral, never persisted
 }
 
 export interface TreeState {
@@ -39,6 +46,7 @@ interface ChatState {
   streamingSessionId: string | null;
   abortController: AbortController | null;
   model: string | null;
+  mode: ChatMode;
   // Live, ephemeral. Belongs to whatever stream is currently running (or
   // whatever just finished). Never persisted, never keyed by session — when
   // the user clicks a past session, they get the *current* live tree, not a
@@ -51,6 +59,7 @@ interface ChatState {
   deleteSessionMessages: (sessionId: string) => void;
   hydrateSession: (sessionId: string, messages: ChatMessage[]) => void;
   resetTreeState: () => void;
+  setMode: (mode: ChatMode, sessionId?: string | null) => Promise<void>;
 }
 
 export const useChatStore = create<ChatState>()(
@@ -60,6 +69,7 @@ export const useChatStore = create<ChatState>()(
       streamingSessionId: null,
       abortController: null,
       model: null,
+      mode: "normal",
       currentTreeState: null,
 
       sendMessage: (inputSessionId: string | null, prompt: string) => {
@@ -131,6 +141,7 @@ export const useChatStore = create<ChatState>()(
         streamChat(
           prompt,
           claudeSessionIdToSend,
+          get().mode,
           (event: ChatEvent) => {
             switch (event.type) {
               case "thinking":
@@ -227,6 +238,15 @@ export const useChatStore = create<ChatState>()(
                   suggestions: [...(m.suggestions ?? []), event.prompt],
                 }));
                 break;
+              case "validation_error":
+                updateAssistant((m) => ({
+                  ...m,
+                  validationErrors: [
+                    ...(m.validationErrors ?? []),
+                    { module: event.module, errors: event.errors },
+                  ],
+                }));
+                break;
               case "tree_navigation":
                 set({
                   currentTreeState: {
@@ -312,6 +332,19 @@ export const useChatStore = create<ChatState>()(
 
       resetTreeState: () => {
         set({ currentTreeState: null });
+      },
+
+      setMode: async (mode: ChatMode, sessionId?: string | null) => {
+        // Update local state immediately so the UI reflects the new mode
+        // even if the persistence call is in flight or fails.
+        set({ mode });
+        if (sessionId) {
+          try {
+            await setSessionMode(sessionId, mode);
+          } catch (e) {
+            console.error("failed to persist session mode", e);
+          }
+        }
       },
     }),
     {

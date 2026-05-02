@@ -10,32 +10,7 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, field_validator
 
-from src.models import CreateModuleRequest
-from src.services.modules import git_repo
-
-
 KINDS = ("integration", "task", "workflow")
-
-
-def scaffold_module(slug: str, body: CreateModuleRequest) -> None:
-    """Write a starter info.md + llms.txt for a new module of any kind.
-
-    No per-kind branching; kind is a labeling tag only.
-    """
-    content = body.content or ""
-    if not content:
-        title = body.name.strip()
-        description = (body.description or "").strip()
-        info_lines = [f"# {title}"]
-        if description:
-            info_lines.append("")
-            info_lines.append(description)
-        content = "\n".join(info_lines) + "\n"
-    git_repo.write_file(slug, "info.md", content)
-
-    summary = (body.description or body.name).strip()
-    llms_lines = [f"# {slug}", f"> {summary}", "", "- [info.md](info.md)"]
-    git_repo.write_file(slug, "llms.txt", "\n".join(llms_lines) + "\n")
 
 
 _EVERY_RE = re.compile(r"^(\d+)([smh])$")

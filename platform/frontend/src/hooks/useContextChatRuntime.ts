@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useExternalStoreRuntime } from "@assistant-ui/react";
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import type { ReadonlyJSONObject } from "assistant-stream/utils";
-import { fetchSessionMessages } from "../api/sessions";
+import { fetchSessionMessages, getSessionMode } from "../api/sessions";
 import { useChatStore, NEW_CHAT_KEY, type ChatMessage } from "./useChatStore";
 
 function convertMessage(msg: ChatMessage): ThreadMessageLike {
@@ -100,6 +100,18 @@ export function useContextChatRuntime(opts: {
   useEffect(() => {
     if (!opts.sessionId || !hydrated) return;
     hydrateSession(opts.sessionId, hydrated.messages);
+    // Fetch this session's persisted mode and reflect it in the chat store.
+    // A failure here must NOT block message loading — the user can still
+    // use the session at the default mode.
+    const sid = opts.sessionId;
+    void (async () => {
+      try {
+        const mode = await getSessionMode(sid);
+        useChatStore.setState({ mode });
+      } catch (e) {
+        console.error("failed to load session mode", e);
+      }
+    })();
   }, [opts.sessionId, hydrated, hydrateSession]);
 
   const runtime = useExternalStoreRuntime({

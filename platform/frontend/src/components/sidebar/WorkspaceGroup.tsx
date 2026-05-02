@@ -7,7 +7,6 @@ import type { LoadedModule } from "../../api/workspace";
 import { IntegrationCard } from "./cards/IntegrationCard";
 import { TaskCard } from "./cards/TaskCard";
 import { FilePreviewModal } from "./FilePreviewModal";
-import { CreateModuleModal } from "./CreateModuleModal";
 import { LegacyArchivedBanner } from "./LegacyArchivedBanner";
 
 /* ------------------------------------------------------------------ */
@@ -58,7 +57,6 @@ export function WorkspaceGroup({
   onDeleteModule,
 }: WorkspaceGroupProps) {
   const [expanded, setExpanded] = useState(false);
-  const [showCreate, setShowCreate] = useState(false);
   const [rootPreview, setRootPreview] = useState<
     "claude_md" | "llms_txt" | null
   >(null);
@@ -209,14 +207,7 @@ export function WorkspaceGroup({
           </div>
 
           {/* ---- Footer row ---- */}
-          <div className="flex items-center justify-between border-t border-border/50 pt-1.5 mt-1.5">
-            <button
-              type="button"
-              onClick={() => setShowCreate(true)}
-              className="text-[9px] text-accent hover:text-accent-hover"
-            >
-              + New Module
-            </button>
+          <div className="flex items-center justify-end border-t border-border/50 pt-1.5 mt-1.5">
             <button
               type="button"
               onClick={onRefreshSecrets}
@@ -239,11 +230,6 @@ export function WorkspaceGroup({
           content={rootData[rootPreview].content}
           onClose={() => setRootPreview(null)}
         />
-      )}
-
-      {/* ---- Create module modal ---- */}
-      {showCreate && (
-        <CreateModuleModal onClose={() => setShowCreate(false)} />
       )}
     </>
   );

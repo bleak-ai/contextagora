@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from src.commands import list_commands
-from src.models import ChatRequest
+from src.models import ChatRequest, SessionModeRequest
 from src.config import settings
 from src.services.chat import claude, sessions_store
 from src.services.chat.claude_sessions import (
@@ -18,10 +18,65 @@ from src.services.chat.claude_sessions import (
 )
 from src.services.chat.suggestion_parser import SuggestionBuffer
 from src.services.chat.transcript_recorder import TranscriptRecorder
+from src.services.modules import validator_runtime
 
 log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["chat"])
+
+_PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
+_CHAT_SYSTEM_PROMPT_PATH = _PROMPTS_DIR / "chat" / "system.md"
+try:
+    _CHAT_SYSTEM_PROMPT = _CHAT_SYSTEM_PROMPT_PATH.read_text()
+except FileNotFoundError as e:
+    raise RuntimeError(
+        f"chat system prompt missing at {_CHAT_SYSTEM_PROMPT_PATH}; "
+        "the server cannot start without it"
+    ) from e
+
+_MODE_PROMPT_NORMAL = (
+    "[mode: NORMAL — context offloading enabled]\n"
+    "You may propose writes to module files when the conversation produces "
+    "durable content (a note worth keeping, a finding, a lesson, a new "
+    "module). You MUST NOT write silently. Every write goes through the "
+    "confirm-before-write protocol below."
+)
+
+_MODE_PROMPT_QUICK = (
+    "[mode: QUICK — context offloading disabled]\n"
+    "You are in read-only mode. Do NOT propose writes. Do NOT promise to "
+    "\"save\" or \"remember\" anything beyond this turn. If the user asks "
+    "you to save something, briefly remind them they are in Quick mode "
+    "and suggest switching to Normal mode if they want offloading."
+)
+
+_TOOLS_READ_ONLY = ["Read(*)", "Glob(*)", "Grep(*)", "WebFetch(*)", "WebSearch(*)"]
+_TOOLS_NORMAL = _TOOLS_READ_ONLY + ["Bash(*)", "Write(*)", "Edit(*)", "Agent(*)"]
+
+
+def _build_allowed_tools(mode: str) -> list[str]:
+    return list(_TOOLS_NORMAL) if mode == "normal" else list(_TOOLS_READ_ONLY)
+
+
+def _build_mode_prompt(mode: str) -> str:
+    return _MODE_PROMPT_NORMAL if mode == "normal" else _MODE_PROMPT_QUICK
+
+
+def _build_system_prompt(mode: str) -> str:
+    return _CHAT_SYSTEM_PROMPT.replace("{mode}", _build_mode_prompt(mode))
+
+
+def _module_slug_for_path(path: Path, modules_repo: Path) -> str | None:
+    """Return the module slug for a write target, or None if outside the repo."""
+    try:
+        rel = path.resolve().relative_to(modules_repo.resolve())
+    except ValueError:
+        return None
+    parts = rel.parts
+    if not parts:
+        return None
+    return parts[0]
+
 
 def _expand_slash_command(prompt: str) -> str:
     """If prompt starts with /<registered-command>, replace with the
@@ -146,10 +201,8 @@ async def api_chat(body: ChatRequest, request: Request):
                 prompt=_expand_slash_command(body.prompt),
                 session_id=body.claude_session_id,
                 cwd=settings.CONTEXT_DIR,
-                allowed_tools=[
-                    "Bash(*)", "Read(*)", "Write(*)", "Edit(*)",
-                    "Glob(*)", "Grep(*)", "WebFetch(*)", "WebSearch(*)", "Agent(*)",
-                ],
+                allowed_tools=_build_allowed_tools(body.mode),
+                append_system_prompt=_build_system_prompt(body.mode),
             )
         except FileNotFoundError:
             yield f"event: error\ndata: {json.dumps({'message': 'claude CLI not found on server'})}\n\n"
@@ -169,6 +222,8 @@ async def api_chat(body: ChatRequest, request: Request):
         tree_accessed: set[str] = set()
         tree_module_counts: dict[str, int] = {}
 
+        touched_modules: set[str] = set()
+
         suggestion_buf = SuggestionBuffer()
 
         for line in proc.stdout:
@@ -187,6 +242,8 @@ async def api_chat(body: ChatRequest, request: Request):
                 sid = event.get("session_id")
                 if sid:
                     recorder.set_session_id(sid)
+                    with lock:
+                        sessions_store.set_session_mode(db, sid, body.mode)
                     payload = {"session_id": sid}
                     model = event.get("model")
                     if model:
@@ -245,6 +302,21 @@ async def api_chat(body: ChatRequest, request: Request):
                                     }
                                     yield f"event: tree_navigation\ndata: {json.dumps(payload)}\n\n"
 
+                            if tool_name in ("Write", "Edit"):
+                                file_path = tool_input.get("file_path", "")
+                                if file_path:
+                                    slug = _module_slug_for_path(Path(file_path), settings.MODULES_REPO_DIR)
+                                    if slug:
+                                        touched_modules.add(slug)
+                            elif tool_name == "Bash":
+                                # Bash can write via redirection; the path is opaque. We do not
+                                # attempt to parse Bash invocations — Task 6's validator will catch
+                                # any module that the agent wrote into via Bash if its path matches
+                                # known modules. For this accumulator, Bash writes are a known gap
+                                # accepted by the spec (validation still runs on every known module
+                                # if needed; for now we only validate modules we observed).
+                                pass
+
             elif event_type == "user":
                 message = event.get("message", {})
                 content = message.get("content", [])
@@ -279,6 +351,23 @@ async def api_chat(body: ChatRequest, request: Request):
             )
             msg = stderr or extra or f"claude exited with code {proc.returncode}"
             yield f"event: error\ndata: {json.dumps({'message': msg, 'returncode': proc.returncode, 'stderr': stderr, 'stdout_tail': extra})}\n\n"
+
+        # Validate every module the turn touched. Errors are surfaced as a
+        # `validation_error` SSE event the frontend renders; the agent will
+        # see them on its next turn (Claude Code includes prior turn output
+        # in context) and can self-correct. We swallow validator crashes so
+        # a bug in the validator never breaks an otherwise successful chat
+        # response.
+        for slug in sorted(touched_modules):
+            try:
+                report = validator_runtime.validate_module(slug)
+            except Exception as e:
+                log.warning("validator crashed for %s: %s", slug, e)
+                continue
+            if report.errors:
+                payload = {"module": slug, "errors": report.errors}
+                yield f"event: validation_error\ndata: {json.dumps(payload)}\n\n"
+
         yield f"event: done\ndata: {{}}\n\n"
       except Exception as e:
         log.exception("chat stream crashed")
@@ -312,3 +401,27 @@ async def api_chat(body: ChatRequest, request: Request):
         _persist_once()
 
     return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+@router.get("/sessions/{session_id}/mode")
+async def api_get_session_mode(session_id: str, request: Request):
+    db = request.app.state.sessions_db
+    lock = request.app.state.sessions_db_lock
+    with lock:
+        mode = sessions_store.get_session_mode(db, session_id)
+    return {"mode": mode}
+
+
+@router.put("/sessions/{session_id}/mode")
+async def api_set_session_mode(
+    session_id: str,
+    body: SessionModeRequest,
+    request: Request,
+):
+    if "/" in session_id or "\\" in session_id or ".." in session_id:
+        raise HTTPException(status_code=400, detail="invalid session id")
+    db = request.app.state.sessions_db
+    lock = request.app.state.sessions_db_lock
+    with lock:
+        sessions_store.set_session_mode(db, session_id, body.mode)
+    return {"mode": body.mode}
