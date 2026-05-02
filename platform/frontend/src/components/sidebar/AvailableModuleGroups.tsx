@@ -26,10 +26,15 @@ interface AvailableModuleGroupsProps {
 }
 
 export function AvailableModuleGroups(props: AvailableModuleGroupsProps) {
+  const total = props.modules.length;
   return (
-    <div>
-      <div className="text-[8px] font-bold uppercase tracking-wider text-text-muted mb-1.5 px-1">
-        Available
+    <div className="mt-3">
+      <div className="flex items-center justify-between mb-1.5 px-1">
+        <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-text">
+          <span className="h-1.5 w-1.5 rounded-full bg-text-muted/60" />
+          Unloaded
+        </span>
+        <span className="text-[9px] text-text-secondary">{total}</span>
       </div>
       <div className="space-y-1">
         {KIND_ORDER.map((kind) => (

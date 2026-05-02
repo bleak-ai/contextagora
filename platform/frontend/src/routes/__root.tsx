@@ -3,6 +3,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { IconRail } from "../components/IconRail";
 import { ModuleEditorModal } from "../components/ModuleEditorModal";
 import { useModuleEditorStore } from "../hooks/useModuleEditorStore";
+import { FloatingTreePanel } from "../components/chat/FloatingTreePanel";
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -18,6 +19,7 @@ function RootLayout() {
         <Outlet />
       </main>
       {editingModule && <ModuleEditorModal />}
+      <FloatingTreePanel />
     </div>
   );
 }

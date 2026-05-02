@@ -155,7 +155,11 @@ const AssistantText: FC<TextMessagePartProps> = (props) => {
   CONTEXT_POINTER_RE.lastIndex = 0;
 
   if (!hasPointer) {
-    return <MarkdownText {...props} />;
+    return (
+      <div className="max-w-[65ch]">
+        <MarkdownText {...props} />
+      </div>
+    );
   }
 
   // Strip the pointer line so the markdown renderer doesn't show it
@@ -163,12 +167,12 @@ const AssistantText: FC<TextMessagePartProps> = (props) => {
   const pointerText = text.match(CONTEXT_POINTER_RE)?.join(" ") ?? "";
   CONTEXT_POINTER_RE.lastIndex = 0;
   return (
-    <>
+    <div className="max-w-[65ch]">
       <MarkdownText {...props} preprocess={stripContextPointers} />
       <div className="text-sm mt-1 text-text-muted">
         {linkifyContextPointers(pointerText, openModuleEditor)}
       </div>
-    </>
+    </div>
   );
 };
 

@@ -70,6 +70,7 @@ export function MarkdownEditor({ moduleName, path, initialContent, toolbarTarget
       setDirty(false);
       setStatus("saved");
       queryClient.setQueryData(["module-file", moduleName, path], { path, content: md });
+      queryClient.invalidateQueries({ queryKey: ["workspace"] });
       window.setTimeout(() => setStatus("idle"), 1500);
     } catch (e) {
       setStatus("error");

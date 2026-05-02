@@ -22,7 +22,7 @@ interface ModuleEditorProps {
 export function ModuleEditor({ name, onClose, onDirtyChange }: ModuleEditorProps) {
   const queryClient = useQueryClient();
 
-  const { data: detail, isLoading: detailLoading } = useQuery({
+  const { data: detail, isLoading: detailLoading, error: detailError } = useQuery({
     queryKey: ["module-detail", name],
     queryFn: () => fetchModule(name),
   });
@@ -200,6 +200,26 @@ export function ModuleEditor({ name, onClose, onDirtyChange }: ModuleEditorProps
     openFiles,
     queryClient,
   ]);
+
+  if (detailError) {
+    const message =
+      detailError instanceof Error ? detailError.message : "Failed to load module";
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center">
+        <span className="text-sm font-semibold text-red-400">
+          Couldn't load "{name}"
+        </span>
+        <span className="text-xs text-text-muted">{message}</span>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded border border-border px-3 py-1.5 text-xs text-text-muted hover:text-text"
+        >
+          Close
+        </button>
+      </div>
+    );
+  }
 
   if (detailLoading || !detail) {
     return (

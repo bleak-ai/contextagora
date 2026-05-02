@@ -11,8 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from src.models import SocialPostPayload, TweetPayload
-from src.services.chat.claude import run_headless
-from src.services.social.social_post import ExtractionError, _strip_fences
+from src.services.chat.extract import ExtractionError, run_with_retry, strip_fences
 
 __all__ = ["ExtractionError", "extract_tweet", "generate_tweet"]
 
@@ -77,30 +76,16 @@ def _format_prompt(card: SocialPostPayload) -> str:
     )
 
 
+def _parse_text(raw: str) -> str:
+    text = strip_fences(raw).strip()
+    if not text:
+        raise ExtractionError("Claude returned empty tweet text")
+    return text
+
+
 def extract_tweet(card: SocialPostPayload, *, timeout: int = 120) -> str:
-    """Call Claude to produce the tweet text.
-
-    Retries once on subprocess failure or empty output. Raises
-    ExtractionError on the second failure.
-    """
-    prompt = _format_prompt(card)
-
-    for attempt in (1, 2):
-        proc = run_headless(prompt, timeout=timeout, max_turns=1)
-        if proc.returncode != 0:
-            if attempt == 1:
-                continue
-            stderr_preview = (proc.stderr or "").strip()[:200]
-            raise ExtractionError(
-                f"claude CLI exited with code {proc.returncode}: {stderr_preview!r}"
-            )
-        text = _strip_fences(proc.stdout or "").strip()
-        if not text:
-            if attempt == 1:
-                continue
-            raise ExtractionError("Claude returned empty tweet text")
-        return text
-    raise ExtractionError("unreachable")
+    """Call Claude to produce the tweet text."""
+    return run_with_retry(_format_prompt(card), _parse_text, timeout=timeout)
 
 
 def generate_tweet(card: SocialPostPayload) -> TweetPayload:

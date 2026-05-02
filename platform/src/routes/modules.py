@@ -51,10 +51,13 @@ async def api_list_modules():
 @router.get("/{name}")
 async def api_get_module(name: str):
     """Get module detail: info.md content, summary, secrets, dependencies."""
+    if not git_repo.module_exists(name):
+        return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
+
     try:
         content = git_repo.read_file(name, "info.md")
     except FileNotFoundError:
-        return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
+        content = ""
 
     manifest = read_manifest(git_repo.module_dir(name))
 

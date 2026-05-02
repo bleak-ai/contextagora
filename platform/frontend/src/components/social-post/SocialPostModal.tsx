@@ -1,11 +1,9 @@
 import { useRef, useState } from "react";
 import { Modal } from "../Modal";
 import { useSocialPost } from "../../hooks/useSocialPost";
-import { useTweet } from "../../hooks/useTweet";
-import { useLinkedin } from "../../hooks/useLinkedin";
+import { useSocialText } from "../../hooks/useSocialText";
 import { SocialPostCard } from "./SocialPostCard";
-import { TweetSection } from "./TweetSection";
-import { LinkedinSection } from "./LinkedinSection";
+import { SocialTextSection } from "./SocialTextSection";
 import { THEMES, type Theme } from "./themes";
 
 type Props = {
@@ -22,8 +20,8 @@ export function SocialPostModal({ sessionId, onClose }: Props) {
   const query = useSocialPost(sessionId);
   const [theme, setTheme] = useState<Theme>(() => randomTheme());
   const cardRef = useRef<HTMLDivElement | null>(null);
-  const tweet = useTweet();
-  const linkedin = useLinkedin();
+  const tweet = useSocialText("tweet");
+  const linkedin = useSocialText("linkedin");
 
   const card = query.data;
 
@@ -103,11 +101,11 @@ export function SocialPostModal({ sessionId, onClose }: Props) {
         )}
 
         {query.isSuccess && card && (
-          <TweetSection card={card} cardRef={cardRef} mutation={tweet} />
+          <SocialTextSection kind="tweet" card={card} cardRef={cardRef} mutation={tweet} />
         )}
 
         {query.isSuccess && card && (
-          <LinkedinSection card={card} cardRef={cardRef} mutation={linkedin} />
+          <SocialTextSection kind="linkedin" card={card} cardRef={cardRef} mutation={linkedin} />
         )}
 
         {query.isSuccess && card && (

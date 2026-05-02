@@ -74,10 +74,11 @@ export function ActiveContextList({
 function SectionHeader({ count }: { count: number }) {
   return (
     <div className="flex items-center justify-between mb-1.5 px-1">
-      <span className="text-[8px] font-bold uppercase tracking-wider text-text-muted">
-        Active Context
+      <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-text">
+        <span className="h-1.5 w-1.5 rounded-full bg-success shadow-[0_0_4px_rgba(92,184,122,0.5)]" />
+        Loaded
       </span>
-      <span className="text-[9px] text-text-muted">{count} loaded</span>
+      <span className="text-[9px] text-text-muted">{count}</span>
     </div>
   );
 }

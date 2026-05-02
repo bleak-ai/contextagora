@@ -50,15 +50,13 @@ function TreeNodeView({
   node,
   module,
   accessedFiles,
-  currentFile,
-  isStreaming,
+  active,
   depth,
 }: {
   node: TreeNode;
   module: string;
   accessedFiles: Set<string>;
-  currentFile: string | null;
-  isStreaming: boolean;
+  active: { path: string; mode: "reading" | "writing" } | null;
   depth: number;
 }) {
   const fullPath = `${module}/${node.fullPath}`;
@@ -70,14 +68,18 @@ function TreeNodeView({
         ? child.children.some((c) => accessedFiles.has(`${module}/${c.fullPath}`))
         : accessedFiles.has(`${module}/${child.fullPath}`)
     );
+    const hasActiveChild = active
+      ? active.path.startsWith(`${module}/${node.fullPath}/`)
+      : false;
+    const isHot = hasReadChildren || hasActiveChild;
 
     return (
       <div>
-        <div className={`flex items-center gap-1 text-[13px] font-medium ${hasReadChildren ? "text-text" : "text-text-secondary"}`}>
+        <div className={`flex items-center gap-1 text-[11px] font-medium ${isHot ? "text-text" : "text-text-secondary"}`}>
           <TreeBranch depth={depth} />
-          {hasReadChildren
-            ? <FolderOpen className="w-3.5 h-3.5 shrink-0" />
-            : <Folder className="w-3.5 h-3.5 shrink-0" />}
+          {isHot
+            ? <FolderOpen className="w-3 h-3 shrink-0" />
+            : <Folder className="w-3 h-3 shrink-0" />}
           <span className="truncate">{node.name}</span>
         </div>
         <div className="space-y-0.5">
@@ -87,8 +89,7 @@ function TreeNodeView({
               node={child}
               module={module}
               accessedFiles={accessedFiles}
-              currentFile={currentFile}
-              isStreaming={isStreaming}
+              active={active}
               depth={depth + 1}
             />
           ))}
@@ -98,30 +99,40 @@ function TreeNodeView({
   }
 
   const isRead = accessedFiles.has(fullPath);
-  const isCurrent = isStreaming && currentFile === fullPath;
+  const isActive = active?.path === fullPath;
+  const activeMode = isActive ? active.mode : null;
+
+  const rowClass = isActive
+    ? activeMode === "writing"
+      ? "text-text bg-accent-secondary/10"
+      : "text-text bg-accent-dim"
+    : isRead
+      ? "text-text"
+      : "text-text-muted";
 
   return (
     <div
-      className={`flex items-center gap-1 text-[13px] rounded px-1 py-0.5 ${
-        isCurrent
-          ? "text-white bg-accent/15 border border-accent/30"
-          : isRead
-            ? "text-white bg-white/5"
-            : "text-text-muted"
-      }`}
+      className={`flex items-center gap-1 text-[11px] rounded px-1 py-0.5 ${rowClass}`}
     >
       <TreeBranch depth={depth} />
       <span className="truncate">{node.name}</span>
-      {isCurrent ? (
-        <span className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-text font-semibold whitespace-nowrap shrink-0">
-          <Search size={12} className="animate-pulse" />
-          reading
-        </span>
+      {isActive ? (
+        activeMode === "writing" ? (
+          <FileCheck
+            size={10}
+            className="ml-auto text-accent-secondary animate-pulse shrink-0"
+          />
+        ) : (
+          <Search
+            size={10}
+            className="ml-auto text-accent animate-pulse shrink-0"
+          />
+        )
       ) : isRead ? (
-        <span className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded bg-success text-black font-semibold whitespace-nowrap shrink-0">
-          <FileCheck size={12} />
-          read
-        </span>
+        <span
+          className="ml-auto inline-block w-1.5 h-1.5 rounded-full bg-accent shrink-0"
+          aria-label="read"
+        />
       ) : null}
     </div>
   );
@@ -145,24 +156,37 @@ export function DecisionTreePanel() {
   });
 
   const accessedFiles = new Set(treeState?.accessed_files || []);
-  const currentFile = treeState
-    ? treeState.active_path.join("/")
-    : null;
+  const active =
+    treeState && isStreaming
+      ? { path: treeState.active_path.join("/"), mode: treeState.mode }
+      : null;
+
+  if (modules.length === 0) {
+    return (
+      <div className="px-2 py-3 text-[11px] text-text-muted">
+        No modules loaded.
+      </div>
+    );
+  }
+
+  const activeModule = active ? active.path.split("/")[0] : null;
 
   return (
     <div className="space-y-0.5 px-1 py-1">
       <div className="text-sm space-y-1">
         {modules.map((module, i) => {
-          const isActive = treeState?.active_path[0] === module;
+          const isActive =
+            treeState?.active_path[0] === module && isStreaming;
           const apiFiles = fileQueries[i]?.data?.files || [];
           const allFiles = [{ path: "llms.txt" }, ...apiFiles.map((f) => ({ path: f.path }))];
           const tree = buildTree(allFiles);
           const hasReadFiles = allFiles.some((f) => accessedFiles.has(`${module}/${f.path}`));
+          const expanded = activeModule === null || module === activeModule;
 
           return (
             <div key={module}>
               <div
-                className={`flex items-center gap-1.5 text-sm font-semibold ${
+                className={`flex items-center gap-1.5 text-[12px] font-semibold ${
                   isActive
                     ? "text-accent"
                     : hasReadFiles
@@ -171,23 +195,24 @@ export function DecisionTreePanel() {
                 }`}
               >
                 {hasReadFiles
-                  ? <FolderOpen className="w-3.5 h-3.5 shrink-0" />
-                  : <Folder className="w-3.5 h-3.5 shrink-0" />}
+                  ? <FolderOpen className="w-3 h-3 shrink-0" />
+                  : <Folder className="w-3 h-3 shrink-0" />}
                 <span className="truncate">{module}</span>
               </div>
-              <div className="space-y-0.5 ml-1">
-                {tree.map((node) => (
-                  <TreeNodeView
-                    key={node.fullPath}
-                    node={node}
-                    module={module}
-                    accessedFiles={accessedFiles}
-                    currentFile={currentFile}
-                    isStreaming={isStreaming}
-                    depth={1}
-                  />
-                ))}
-              </div>
+              {expanded && (
+                <div className="space-y-0.5 ml-1">
+                  {tree.map((node) => (
+                    <TreeNodeView
+                      key={node.fullPath}
+                      node={node}
+                      module={module}
+                      accessedFiles={accessedFiles}
+                      active={active}
+                      depth={1}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}

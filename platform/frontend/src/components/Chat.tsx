@@ -50,6 +50,15 @@ export function Chat() {
     });
   }, [activeClaudeSessionId, navigateToSession]);
 
+  // Once the URL has caught up to a real session id, drop the NEW_CHAT_KEY
+  // alias kept by sendMessage's session-event migration. Leaving it would mean
+  // navigating back to `/` shows a stale snapshot of the previous chat.
+  useEffect(() => {
+    if (activeClaudeSessionId !== null) {
+      useChatStore.getState().deleteSessionMessages(NEW_CHAT_KEY);
+    }
+  }, [activeClaudeSessionId]);
+
   const startNewSession = () => {
     navigateToSession(null);
   };

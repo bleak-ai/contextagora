@@ -38,14 +38,27 @@ export function EditorContent({
 
   if (mode === "secrets") {
     return (
-      <SecretsPanel secrets={secrets} onChange={onSecretsChange} />
+      <StringListPanel
+        title="Required Secrets"
+        description="Environment variables this module needs to function."
+        placeholder="NEW_SECRET_NAME"
+        emptyText="No secrets defined yet."
+        normalize={(s) => s.toUpperCase()}
+        values={secrets}
+        onChange={onSecretsChange}
+      />
     );
   }
 
   if (mode === "requirements") {
     return (
-      <RequirementsPanel
-        requirements={requirements}
+      <StringListPanel
+        title="Python Packages"
+        description="Python packages this module needs for scripts. Installed automatically when the module is loaded."
+        placeholder="package-name"
+        emptyText="No packages defined yet."
+        normalize={(s) => s.toLowerCase()}
+        values={requirements}
         onChange={onRequirementsChange}
       />
     );
@@ -107,25 +120,35 @@ export function EditorContent({
   );
 }
 
-function SecretsPanel({
-  secrets,
+function StringListPanel({
+  title,
+  description,
+  placeholder,
+  emptyText,
+  normalize,
+  values,
   onChange,
 }: {
-  secrets: string[];
-  onChange: (secrets: string[]) => void;
+  title: string;
+  description: string;
+  placeholder: string;
+  emptyText: string;
+  normalize: (raw: string) => string;
+  values: string[];
+  onChange: (next: string[]) => void;
 }) {
-  const [newSecret, setNewSecret] = useState("");
+  const [draft, setDraft] = useState("");
 
   const handleAdd = () => {
-    const name = newSecret.trim().toUpperCase();
-    if (name && !secrets.includes(name)) {
-      onChange([...secrets, name]);
-      setNewSecret("");
+    const name = normalize(draft.trim());
+    if (name && !values.includes(name)) {
+      onChange([...values, name]);
+      setDraft("");
     }
   };
 
   const handleRemove = (name: string) => {
-    onChange(secrets.filter((s) => s !== name));
+    onChange(values.filter((v) => v !== name));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -137,15 +160,11 @@ function SecretsPanel({
 
   return (
     <div className="flex-1 p-6 overflow-y-auto">
-      <h3 className="text-sm font-semibold text-accent mb-1">
-        Required Secrets
-      </h3>
-      <p className="text-xs text-text-muted mb-4">
-        Environment variables this module needs to function.
-      </p>
+      <h3 className="text-sm font-semibold text-accent mb-1">{title}</h3>
+      <p className="text-xs text-text-muted mb-4">{description}</p>
 
       <div className="space-y-1 mb-4">
-        {secrets.map((name) => (
+        {values.map((name) => (
           <div
             key={name}
             className="flex items-center justify-between bg-bg-raised px-3 py-2 rounded"
@@ -159,105 +178,22 @@ function SecretsPanel({
             </button>
           </div>
         ))}
-        {secrets.length === 0 && (
-          <p className="text-xs text-text-muted py-2">
-            No secrets defined yet.
-          </p>
+        {values.length === 0 && (
+          <p className="text-xs text-text-muted py-2">{emptyText}</p>
         )}
       </div>
 
       <div className="flex gap-2">
         <input
-          value={newSecret}
-          onChange={(e) => setNewSecret(e.target.value)}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="NEW_SECRET_NAME"
+          placeholder={placeholder}
           className="flex-1 bg-bg-input border border-border rounded px-3 py-2 text-sm text-text font-mono outline-none focus:border-accent/40"
         />
         <button
           onClick={handleAdd}
-          disabled={!newSecret.trim()}
-          className="px-4 py-2 text-xs bg-accent text-accent-text rounded hover:bg-accent-hover disabled:opacity-50"
-        >
-          + Add
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function RequirementsPanel({
-  requirements,
-  onChange,
-}: {
-  requirements: string[];
-  onChange: (requirements: string[]) => void;
-}) {
-  const [newPkg, setNewPkg] = useState("");
-
-  const handleAdd = () => {
-    const name = newPkg.trim().toLowerCase();
-    if (name && !requirements.includes(name)) {
-      onChange([...requirements, name]);
-      setNewPkg("");
-    }
-  };
-
-  const handleRemove = (name: string) => {
-    onChange(requirements.filter((r) => r !== name));
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleAdd();
-    }
-  };
-
-  return (
-    <div className="flex-1 p-6 overflow-y-auto">
-      <div className="flex items-center justify-between mb-1">
-        <h3 className="text-sm font-semibold text-accent">
-          Python Packages
-        </h3>
-      </div>
-      <p className="text-xs text-text-muted mb-4">
-        Python packages this module needs for scripts. Installed automatically when the module is loaded.
-      </p>
-
-      <div className="space-y-1 mb-4">
-        {requirements.map((name) => (
-          <div
-            key={name}
-            className="flex items-center justify-between bg-bg-raised px-3 py-2 rounded"
-          >
-            <span className="text-sm text-text font-mono">{name}</span>
-            <button
-              onClick={() => handleRemove(name)}
-              className="text-xs text-danger/60 hover:text-danger"
-            >
-              &times; Remove
-            </button>
-          </div>
-        ))}
-        {requirements.length === 0 && (
-          <p className="text-xs text-text-muted py-2">
-            No packages defined yet.
-          </p>
-        )}
-      </div>
-
-      <div className="flex gap-2">
-        <input
-          value={newPkg}
-          onChange={(e) => setNewPkg(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="package-name"
-          className="flex-1 bg-bg-input border border-border rounded px-3 py-2 text-sm text-text font-mono outline-none focus:border-accent/40"
-        />
-        <button
-          onClick={handleAdd}
-          disabled={!newPkg.trim()}
+          disabled={!draft.trim()}
           className="px-4 py-2 text-xs bg-accent text-accent-text rounded hover:bg-accent-hover disabled:opacity-50"
         >
           + Add

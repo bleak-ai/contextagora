@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Camera } from "lucide-react";
+import { Camera, GitBranch } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchModules,
@@ -20,8 +20,8 @@ import {
   useNavigateToSession,
 } from "../hooks/useActiveSession";
 import { useModuleEditorStore } from "../hooks/useModuleEditorStore";
+import { useTreePanelStore } from "../hooks/useTreePanelStore";
 import { invalidateModuleQueries } from "../lib/queryClient";
-import { DecisionTreePanel } from "./chat/DecisionTreePanel";
 import { SyncControls } from "./SyncControls";
 import { WorkspaceGroup } from "./sidebar/WorkspaceGroup";
 import { ConfirmDeleteModal } from "./sidebar/ConfirmDeleteModal";
@@ -54,6 +54,8 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
     { name: string; kind: "task" | "integration" | "workflow" } | null
   >(null);
   const openEditor = useModuleEditorStore((s) => s.openModuleEditor);
+  const treePanelOpen = useTreePanelStore((s) => s.open);
+  const toggleTreePanel = useTreePanelStore((s) => s.toggle);
 
   const rawModel = useChatStore((s) => s.model);
   const modelLabel = rawModel
@@ -71,10 +73,10 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
   const [loadErrors, setLoadErrors] = useState<LoadError[]>([]);
   const toggleCollapsed = useCallback(() => setCollapsed((c) => !c), []);
 
-  type Tab = "context" | "tree" | "sessions";
+  type Tab = "context" | "sessions";
   const [tab, setTab] = useState<Tab>(() => {
     const stored = localStorage.getItem("context-panel-tab");
-    return stored === "tree" || stored === "sessions" ? stored : "context";
+    return stored === "sessions" ? stored : "context";
   });
   const selectTab = (t: Tab) => {
     setTab(t);
@@ -193,6 +195,20 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
                 {loaded.length} loaded
               </span>
             )}
+            <button
+              type="button"
+              onClick={toggleTreePanel}
+              className={`p-1 rounded transition-colors ${
+                treePanelOpen
+                  ? "text-accent bg-accent-dim"
+                  : "text-text-muted hover:text-text hover:bg-bg-hover"
+              }`}
+              title={treePanelOpen ? "Disable read indicator" : "Enable read indicator"}
+              aria-label={treePanelOpen ? "Disable read indicator" : "Enable read indicator"}
+              aria-pressed={treePanelOpen}
+            >
+              <GitBranch size={14} />
+            </button>
             {isDesktop ? (
               <button
                 onClick={toggleCollapsed}
@@ -224,7 +240,6 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
       <div className="flex border-b border-border bg-bg-raised">
         {([
           { id: "context", label: "Context", count: loaded.length },
-          { id: "tree", label: "Tree", count: null },
           { id: "sessions", label: "Sessions", count: sessions.length },
         ] as const).map((t) => {
           const active = tab === t.id;
@@ -299,8 +314,6 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
             <SyncControls />
           </div>
         )}
-
-        {tab === "tree" && <DecisionTreePanel />}
 
         {tab === "sessions" && (
           <div>

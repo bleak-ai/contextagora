@@ -2,24 +2,29 @@ import type { ReactNode } from "react";
 import { MapPin } from "lucide-react";
 import { KindIcon } from "./KindIcon";
 
-export type ModuleCardVariant = "active" | "idle";
+export type ModuleCardVariant = "active" | "idle" | "archived";
 
 interface ToneClasses {
   border: string;
   bg: string;
-  leftBar: string;
+  opacity: string;
 }
 
 const VARIANT: Record<ModuleCardVariant, ToneClasses> = {
   active: {
     border: "border-border",
     bg: "bg-bg-hover",
-    leftBar: "before:absolute before:left-0 before:top-0 before:h-full before:w-[3px] before:bg-success",
+    opacity: "",
   },
   idle: {
-    border: "border-border/60",
-    bg: "bg-bg-hover/40",
-    leftBar: "",
+    border: "border-border",
+    bg: "bg-bg-raised",
+    opacity: "",
+  },
+  archived: {
+    border: "border-dashed border-border",
+    bg: "bg-bg",
+    opacity: "",
   },
 };
 
@@ -43,10 +48,10 @@ export function ModuleCardShell({
   children,
 }: ModuleCardShellProps) {
   const v = VARIANT[variant];
-  const warnRing = warn ? "ring-1 ring-red-500/40" : "";
+  const warnRing = warn ? "ring-1 ring-danger/40" : "";
   return (
     <div
-      className={`relative mb-1 overflow-hidden rounded-md border ${v.bg} ${v.border} ${v.leftBar} ${warnRing}`}
+      className={`relative mb-1 overflow-hidden rounded-md border transition-opacity ${v.bg} ${v.border} ${v.opacity} ${warnRing}`}
     >
       <div className="flex w-full items-center gap-2 px-2.5 py-2">
         <KindIcon kind={kind} active={variant === "active"} />

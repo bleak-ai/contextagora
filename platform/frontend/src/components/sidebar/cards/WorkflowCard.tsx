@@ -6,6 +6,7 @@ import { useModuleEditorStore } from "../../../hooks/useModuleEditorStore";
 import { ModuleCardShell } from "./ModuleCardShell";
 import { ModuleFilePreview } from "./ModuleFilePreview";
 import { FileTree } from "./FileTree";
+import { OverflowMenu, type OverflowMenuItem } from "./OverflowMenu";
 
 interface WorkflowCardProps {
   info: ModuleInfo;
@@ -30,7 +31,6 @@ export function WorkflowCard({
 
   const [expanded, setExpanded] = useState(isOn);
   const [previewFile, setPreviewFile] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
   const headerMiddle = (
     <button
@@ -39,13 +39,36 @@ export function WorkflowCard({
       className="flex flex-1 items-center gap-1.5 text-left min-w-0"
     >
       <span
-        className="text-xs font-semibold text-text truncate"
+        className={`text-xs font-semibold truncate ${isOn ? "text-text" : "text-text-secondary"}`}
         title={info.name}
       >
         {info.name}
       </span>
+      {!isOn && (
+        <span className="text-[9px] font-semibold uppercase tracking-wider text-text-muted bg-bg px-1.5 py-0.5 rounded border border-border">
+          off
+        </span>
+      )}
     </button>
   );
+
+  const menuItems: OverflowMenuItem[] = [
+    {
+      label: "Edit",
+      icon: <Edit2 className="w-3 h-3" />,
+      onClick: handleEdit,
+    },
+    ...(onDelete
+      ? [
+          {
+            label: "Delete",
+            icon: <Trash2 className="w-3 h-3" />,
+            onClick: () => onDelete(),
+            destructive: true,
+          },
+        ]
+      : []),
+  ];
 
   const headerRight = (
     <>
@@ -68,6 +91,7 @@ export function WorkflowCard({
           />
         </button>
       )}
+      <OverflowMenu items={menuItems} />
       <button
         type="button"
         aria-label={expanded ? "Collapse" : "Expand"}
@@ -112,29 +136,6 @@ export function WorkflowCard({
               Off. Turn on to load this workflow into the workspace.
             </p>
           )}
-
-          <div className="mt-2 pt-1.5 border-t border-border/50 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={handleEdit}
-              className="text-[10px] text-text-muted hover:text-accent flex items-center gap-1"
-            >
-              <Edit2 className="w-3 h-3" /> Edit
-            </button>
-            {onDelete && (
-              <button
-                type="button"
-                disabled={deleting}
-                onClick={() => {
-                  setDeleting(true);
-                  Promise.resolve(onDelete()).finally(() => setDeleting(false));
-                }}
-                className="text-[10px] text-text-muted hover:text-red-400 flex items-center gap-1 disabled:opacity-50"
-              >
-                <Trash2 className="w-3 h-3" /> Delete
-              </button>
-            )}
-          </div>
         </div>
       )}
       {previewFile && (

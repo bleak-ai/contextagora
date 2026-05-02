@@ -4,6 +4,7 @@ export interface TreeNavigationPayload {
   active_path: string[];
   accessed_files: string[];
   module_counts: Record<string, number>;
+  mode: "reading" | "writing";
 }
 
 export interface ValidationErrorPayload {

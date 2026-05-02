@@ -5,13 +5,27 @@ See docs/superpowers/specs/2026-04-24-social-post-from-session-design.md
 from __future__ import annotations
 
 import json
-import re
 import sqlite3
 from pathlib import Path
 
 from src.models import SocialPostPayload, SocialPostStats
-from src.services.chat.claude import run_headless
 from src.services.chat.claude_sessions import load_session_messages
+from src.services.chat.extract import (
+    ExtractionError,
+    run_with_retry,
+    strip_fences,
+)
+
+# Re-export for callers that still import from this module.
+__all__ = [
+    "ExtractionError",
+    "NoToolCallsError",
+    "SessionNotFoundError",
+    "build_transcript",
+    "compute_stats",
+    "extract_content",
+    "generate_social_post",
+]
 
 
 def compute_stats(messages: list[dict]) -> SocialPostStats:
@@ -88,17 +102,7 @@ def build_transcript(messages: list[dict]) -> str:
     return "\n".join(lines)
 
 
-class ExtractionError(Exception):
-    """Raised when Claude fails to return valid JSON after retry."""
-
-
 _PROMPT_PATH = Path(__file__).parent.parent.parent / "prompts" / "commands" / "social_post_extraction.md"
-_FENCE_RE = re.compile(r"^\s*```(?:json)?\s*\n(.*)\n```\s*$", re.DOTALL)
-
-
-def _strip_fences(text: str) -> str:
-    m = _FENCE_RE.match(text)
-    return (m.group(1) if m else text).strip()
 
 
 def _load_prompt() -> str:
@@ -113,41 +117,27 @@ def _format_prompt(transcript: str, elapsed_seconds: int = 0) -> str:
     )
 
 
+def _parse_json_payload(raw: str) -> dict:
+    stripped = strip_fences(raw)
+    try:
+        return json.loads(stripped)
+    except json.JSONDecodeError:
+        raise ExtractionError(
+            f"Claude returned non-JSON: {stripped[:200]!r}"
+        )
+
+
 def extract_content(transcript: str, *, elapsed_seconds: int = 0, timeout: int = 120) -> dict:
-    """Call Claude to extract the social-post content blocks.
-
-    Retries once on bad JSON. Raises ExtractionError on second failure.
-    """
-    prompt = _format_prompt(transcript, elapsed_seconds)
-
-    for attempt in (1, 2):
-        proc = run_headless(prompt, timeout=timeout, max_turns=1)
-        if proc.returncode != 0:
-            # Claude CLI itself failed (auth, rate limit, crash). Retry once,
-            # then surface a specific message.
-            if attempt == 1:
-                continue
-            stderr_preview = (proc.stderr or "").strip()[:200]
-            raise ExtractionError(
-                f"claude CLI exited with code {proc.returncode}: {stderr_preview!r}"
-            )
-        raw = _strip_fences(proc.stdout or "")
-        try:
-            return json.loads(raw)
-        except json.JSONDecodeError:
-            if attempt == 1:
-                # nudge Claude; same transcript, firmer framing
-                prompt = (
-                    _format_prompt(transcript, elapsed_seconds)
-                    + "\n\nYour previous response was not valid JSON. "
-                      "Return ONLY the JSON object, no prose, no fences."
-                )
-                continue
-            raise ExtractionError(
-                f"Claude returned non-JSON after retry: {raw[:200]!r}"
-            )
-    # unreachable
-    raise ExtractionError("unreachable")
+    """Call Claude to extract the social-post content blocks."""
+    return run_with_retry(
+        _format_prompt(transcript, elapsed_seconds),
+        _parse_json_payload,
+        timeout=timeout,
+        nudge=(
+            "\n\nYour previous response was not valid JSON. "
+            "Return ONLY the JSON object, no prose, no fences."
+        ),
+    )
 
 
 class SessionNotFoundError(Exception):

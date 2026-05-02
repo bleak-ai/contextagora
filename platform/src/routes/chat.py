@@ -85,6 +85,46 @@ def _module_slug_for_path(path: Path, modules_repo: Path) -> str | None:
     return parts[0]
 
 
+_TREE_TOOLS: dict[str, str] = {
+    "Read": "reading",
+    "Write": "writing",
+    "Edit": "writing",
+}
+
+
+def _tree_event_for_tool(
+    tool_name: str,
+    tool_input: dict,
+    context_dir: Path,
+    modules_repo_dir: Path | None = None,
+) -> tuple[str, str] | None:
+    """Return (relative_path, mode) when a tool call should emit a
+    tree_navigation event, else None.
+
+    `mode` is "reading" for Read and "writing" for Write/Edit. The path is
+    matched against `context_dir` first; if that fails (e.g. Claude Code
+    resolved a `context/<module>` symlink to its real location under
+    `modules_repo_dir`), we fall back to matching against the modules repo
+    directly. Either way the returned relative path is `<module>/<file>`,
+    so the frontend's per-file matching is unaffected.
+    """
+    mode = _TREE_TOOLS.get(tool_name)
+    if mode is None:
+        return None
+    raw = tool_input.get("file_path") or tool_input.get("path")
+    if not raw:
+        return None
+    path = Path(raw)
+    for root in (context_dir, modules_repo_dir):
+        if root is None:
+            continue
+        try:
+            return (str(path.relative_to(root)), mode)
+        except ValueError:
+            continue
+    return None
+
+
 def _expand_slash_command(prompt: str) -> str:
     """If prompt starts with /<registered-command>, replace with the
     command's full prompt text, appending any trailing args.
@@ -290,24 +330,28 @@ async def api_chat(body: ChatRequest, request: Request):
                             recorder.on_tool_use(tool_id, tool_name, tool_input)
                             yield f"event: tool_use\ndata: {json.dumps({'tool': tool_name, 'tool_id': tool_id, 'input': tool_input})}\n\n"
 
-                            if tool_name == "Read":
-                                file_path = tool_input.get("file_path", "") or tool_input.get("path", "")
-                                try:
-                                    relative_path = Path(file_path).relative_to(settings.CONTEXT_DIR)
-                                except ValueError:
-                                    relative_path = None
-                                if relative_path is not None:
-                                    path_parts = str(relative_path).split("/")
-                                    tree_accessed.add(str(relative_path))
-                                    if path_parts:
-                                        module = path_parts[0]
-                                        tree_module_counts[module] = tree_module_counts.get(module, 0) + 1
-                                    payload = {
-                                        "active_path": path_parts,
-                                        "accessed_files": list(tree_accessed),
-                                        "module_counts": tree_module_counts,
-                                    }
-                                    yield f"event: tree_navigation\ndata: {json.dumps(payload)}\n\n"
+                            tree_event = _tree_event_for_tool(
+                                tool_name,
+                                tool_input,
+                                settings.CONTEXT_DIR,
+                                settings.MODULES_REPO_DIR,
+                            )
+                            if tree_event is not None:
+                                rel, mode = tree_event
+                                path_parts = rel.split("/")
+                                if mode == "reading":
+                                    tree_accessed.add(rel)
+                                    module = path_parts[0]
+                                    tree_module_counts[module] = (
+                                        tree_module_counts.get(module, 0) + 1
+                                    )
+                                payload = {
+                                    "active_path": path_parts,
+                                    "accessed_files": list(tree_accessed),
+                                    "module_counts": tree_module_counts,
+                                    "mode": mode,
+                                }
+                                yield f"event: tree_navigation\ndata: {json.dumps(payload)}\n\n"
 
                             if tool_name in ("Write", "Edit"):
                                 file_path = tool_input.get("file_path", "")

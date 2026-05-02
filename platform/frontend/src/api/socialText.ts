@@ -1,14 +1,17 @@
 import { apiFetch } from "./client";
 import type { SocialPostPayload } from "./socialPost";
 
-export type LinkedinPayload = {
+export type SocialTextKind = "tweet" | "linkedin";
+
+export type SocialTextPayload = {
   text: string;
 };
 
-export function generateLinkedinPost(
+export function generateSocialText(
+  kind: SocialTextKind,
   card: SocialPostPayload,
-): Promise<LinkedinPayload> {
-  return apiFetch<LinkedinPayload>("/linkedin", {
+): Promise<SocialTextPayload> {
+  return apiFetch<SocialTextPayload>(`/${kind}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ card }),

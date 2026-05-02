@@ -192,15 +192,17 @@ export const useChatStore = create<ChatState>()(
                 if (newId && newId !== sessionId) {
                   const oldId = sessionId;
                   set((state) => {
-                    const oldMsgs = state.messagesBySession[oldId];
-                    const {
-                      [oldId]: _drop,
-                      ...restMsgs
-                    } = state.messagesBySession;
+                    const oldMsgs = state.messagesBySession[oldId] ?? [];
+                    // Alias both keys to the same snapshot. The URL update is
+                    // async (Chat.tsx subscribes to streamingSessionId and then
+                    // calls navigate), so for one render the Thread is still
+                    // selecting by NEW_CHAT_KEY. Dropping it here would briefly
+                    // empty that bucket and flash the welcome screen.
                     return {
                       messagesBySession: {
-                        ...restMsgs,
-                        [newId]: oldMsgs ?? [],
+                        ...state.messagesBySession,
+                        [oldId]: oldMsgs,
+                        [newId]: oldMsgs,
                       },
                       streamingSessionId:
                         state.streamingSessionId === oldId
@@ -233,6 +235,7 @@ export const useChatStore = create<ChatState>()(
                     active_path: event.active_path,
                     accessed_files: event.accessed_files,
                     module_counts: event.module_counts,
+                    mode: event.mode,
                   },
                 });
                 break;

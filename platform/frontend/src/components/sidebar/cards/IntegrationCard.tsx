@@ -8,6 +8,7 @@ import { useModuleEditorStore } from "../../../hooks/useModuleEditorStore";
 import { ModuleCardShell } from "./ModuleCardShell";
 import { ModuleFilePreview } from "./ModuleFilePreview";
 import { JobRunsModal } from "../JobRunsModal";
+import { OverflowMenu, type OverflowMenuItem } from "./OverflowMenu";
 
 function statusOf(m: LoadedModule): "ok" | "warn" {
   const missingSecret = Object.values(m.secrets).some((v) => v === null);
@@ -114,45 +115,83 @@ export function IntegrationCard({
     <button
       type="button"
       onClick={() => setExpanded((e) => !e)}
-      className="flex flex-1 items-center justify-between gap-2 text-left hover:opacity-80 min-w-0"
+      className="flex flex-1 items-center gap-1.5 text-left min-w-0"
     >
       <span
         className={`text-xs font-semibold truncate ${isOn ? "text-text" : "text-text-secondary"}`}
       >
         {info.name}
       </span>
-      <span className="flex items-center gap-1.5 shrink-0">
-        {!expanded && missingCount > 0 && (
-          <span className="text-[10px] font-semibold text-red-400">
-            {missingCount} missing
-          </span>
-        )}
-        {expanded
-          ? <ChevronDown className="w-3 h-3 text-text-muted shrink-0" />
-          : <ChevronRight className="w-3 h-3 text-text-muted shrink-0" />}
-      </span>
+      {!isOn && (
+        <span className="text-[9px] font-semibold uppercase tracking-wider text-text-muted bg-bg px-1.5 py-0.5 rounded border border-border">
+          off
+        </span>
+      )}
+      {!expanded && missingCount > 0 && (
+        <span className="text-[10px] font-semibold text-red-400">
+          {missingCount} missing
+        </span>
+      )}
     </button>
   );
 
-  const headerRight = onToggle ? (
-    <button
-      type="button"
-      onClick={(e) => {
-        e.stopPropagation();
-        onToggle(!isOn);
-      }}
-      className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${
-        isOn ? "bg-accent" : "bg-text-muted/40"
-      }`}
-      title={isOn ? "Turn off" : "Turn on"}
-    >
-      <span
-        className={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${
-          isOn ? "translate-x-3.5" : "translate-x-0.5"
-        }`}
-      />
-    </button>
-  ) : undefined;
+  const menuItems: OverflowMenuItem[] = [
+    {
+      label: "Edit",
+      icon: <Edit2 className="w-3 h-3" />,
+      onClick: handleEdit,
+    },
+    ...(onDelete
+      ? [
+          {
+            label: "Delete",
+            icon: <Trash2 className="w-3 h-3" />,
+            onClick: () => onDelete(),
+            destructive: true,
+          },
+        ]
+      : []),
+  ];
+
+  const headerRight = (
+    <>
+      {onToggle && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle(!isOn);
+          }}
+          className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${
+            isOn ? "bg-accent" : "bg-text-muted/40"
+          }`}
+          title={isOn ? "Turn off" : "Turn on"}
+        >
+          <span
+            className={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${
+              isOn ? "translate-x-3.5" : "translate-x-0.5"
+            }`}
+          />
+        </button>
+      )}
+      <OverflowMenu items={menuItems} />
+      <button
+        type="button"
+        aria-label={expanded ? "Collapse" : "Expand"}
+        onClick={(e) => {
+          e.stopPropagation();
+          setExpanded((x) => !x);
+        }}
+        className="p-1 text-text-muted hover:text-text"
+      >
+        {expanded ? (
+          <ChevronDown className="w-3 h-3" />
+        ) : (
+          <ChevronRight className="w-3 h-3" />
+        )}
+      </button>
+    </>
+  );
 
   return (
     <ModuleCardShell
@@ -261,6 +300,20 @@ export function IntegrationCard({
                         }
                       />
                     ))}
+                    {loaded.packages.some((p) => !p.installed) && (
+                      <button
+                        type="button"
+                        disabled={installMutation.isPending}
+                        onClick={() => {
+                          setInstallError(null);
+                          installMutation.mutate();
+                        }}
+                        className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded border border-accent/40 bg-accent/10 px-2 py-1 text-[10px] font-semibold text-accent hover:bg-accent/20 disabled:opacity-50"
+                      >
+                        <Package className="w-3 h-3" />
+                        {installMutation.isPending ? "Installing..." : "Install missing packages"}
+                      </button>
+                    )}
                     {installError && (
                       <details className="mt-1.5">
                         <summary className="cursor-pointer text-[10px] font-semibold text-red-400">
@@ -294,39 +347,6 @@ export function IntegrationCard({
                   ))}
                 </Section>
               )}
-
-              <div className="mt-3 pt-1.5 border-t border-border/50 flex items-center justify-end gap-3">
-                {loaded.packages.some((p) => !p.installed) && (
-                  <button
-                    type="button"
-                    disabled={installMutation.isPending}
-                    onClick={() => {
-                      setInstallError(null);
-                      installMutation.mutate();
-                    }}
-                    className="text-[10px] text-accent hover:text-accent-hover flex items-center gap-1 disabled:opacity-50"
-                  >
-                    <Package className="w-3 h-3" />
-                    {installMutation.isPending ? "Installing..." : "Install packages"}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={handleEdit}
-                  className="text-[10px] text-text-muted hover:text-accent flex items-center gap-1"
-                >
-                  <Edit2 className="w-3 h-3" /> Edit
-                </button>
-                {onDelete && (
-                  <button
-                    type="button"
-                    onClick={onDelete}
-                    className="text-[10px] text-text-muted hover:text-red-400 flex items-center gap-1"
-                  >
-                    <Trash2 className="w-3 h-3" /> Delete
-                  </button>
-                )}
-              </div>
             </>
           )}
 
@@ -369,25 +389,6 @@ export function IntegrationCard({
                   </Section>
                 </>
               )}
-
-              <div className="mt-3 pt-1.5 border-t border-border/50 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={handleEdit}
-                  className="text-[10px] text-text-muted hover:text-accent flex items-center gap-1"
-                >
-                  <Edit2 className="w-3 h-3" /> Edit
-                </button>
-                {onDelete && (
-                  <button
-                    type="button"
-                    onClick={onDelete}
-                    className="text-[10px] text-text-muted hover:text-red-400 flex items-center gap-1"
-                  >
-                    <Trash2 className="w-3 h-3" /> Delete
-                  </button>
-                )}
-              </div>
             </>
           )}
         </div>

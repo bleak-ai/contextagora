@@ -13,6 +13,7 @@ import { useModuleEditorStore } from "../../../hooks/useModuleEditorStore";
 import { ModuleCardShell } from "./ModuleCardShell";
 import { ModuleFilePreview } from "./ModuleFilePreview";
 import { FileTree } from "./FileTree";
+import { OverflowMenu, type OverflowMenuItem } from "./OverflowMenu";
 
 interface TaskCardProps {
   info: ModuleInfo;
@@ -33,14 +34,17 @@ export function TaskCard({
 }: TaskCardProps) {
   const isOn = loaded !== null;
   const isArchived = info.archived;
-  const variant: "active" | "idle" = isOn && !isArchived ? "active" : "idle";
+  const variant: "active" | "idle" | "archived" = isArchived
+    ? "archived"
+    : isOn
+      ? "active"
+      : "idle";
 
   const openModuleEditor = useModuleEditorStore((s) => s.openModuleEditor);
   const handleEdit = () => (onEdit ? onEdit() : openModuleEditor(info.name));
 
   const [expanded, setExpanded] = useState(isOn);
   const [previewFile, setPreviewFile] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
   const headerMiddle = (
     <button
@@ -49,13 +53,60 @@ export function TaskCard({
       className="flex flex-1 items-center gap-1.5 text-left min-w-0"
     >
       <span
-        className="text-xs font-semibold text-text truncate"
+        className={`text-xs font-semibold truncate ${
+          isArchived
+            ? "text-text-secondary italic"
+            : isOn
+              ? "text-text"
+              : "text-text-secondary"
+        }`}
         title={info.name}
       >
         {info.name}
       </span>
+      {isArchived && (
+        <span className="text-[9px] font-semibold uppercase tracking-wider text-text-secondary bg-bg px-1.5 py-0.5 rounded border border-border">
+          archived
+        </span>
+      )}
+      {!isArchived && !isOn && (
+        <span className="text-[9px] font-semibold uppercase tracking-wider text-text-muted bg-bg px-1.5 py-0.5 rounded border border-border">
+          off
+        </span>
+      )}
     </button>
   );
+
+  const menuItems: OverflowMenuItem[] = [
+    {
+      label: "Edit",
+      icon: <Edit2 className="w-3 h-3" />,
+      onClick: handleEdit,
+    },
+    ...(onArchiveToggle
+      ? [
+          {
+            label: isArchived ? "Unarchive" : "Archive",
+            icon: isArchived ? (
+              <ArchiveRestore className="w-3 h-3" />
+            ) : (
+              <Archive className="w-3 h-3" />
+            ),
+            onClick: () => onArchiveToggle(!isArchived),
+          },
+        ]
+      : []),
+    ...(onDelete
+      ? [
+          {
+            label: "Delete",
+            icon: <Trash2 className="w-3 h-3" />,
+            onClick: () => onDelete(),
+            destructive: true,
+          },
+        ]
+      : []),
+  ];
 
   const headerRight = (
     <>
@@ -78,6 +129,7 @@ export function TaskCard({
           />
         </button>
       )}
+      <OverflowMenu items={menuItems} />
       <button
         type="button"
         aria-label={expanded ? "Collapse" : "Expand"}
@@ -127,46 +179,6 @@ export function TaskCard({
               Archived. Unarchive to load it again.
             </p>
           )}
-
-          <div className="mt-2 pt-1.5 border-t border-border/50 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={handleEdit}
-              className="text-[10px] text-text-muted hover:text-accent flex items-center gap-1"
-            >
-              <Edit2 className="w-3 h-3" /> Edit
-            </button>
-            {onArchiveToggle && (
-              <button
-                type="button"
-                onClick={() => onArchiveToggle(!isArchived)}
-                className="text-[10px] text-text-muted hover:text-accent flex items-center gap-1"
-              >
-                {isArchived ? (
-                  <>
-                    <ArchiveRestore className="w-3 h-3" /> Unarchive
-                  </>
-                ) : (
-                  <>
-                    <Archive className="w-3 h-3" /> Archive
-                  </>
-                )}
-              </button>
-            )}
-            {onDelete && (
-              <button
-                type="button"
-                disabled={deleting}
-                onClick={() => {
-                  setDeleting(true);
-                  Promise.resolve(onDelete()).finally(() => setDeleting(false));
-                }}
-                className="text-[10px] text-text-muted hover:text-red-400 flex items-center gap-1 disabled:opacity-50"
-              >
-                <Trash2 className="w-3 h-3" /> Delete
-              </button>
-            )}
-          </div>
         </div>
       )}
       {previewFile && (
