@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AssistantRuntimeProvider } from "@assistant-ui/react";
+import { AssistantRuntimeProvider, useComposerRuntime } from "@assistant-ui/react";
+import { FileCheck, Zap, Package } from "lucide-react";
+import type { ComponentType } from "react";
 import { fetchModules, type ModuleInfo } from "../api/modules";
 import {
   useActiveSessionId,
@@ -86,20 +88,33 @@ export function Chat() {
 }
 
 function WelcomeScreen({ modules }: { modules: ModuleInfo[] }) {
+  const composerRuntime = useComposerRuntime();
   const tasks = modules.filter((m) => m.kind === "task");
   const workflows = modules.filter((m) => m.kind === "workflow");
   const integrations = modules.filter((m) => m.kind === "integration");
 
+  const prefillTask = (name: string) =>
+    composerRuntime.setText(
+      `Let's continue working on the ${name} task (context: modules-repo/${name}/). Read its info.md (and any status notes) and tell me where we left off and what to do next.`,
+    );
+
+  const prefillWorkflow = (name: string) =>
+    composerRuntime.setText(
+      `Let's run the ${name} workflow (context: modules-repo/${name}/). Read its info.md, then walk me through it step by step starting with step 1.`,
+    );
+
   return (
-    <div className="w-full max-w-[900px] px-6 space-y-10">
+    <div className="w-full max-w-[900px] px-6 space-y-8">
       {tasks.length > 0 && (
         <section>
-          <h2 className="text-text-muted text-xs tracking-wider mb-3">
-            TASKS
-          </h2>
+          <SectionHeader label="Tasks" count={tasks.length} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {tasks.map((m) => (
-              <ModuleTile key={m.name} module={m} size="lg" />
+              <TaskTile
+                key={m.name}
+                module={m}
+                onClick={() => prefillTask(m.name)}
+              />
             ))}
           </div>
         </section>
@@ -107,12 +122,16 @@ function WelcomeScreen({ modules }: { modules: ModuleInfo[] }) {
 
       {workflows.length > 0 && (
         <section>
-          <h3 className="text-text-muted text-[11px] tracking-wider mb-2">
-            WORKFLOWS
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <SectionHeader label="Workflows" count={workflows.length} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {workflows.map((m) => (
-              <ModuleTile key={m.name} module={m} size="sm" />
+              <CompactTile
+                key={m.name}
+                module={m}
+                icon={Zap}
+                tone="accent"
+                onClick={() => prefillWorkflow(m.name)}
+              />
             ))}
           </div>
         </section>
@@ -120,12 +139,15 @@ function WelcomeScreen({ modules }: { modules: ModuleInfo[] }) {
 
       {integrations.length > 0 && (
         <section>
-          <h3 className="text-text-muted text-[11px] tracking-wider mb-2">
-            INTEGRATIONS
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <SectionHeader label="Integrations" count={integrations.length} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {integrations.map((m) => (
-              <ModuleTile key={m.name} module={m} size="sm" />
+              <CompactTile
+                key={m.name}
+                module={m}
+                icon={Package}
+                tone="muted"
+              />
             ))}
           </div>
         </section>
@@ -134,32 +156,106 @@ function WelcomeScreen({ modules }: { modules: ModuleInfo[] }) {
   );
 }
 
-function ModuleTile({
+function SectionHeader({ label, count }: { label: string; count: number }) {
+  return (
+    <div className="flex items-baseline gap-3 mb-3">
+      <h3 className="text-text-secondary text-[11px] font-medium tracking-[0.18em] uppercase">
+        {label}
+      </h3>
+      <span className="text-text-muted text-[11px] tabular-nums">{count}</span>
+      <div className="flex-1 border-t border-border/60" />
+    </div>
+  );
+}
+
+function TaskTile({
   module: m,
-  size,
+  onClick,
 }: {
   module: ModuleInfo;
-  size: "lg" | "sm";
+  onClick: () => void;
 }) {
-  const isLg = size === "lg";
   return (
     <button
       type="button"
-      className={`text-left rounded-lg border border-border bg-bg-raised hover:bg-bg-hover hover:border-accent/40 transition-colors ${
-        isLg ? "p-4" : "px-3 py-2"
-      }`}
+      onClick={onClick}
+      className="group relative text-left rounded-xl border border-border bg-bg-raised p-4 hover:bg-bg-hover hover:border-accent/50 transition-colors cursor-pointer"
     >
-      <div
-        className={`font-medium text-text truncate ${
-          isLg ? "text-sm" : "text-xs"
-        }`}
-        title={m.name}
-      >
-        {m.name}
+      <div className="flex items-start gap-3">
+        <span className="flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg bg-accent-dim text-accent group-hover:bg-accent/20 transition-colors">
+          <FileCheck size={15} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div
+            className="text-sm font-semibold text-text truncate"
+            title={m.name}
+          >
+            {m.name}
+          </div>
+          {m.summary && (
+            <p className="mt-1 text-xs text-text-secondary leading-relaxed line-clamp-2">
+              {m.summary}
+            </p>
+          )}
+        </div>
       </div>
-      {isLg && m.summary && (
-        <p className="mt-1 text-xs text-text-muted line-clamp-2">{m.summary}</p>
-      )}
+    </button>
+  );
+}
+
+function CompactTile({
+  module: m,
+  icon: Icon,
+  tone,
+  onClick,
+}: {
+  module: ModuleInfo;
+  icon: ComponentType<{ size?: number }>;
+  tone: "accent" | "muted";
+  onClick?: () => void;
+}) {
+  const interactive = onClick !== undefined;
+  const wrapperClass = `flex items-center gap-3 rounded-lg border bg-bg-raised px-3 py-2.5 text-left ${
+    interactive
+      ? "border-border hover:bg-bg-hover hover:border-accent/40 transition-colors cursor-pointer"
+      : "border-border/60 cursor-default"
+  }`;
+  const iconWrapClass =
+    tone === "accent"
+      ? "text-accent bg-accent-dim"
+      : "text-text-muted bg-bg";
+  const nameClass =
+    tone === "accent"
+      ? "text-xs font-medium text-text"
+      : "text-xs font-medium text-text-secondary";
+
+  const content = (
+    <>
+      <span
+        className={`flex-shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-md ${iconWrapClass}`}
+      >
+        <Icon size={13} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className={`${nameClass} truncate`} title={m.name}>
+          {m.name}
+        </div>
+        {m.summary && (
+          <p className="text-[11px] text-text-muted truncate leading-snug">
+            {m.summary}
+          </p>
+        )}
+      </div>
+    </>
+  );
+
+  if (!interactive) {
+    return <div className={wrapperClass}>{content}</div>;
+  }
+
+  return (
+    <button type="button" onClick={onClick} className={wrapperClass}>
+      {content}
     </button>
   );
 }
