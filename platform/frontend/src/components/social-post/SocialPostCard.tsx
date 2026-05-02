@@ -215,7 +215,6 @@ export function SocialPostCard({ payload, theme }: Props) {
   );
 }
 
-/* ------------------------------ Panels ------------------------------ */
 
 function InsetPanel({
   label,
@@ -284,7 +283,6 @@ function Squiggle({ color }: { color: string }) {
   );
 }
 
-/* ------------------------------ Steps ------------------------------- */
 
 function StepList({
   steps,
@@ -390,7 +388,6 @@ function StepList({
   );
 }
 
-/* ------------------------------ Result ------------------------------ */
 
 function ResultHeadline({ outcome }: { outcome: SocialPostPayload["outcome"] }) {
   // Prefer composing "{file} {rest-of-title} {emoji}" when a file exists.
@@ -481,7 +478,6 @@ function BrandMark() {
   );
 }
 
-/* ------------------------------ Helpers ----------------------------- */
 
 function stripTrailingFile(title: string, file: string): string {
   if (!file) return title;

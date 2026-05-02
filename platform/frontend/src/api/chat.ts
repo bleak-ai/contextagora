@@ -1,5 +1,16 @@
 export type ChatMode = "normal" | "quick";
 
+export interface TreeNavigationPayload {
+  active_path: string[];
+  accessed_files: string[];
+  module_counts: Record<string, number>;
+}
+
+export interface ValidationErrorPayload {
+  module: string;
+  errors: string[];
+}
+
 export type ChatEvent =
   | { type: "thinking"; text: string }
   | { type: "text"; text: string }
@@ -10,9 +21,9 @@ export type ChatEvent =
   | { type: "session_name"; name: string }
   | { type: "error"; message: string }
   | { type: "done" }
-  | { type: "tree_navigation"; active_path: string[]; accessed_files: string[]; module_counts: Record<string, number> }
+  | ({ type: "tree_navigation" } & TreeNavigationPayload)
   | { type: "suggestion"; prompt: string }
-  | { type: "validation_error"; module: string; errors: string[] };
+  | ({ type: "validation_error" } & ValidationErrorPayload);
 
 export async function streamChat(
   prompt: string,

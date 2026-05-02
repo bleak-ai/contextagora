@@ -30,7 +30,7 @@ class WorkspaceLoadRequest(BaseModel):
 
 class ModuleInfo(BaseModel):
     name: str
-    kind: str = "integration"
+    kind: Literal["integration", "task", "workflow"] = "integration"
     summary: str = ""
     has_growth_areas: bool = False
     archived: bool = False
@@ -112,3 +112,7 @@ class LinkedinPayload(BaseModel):
 
 class LinkedinGenerateRequest(BaseModel):
     card: SocialPostPayload
+
+
+class UploadedImageResponse(BaseModel):
+    path: str

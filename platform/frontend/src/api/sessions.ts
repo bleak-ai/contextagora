@@ -1,5 +1,5 @@
 import { apiFetch } from "./client";
-import type { ChatMessage } from "../hooks/useChatStore";
+import type { ChatMessage } from "../hooks/chatTypes";
 import type { ChatMode } from "./chat";
 
 export interface SessionInfo {

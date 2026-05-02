@@ -48,7 +48,7 @@ def test_compute_stats_elapsed_is_first_to_last_tool_call():
     ]
     stats = social_post.compute_stats(messages)
     # 1_017_900 - 1_000_000 = 17_900 ms → 17 seconds (floor division)
-    assert stats["elapsed_seconds"] == 17
+    assert stats.elapsed_seconds == 17
 
 
 def test_compute_stats_counts_prompts():
@@ -59,14 +59,14 @@ def test_compute_stats_counts_prompts():
         _assistant_text("ok"),
     ]
     stats = social_post.compute_stats(messages)
-    assert stats["prompt_count"] == 2
+    assert stats.prompt_count == 2
 
 
 def test_compute_stats_no_tool_calls_elapsed_zero():
     messages = [_user("hi"), _assistant_text("hello")]
     stats = social_post.compute_stats(messages)
-    assert stats["elapsed_seconds"] == 0
-    assert stats["prompt_count"] == 1
+    assert stats.elapsed_seconds == 0
+    assert stats.prompt_count == 1
 
 
 def test_compute_stats_single_tool_call_elapsed_zero():
@@ -75,7 +75,7 @@ def test_compute_stats_single_tool_call_elapsed_zero():
         _msg("assistant", [_tool_call("Read", started_ms=42_000)]),
     ]
     stats = social_post.compute_stats(messages)
-    assert stats["elapsed_seconds"] == 0
+    assert stats.elapsed_seconds == 0
 
 
 def test_build_transcript_includes_user_prompt_and_tool_calls():
@@ -241,14 +241,14 @@ def test_generate_social_post_returns_full_payload():
             project_dir=Path("/tmp/whatever"),
         )
 
-    assert payload["services"] == ["Linear", "Supabase"]
-    assert payload["problem"]["headline"].startswith("Lisa paid for Pro")
-    assert payload["stats"]["prompt_count"] == 1
+    assert payload.services == ["Linear", "Supabase"]
+    assert payload.problem.headline.startswith("Lisa paid for Pro")
+    assert payload.stats.prompt_count == 1
     # (1_017_000 - 1_000_000) / 1000 = 17
-    assert payload["stats"]["elapsed_seconds"] == 17
+    assert payload.stats.elapsed_seconds == 17
     # Title now comes from the LLM
-    assert payload["title"] == "Flipped Lisa to Pro"
-    assert payload["meta_bits"] == ["1 customer", "2 tables", "fix at source"]
+    assert payload.title == "Flipped Lisa to Pro"
+    assert payload.meta_bits == ["1 customer", "2 tables", "fix at source"]
 
 
 def test_generate_social_post_raises_no_messages():

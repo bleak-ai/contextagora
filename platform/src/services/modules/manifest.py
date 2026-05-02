@@ -1,16 +1,17 @@
 """Module manifest (module.yaml) read/write service.
 
-Each module can have a module.yaml declaring its name, summary, secrets,
-and dependencies.  This replaces the previous per-module .env.schema and
-requirements.txt files.
+Each module declares its name, kind, secrets, dependencies, and optional
+jobs in module.yaml. Replaces per-module .env.schema and requirements.txt.
 """
 import re
+import typing
 from pathlib import Path
+from typing import Literal
 
 import yaml
 from pydantic import BaseModel, Field, field_validator
 
-KINDS = ("integration", "task", "workflow")
+ModuleKind = Literal["integration", "task", "workflow"]
 
 
 _EVERY_RE = re.compile(r"^(\d+)([smh])$")
@@ -80,7 +81,7 @@ class ModuleManifest(BaseModel):
         ...,
         description="Folder slug; must match the module directory name.",
     )
-    kind: str = Field(
+    kind: ModuleKind = Field(
         default="integration",
         description='One of: "integration", "task", "workflow". Drives how the module is rendered in the sidebar.',
     )
@@ -186,6 +187,8 @@ def _format_type(annotation) -> str:
         if inner is JobSpec:
             return "list[JobSpec]"
         return f"list[{_PRIMITIVE_NAMES.get(inner, inner.__name__)}]"
+    if typing.get_origin(annotation) is Literal:
+        return " | ".join(repr(v) for v in typing.get_args(annotation))
     return getattr(annotation, "__name__", str(annotation))
 
 

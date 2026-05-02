@@ -4,14 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchRootContext } from "../../api/rootContext";
 import type { ModuleInfo } from "../../api/modules";
 import type { LoadedModule } from "../../api/workspace";
-import { IntegrationCard } from "./cards/IntegrationCard";
 import { TaskCard } from "./cards/TaskCard";
+import { ActiveContextList } from "./ActiveContextList";
+import { AvailableModuleGroups } from "./AvailableModuleGroups";
 import { FilePreviewModal } from "./FilePreviewModal";
 import { LegacyArchivedBanner } from "./LegacyArchivedBanner";
-
-/* ------------------------------------------------------------------ */
-/*  Props                                                              */
-/* ------------------------------------------------------------------ */
 
 interface WorkspaceGroupProps {
   modules: ModuleInfo[];
@@ -21,12 +18,8 @@ interface WorkspaceGroupProps {
   isRefreshingSecrets: boolean;
   onEditModule: (name: string) => void;
   onDeleteModule: (name: string, kind: "task" | "integration" | "workflow") => void;
-  onArchiveModule: (name: string, archived: boolean) => void;
+  onArchiveModule?: (name: string, archived: boolean) => void;
 }
-
-/* ------------------------------------------------------------------ */
-/*  Health helper                                                      */
-/* ------------------------------------------------------------------ */
 
 function computeHealth(
   loaded: LoadedModule[],
@@ -44,10 +37,6 @@ function computeHealth(
   return hasIssue ? "warn" : "ok";
 }
 
-/* ------------------------------------------------------------------ */
-/*  WorkspaceGroup                                                     */
-/* ------------------------------------------------------------------ */
-
 export function WorkspaceGroup({
   modules,
   loaded,
@@ -63,14 +52,12 @@ export function WorkspaceGroup({
     "claude_md" | "llms_txt" | null
   >(null);
 
-  /* --- root context query --- */
   const { data: rootData, isLoading: rootLoading } = useQuery({
     queryKey: ["root-context"],
     queryFn: fetchRootContext,
     staleTime: 30_000,
   });
 
-  /* --- derived data --- */
   const moduleNames = useMemo(
     () => new Set(modules.map((m) => m.name)),
     [modules],
@@ -86,7 +73,6 @@ export function WorkspaceGroup({
     [loaded, moduleNames],
   );
 
-  /* --- partition: active (sorted: loaded first) vs archived --- */
   const { activeModules, archivedModules } = useMemo(() => {
     const loadedSet = new Set(loaded.map((l) => l.name));
     const active: ModuleInfo[] = [];
@@ -102,7 +88,19 @@ export function WorkspaceGroup({
     return { activeModules: active, archivedModules: archived };
   }, [modules, loaded]);
 
-  /* --- health dot styling --- */
+  const loadedNames = useMemo(
+    () => new Set(loaded.map((l) => l.name)),
+    [loaded],
+  );
+  const loadedModules = useMemo(
+    () => activeModules.filter((m) => loadedNames.has(m.name)),
+    [activeModules, loadedNames],
+  );
+  const idleModules = useMemo(
+    () => activeModules.filter((m) => !loadedNames.has(m.name)),
+    [activeModules, loadedNames],
+  );
+
   const dotClass =
     health === "ok"
       ? "bg-success shadow-[0_0_6px_rgba(92,184,122,0.4)]"
@@ -110,7 +108,6 @@ export function WorkspaceGroup({
         ? "bg-red-400 shadow-[0_0_6px_rgba(239,68,68,0.6)]"
         : "bg-text-muted";
 
-  /* --- root file labels --- */
   const ROOT_FILES = [
     { key: "claude_md" as const, label: "CLAUDE.md" },
     { key: "llms_txt" as const, label: "llms.txt" },
@@ -118,7 +115,6 @@ export function WorkspaceGroup({
 
   return (
     <>
-      {/* ---- Collapsed / Header card ---- */}
       <button
         type="button"
         onClick={() => setExpanded((e) => !e)}
@@ -136,13 +132,10 @@ export function WorkspaceGroup({
           : <ChevronRight className="w-3 h-3 text-text-muted" />}
       </button>
 
-      {/* ---- Expanded body ---- */}
       {expanded && (
         <div className="border border-t-0 border-border rounded-b-md px-2.5 pb-2.5 pt-2">
-          {/* ---- Legacy archived banner ---- */}
           <LegacyArchivedBanner />
 
-          {/* ---- Root Files sub-section ---- */}
           <div className="pb-2 mb-2 border-b border-border/60">
             <span className="text-[8px] font-bold uppercase tracking-wider text-text-muted mb-1.5 block">
               Root Files
@@ -178,47 +171,25 @@ export function WorkspaceGroup({
             )}
           </div>
 
-          {/* ---- Modules sub-section ---- */}
-          <div className="mb-1.5">
-            <span className="text-[8px] font-bold uppercase tracking-wider text-text-muted">
-              Modules
-            </span>
-          </div>
+          <ActiveContextList
+            modules={loadedModules}
+            loaded={loaded}
+            onToggleModule={onToggleModule}
+            onEditModule={onEditModule}
+            onDeleteModule={onDeleteModule}
+            onArchiveModule={onArchiveModule}
+          />
 
-          {/* ---- Module cards ---- */}
-          <div className="space-y-0">
-            {activeModules.map((m) => {
-              const loadedRecord = loaded.find((l) => l.name === m.name) ?? null;
-              if (m.kind === "task") {
-                return (
-                  <TaskCard
-                    key={m.name}
-                    info={m}
-                    loaded={loadedRecord}
-                    onToggle={(enabled) => onToggleModule(m.name, enabled)}
-                    onEdit={() => onEditModule(m.name)}
-                    onDelete={() => onDeleteModule(m.name, m.kind)}
-                    onArchiveToggle={(archived) =>
-                      onArchiveModule(m.name, archived)
-                    }
-                  />
-                );
-              }
-              return (
-                <IntegrationCard
-                  key={m.name}
-                  info={m}
-                  loaded={loadedRecord}
-                  onToggle={(enabled) => onToggleModule(m.name, enabled)}
-                  onEdit={() => onEditModule(m.name)}
-                  onDelete={() => onDeleteModule(m.name, m.kind)}
-                />
-              );
-            })}
-          </div>
+          <AvailableModuleGroups
+            modules={idleModules}
+            loaded={loaded}
+            onToggleModule={onToggleModule}
+            onEditModule={onEditModule}
+            onDeleteModule={onDeleteModule}
+            onArchiveModule={onArchiveModule}
+          />
 
-          {/* ---- Archived section ---- */}
-          {archivedModules.length > 0 && (
+          {archivedModules.length > 0 && onArchiveModule && (
             <ArchivedSection
               modules={archivedModules}
               onUnarchive={(name) => onArchiveModule(name, false)}
@@ -227,7 +198,6 @@ export function WorkspaceGroup({
             />
           )}
 
-          {/* ---- Footer row ---- */}
           <div className="flex items-center justify-end border-t border-border/50 pt-1.5 mt-1.5">
             <button
               type="button"
@@ -242,7 +212,6 @@ export function WorkspaceGroup({
         </div>
       )}
 
-      {/* ---- Root file preview modal ---- */}
       {rootPreview && rootData && (
         <FilePreviewModal
           title={
@@ -255,10 +224,6 @@ export function WorkspaceGroup({
     </>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  ArchivedSection (inline)                                           */
-/* ------------------------------------------------------------------ */
 
 interface ArchivedSectionProps {
   modules: ModuleInfo[];

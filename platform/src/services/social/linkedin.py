@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.models import SocialPostPayload
+from src.models import LinkedinPayload, SocialPostPayload
 from src.services.chat.claude import run_headless
 from src.services.social.social_post import ExtractionError, _strip_fences
 from src.services.social.tweet import _format_card
@@ -59,6 +59,6 @@ def extract_linkedin(card: SocialPostPayload, *, timeout: int = 180) -> str:
     raise ExtractionError("unreachable")
 
 
-def generate_linkedin(card: SocialPostPayload) -> dict:
-    """Produce a LinkedinPayload-shaped dict from a card payload."""
-    return {"text": extract_linkedin(card)}
+def generate_linkedin(card: SocialPostPayload) -> LinkedinPayload:
+    """Produce a LinkedinPayload from a card payload."""
+    return LinkedinPayload(text=extract_linkedin(card))

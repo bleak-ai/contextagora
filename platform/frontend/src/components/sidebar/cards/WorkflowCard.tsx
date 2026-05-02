@@ -1,12 +1,5 @@
 import { useState } from "react";
-import {
-  Trash2,
-  Edit2,
-  ChevronDown,
-  ChevronRight,
-  Archive,
-  ArchiveRestore,
-} from "lucide-react";
+import { Trash2, Edit2, ChevronDown, ChevronRight } from "lucide-react";
 import type { ModuleInfo } from "../../../api/modules";
 import type { LoadedModule } from "../../../api/workspace";
 import { useModuleEditorStore } from "../../../hooks/useModuleEditorStore";
@@ -14,26 +7,23 @@ import { ModuleCardShell } from "./ModuleCardShell";
 import { ModuleFilePreview } from "./ModuleFilePreview";
 import { FileTree } from "./FileTree";
 
-interface TaskCardProps {
+interface WorkflowCardProps {
   info: ModuleInfo;
   loaded: LoadedModule | null;
   onToggle?: (enabled: boolean) => void;
   onDelete?: () => void | Promise<void>;
   onEdit?: () => void;
-  onArchiveToggle?: (archived: boolean) => void | Promise<void>;
 }
 
-export function TaskCard({
+export function WorkflowCard({
   info,
   loaded,
   onToggle,
   onDelete,
   onEdit,
-  onArchiveToggle,
-}: TaskCardProps) {
+}: WorkflowCardProps) {
   const isOn = loaded !== null;
-  const isArchived = info.archived;
-  const variant: "active" | "idle" = isOn && !isArchived ? "active" : "idle";
+  const variant: "active" | "idle" = isOn ? "active" : "idle";
 
   const openModuleEditor = useModuleEditorStore((s) => s.openModuleEditor);
   const handleEdit = () => (onEdit ? onEdit() : openModuleEditor(info.name));
@@ -59,7 +49,7 @@ export function TaskCard({
 
   const headerRight = (
     <>
-      {onToggle && !isArchived && (
+      {onToggle && (
         <button
           type="button"
           onClick={(e) => {
@@ -99,7 +89,7 @@ export function TaskCard({
   return (
     <ModuleCardShell
       variant={variant}
-      kind="task"
+      kind="workflow"
       warn={false}
       hasGrowthAreas={info.has_growth_areas}
       headerMiddle={headerMiddle}
@@ -117,14 +107,9 @@ export function TaskCard({
               checkboxes={loaded.checkboxes}
             />
           )}
-          {!isOn && !isArchived && (
+          {!isOn && (
             <p className="text-[10px] italic text-text-muted">
-              Off. Turn on to load this task into the workspace.
-            </p>
-          )}
-          {isArchived && (
-            <p className="text-[10px] italic text-text-muted">
-              Archived. Unarchive to load it again.
+              Off. Turn on to load this workflow into the workspace.
             </p>
           )}
 
@@ -136,23 +121,6 @@ export function TaskCard({
             >
               <Edit2 className="w-3 h-3" /> Edit
             </button>
-            {onArchiveToggle && (
-              <button
-                type="button"
-                onClick={() => onArchiveToggle(!isArchived)}
-                className="text-[10px] text-text-muted hover:text-accent flex items-center gap-1"
-              >
-                {isArchived ? (
-                  <>
-                    <ArchiveRestore className="w-3 h-3" /> Unarchive
-                  </>
-                ) : (
-                  <>
-                    <Archive className="w-3 h-3" /> Archive
-                  </>
-                )}
-              </button>
-            )}
             {onDelete && (
               <button
                 type="button"

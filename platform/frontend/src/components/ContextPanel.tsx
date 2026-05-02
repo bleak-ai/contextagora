@@ -253,7 +253,6 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
       <div className="flex-1 overflow-y-auto px-2.5 py-2.5">
         {tab === "context" && (
           <div>
-            {/* ---- Workspace Zone ---- */}
             <div>
               <div className="text-[9px] font-bold uppercase tracking-wider text-text-muted mb-2 px-1">
                 Workspace
@@ -274,7 +273,6 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
               />
             </div>
 
-            {/* ---- Load Errors ---- */}
             {loadErrors.length > 0 && (
               <div className="mt-2 rounded-md border border-red-500/40 bg-red-500/10 p-2 text-xs text-red-300">
                 <div className="flex items-start justify-between gap-2">
@@ -292,18 +290,7 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
                   {loadErrors.map((e) => (
                     <li key={e.module}>
                       <span className="font-mono">{e.module}</span>
-                      {e.reason === "missing_secrets" ? (
-                        <>
-                          {" — missing "}
-                          {e.missing?.length ? (
-                            <span className="font-mono">{e.missing.join(", ")}</span>
-                          ) : (
-                            "secrets"
-                          )}
-                        </>
-                      ) : (
-                        <> — {e.reason}</>
-                      )}
+                      {" — "}{e.reason}
                     </li>
                   ))}
                 </ul>

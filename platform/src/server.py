@@ -17,7 +17,6 @@ from src.routes.commands import router as commands_router
 from src.routes.files import router as files_router
 from src.routes.health import router as health_router
 from src.routes.modules import router as modules_router
-from src.routes.onboarding import router as onboarding_router
 from src.routes.root_context import router as root_context_router
 from src.routes.social_post import router as social_post_router
 from src.routes.sync import router as sync_router
@@ -120,7 +119,6 @@ app.include_router(commands_router)
 app.include_router(sync_router)
 app.include_router(benchmarks_router)
 app.include_router(root_context_router)
-app.include_router(onboarding_router)
 app.include_router(social_post_router)
 app.include_router(uploads_router)
 app.include_router(tweet_router)

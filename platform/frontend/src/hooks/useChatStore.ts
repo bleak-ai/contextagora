@@ -3,43 +3,23 @@ import { persist } from "zustand/middleware";
 import { streamChat, type ChatEvent, type ChatMode } from "../api/chat";
 import { setSessionMode } from "../api/sessions";
 import { queryClient, invalidateModuleQueries } from "../lib/queryClient";
+import type {
+  ChatMessage,
+  ContentPart,
+  ToolCall,
+  TreeState,
+  ValidationErrorEntry,
+} from "./chatTypes";
+
+export type {
+  ChatMessage,
+  ContentPart,
+  ToolCall,
+  TreeState,
+  ValidationErrorEntry,
+};
 
 export const NEW_CHAT_KEY = "__new_chat__";
-
-export interface ToolCall {
-  id: string;
-  name: string;
-  input: Record<string, unknown>;
-  output?: string;
-  startedAt: number;
-  completedAt?: number;
-}
-
-export type ContentPart =
-  | { type: "text"; text: string }
-  | { type: "tool_call"; toolCall: ToolCall };
-
-export interface ValidationErrorEntry {
-  module: string;
-  errors: string[];
-}
-
-export interface ChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  thinking: string;
-  parts: ContentPart[];
-  streaming: boolean;
-  error?: string;
-  suggestions?: string[]; // ephemeral, never persisted
-  validationErrors?: ValidationErrorEntry[]; // ephemeral, never persisted
-}
-
-export interface TreeState {
-  active_path: string[];
-  accessed_files: string[];
-  module_counts: Record<string, number>;
-}
 
 interface ChatState {
   messagesBySession: Record<string, ChatMessage[]>;

@@ -15,6 +15,8 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, UploadFile
 
+from src.models import UploadedImageResponse
+
 log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/uploads", tags=["uploads"])
@@ -24,8 +26,8 @@ PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 TMP_DIR = Path("/tmp")
 
 
-@router.post("/tmp-image", status_code=201)
-async def upload_tmp_image(file: UploadFile) -> dict:
+@router.post("/tmp-image", status_code=201, response_model=UploadedImageResponse)
+async def upload_tmp_image(file: UploadFile) -> UploadedImageResponse:
     """Save a PNG upload to /tmp and return its absolute path."""
     data = await file.read()
     if len(data) > MAX_UPLOAD_SIZE:
@@ -40,4 +42,4 @@ async def upload_tmp_image(file: UploadFile) -> dict:
     target = TMP_DIR / name
     target.write_bytes(data)
     log.info("Saved upload to %s (%d bytes)", target, len(data))
-    return {"path": str(target)}
+    return UploadedImageResponse(path=str(target))

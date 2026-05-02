@@ -29,8 +29,7 @@ export function fetchWorkspace(): Promise<WorkspaceState> {
 
 export interface LoadError {
   module: string;
-  reason: "not_available" | "invalid_path" | "missing_secrets" | "load_failed";
-  missing?: string[];
+  reason: "not_available" | "invalid_path" | "load_failed";
   details?: string;
 }
 

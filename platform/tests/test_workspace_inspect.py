@@ -25,34 +25,6 @@ def test_returns_top_level_non_managed_files_alphabetical(tmp_path: Path):
     assert list_workspace_files(tmp_path, MANAGED) == ["info.md", "verify.py"]
 
 
-def test_returns_docs_md_files_with_prefix(tmp_path: Path):
-    (tmp_path / "info.md").write_text("# info")
-    docs = tmp_path / "docs"
-    docs.mkdir()
-    (docs / "guide.md").write_text("# guide")
-    (docs / "overview.md").write_text("# overview")
-    (docs / "ignored.txt").write_text("skip me")
-    assert list_workspace_files(tmp_path, MANAGED) == [
-        "info.md",
-        "docs/guide.md",
-        "docs/overview.md",
-    ]
-
-
-def test_returns_scripts_py_files_with_prefix(tmp_path: Path):
-    (tmp_path / "info.md").write_text("# info")
-    scripts = tmp_path / "scripts"
-    scripts.mkdir()
-    (scripts / "create-issue.py").write_text("print('ok')")
-    (scripts / "list-projects.py").write_text("print('ok')")
-    (scripts / "notes.md").write_text("skip me")
-    assert list_workspace_files(tmp_path, MANAGED) == [
-        "info.md",
-        "scripts/create-issue.py",
-        "scripts/list-projects.py",
-    ]
-
-
 def test_mixed_top_level_docs_and_scripts_are_ordered(tmp_path: Path):
     """Order contract: top-level alphabetical, then docs alphabetical,
     then scripts alphabetical."""

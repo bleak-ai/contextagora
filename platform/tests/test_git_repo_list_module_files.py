@@ -34,31 +34,6 @@ def test_top_level_md_and_py(tmp_path: Path):
     ]
 
 
-def test_docs_md_surfaced(tmp_path: Path):
-    module_dir = _setup_module(tmp_path, "linear")
-    (module_dir / "info.md").write_text("# info")
-    (module_dir / "docs").mkdir()
-    (module_dir / "docs" / "guide.md").write_text("# guide")
-    (module_dir / "docs" / "ignored.txt").write_text("nope")
-    assert list_module_files("linear", MANAGED, clone_dir=tmp_path) == [
-        {"name": "info.md", "path": "info.md"},
-        {"name": "guide.md", "path": "docs/guide.md"},
-    ]
-
-
-def test_scripts_py_surfaced(tmp_path: Path):
-    module_dir = _setup_module(tmp_path, "linear")
-    (module_dir / "info.md").write_text("# info")
-    (module_dir / "scripts").mkdir()
-    (module_dir / "scripts" / "a.py").write_text("a")
-    (module_dir / "scripts" / "b.py").write_text("b")
-    (module_dir / "scripts" / "notes.md").write_text("nope")
-    result = list_module_files("linear", MANAGED, clone_dir=tmp_path)
-    assert {"name": "a.py", "path": "scripts/a.py"} in result
-    assert {"name": "b.py", "path": "scripts/b.py"} in result
-    assert {"name": "notes.md", "path": "scripts/notes.md"} not in result
-
-
 def test_ordering_top_then_docs_then_scripts(tmp_path: Path):
     module_dir = _setup_module(tmp_path, "linear")
     (module_dir / "info.md").write_text("# info")

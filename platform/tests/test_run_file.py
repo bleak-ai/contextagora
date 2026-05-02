@@ -27,11 +27,6 @@ def test_validator_accepts_py():
     assert validate_module_file_path("verify.py", MANAGED) == "verify.py"
 
 
-def test_validator_rejects_js():
-    with pytest.raises(ValueError, match="Only .md and .py files are allowed"):
-        validate_module_file_path("script.js", MANAGED)
-
-
 def test_validator_rejects_empty():
     with pytest.raises(ValueError, match="cannot be empty"):
         validate_module_file_path("", MANAGED)

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.models import SocialPostPayload
+from src.models import SocialPostPayload, TweetPayload
 from src.services.chat.claude import run_headless
 from src.services.social.social_post import ExtractionError, _strip_fences
 
@@ -103,6 +103,6 @@ def extract_tweet(card: SocialPostPayload, *, timeout: int = 120) -> str:
     raise ExtractionError("unreachable")
 
 
-def generate_tweet(card: SocialPostPayload) -> dict:
-    """Produce a TweetPayload-shaped dict from a card payload."""
-    return {"text": extract_tweet(card)}
+def generate_tweet(card: SocialPostPayload) -> TweetPayload:
+    """Produce a TweetPayload from a card payload."""
+    return TweetPayload(text=extract_tweet(card))

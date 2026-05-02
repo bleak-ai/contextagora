@@ -9,10 +9,6 @@ import { ModuleCardShell } from "./ModuleCardShell";
 import { ModuleFilePreview } from "./ModuleFilePreview";
 import { JobRunsModal } from "../JobRunsModal";
 
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
-/* ------------------------------------------------------------------ */
-
 function statusOf(m: LoadedModule): "ok" | "warn" {
   const missingSecret = Object.values(m.secrets).some((v) => v === null);
   const failedPackage = m.packages.some((p) => !p.installed);
@@ -27,10 +23,6 @@ function countMissing(m: LoadedModule): number {
   return missingSecrets + failedPackages;
 }
 
-/* ------------------------------------------------------------------ */
-/*  Props                                                              */
-/* ------------------------------------------------------------------ */
-
 interface IntegrationCardProps {
   info: ModuleInfo;
   loaded: LoadedModule | null;
@@ -38,10 +30,6 @@ interface IntegrationCardProps {
   onEdit?: () => void;
   onDelete?: () => void;
 }
-
-/* ------------------------------------------------------------------ */
-/*  Component                                                          */
-/* ------------------------------------------------------------------ */
 
 export function IntegrationCard({
   info,
@@ -52,7 +40,8 @@ export function IntegrationCard({
 }: IntegrationCardProps) {
   const isOn = loaded !== null;
   const status = isOn ? statusOf(loaded) : null;
-  const tone = isOn ? (status === "warn" ? "warn" : "ok") : "idle";
+  const variant: "active" | "idle" = isOn ? "active" : "idle";
+  const warn = status === "warn";
 
   const openModuleEditor = useModuleEditorStore((s) => s.openModuleEditor);
 
@@ -100,7 +89,6 @@ export function IntegrationCard({
 
   const missingCount = isOn ? countMissing(loaded) : 0;
 
-  /* --- partition files into docs (.md) and scripts (.py) --- */
   const docFiles = isOn ? loaded.files.filter((f) => !f.endsWith(".py")) : [];
   const scriptFiles = isOn ? loaded.files.filter((f) => f.endsWith(".py")) : [];
 
@@ -168,8 +156,9 @@ export function IntegrationCard({
 
   return (
     <ModuleCardShell
-      tone={tone}
+      variant={variant}
       kind="integration"
+      warn={warn}
       hasGrowthAreas={info.has_growth_areas}
       headerMiddle={headerMiddle}
       headerRight={headerRight}
@@ -473,10 +462,6 @@ function JobRow({
     </div>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  Sub-components                                                     */
-/* ------------------------------------------------------------------ */
 
 function Section({
   title,

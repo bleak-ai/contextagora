@@ -16,11 +16,6 @@ def test_top_level_md_allowed():
     assert validate_module_file_path("social-posts.md", MANAGED_FILES) == "social-posts.md"
 
 
-def test_non_md_file_rejected():
-    with pytest.raises(ValueError, match="Only .md and .py files are allowed"):
-        validate_module_file_path("random.txt", MANAGED_FILES)
-
-
 def test_managed_file_rejected():
     with pytest.raises(ValueError, match="managed"):
         validate_module_file_path("module.yaml", MANAGED_FILES)

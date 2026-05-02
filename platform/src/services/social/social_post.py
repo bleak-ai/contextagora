@@ -9,11 +9,12 @@ import re
 import sqlite3
 from pathlib import Path
 
+from src.models import SocialPostPayload, SocialPostStats
 from src.services.chat.claude import run_headless
 from src.services.chat.claude_sessions import load_session_messages
 
 
-def compute_stats(messages: list[dict]) -> dict:
+def compute_stats(messages: list[dict]) -> SocialPostStats:
     """Deterministic stats for the social-post card.
 
     - elapsed_seconds: (last tool-call startedAt) - (first tool-call startedAt), in seconds.
@@ -42,10 +43,10 @@ def compute_stats(messages: list[dict]) -> dict:
     else:
         elapsed_seconds = 0
 
-    return {
-        "elapsed_seconds": elapsed_seconds,
-        "prompt_count": prompt_count,
-    }
+    return SocialPostStats(
+        elapsed_seconds=elapsed_seconds,
+        prompt_count=prompt_count,
+    )
 
 
 _TOOL_INPUT_CAP = 80
@@ -173,7 +174,7 @@ def generate_social_post(
     session_id: str,
     conn: sqlite3.Connection,
     project_dir: Path,
-) -> dict:
+) -> SocialPostPayload:
     """Produce the full SocialPostPayload for a session."""
     messages = load_session_messages(session_id, conn, project_dir)
     if not messages:
@@ -183,7 +184,7 @@ def generate_social_post(
 
     stats = compute_stats(messages)
     transcript = build_transcript(messages)
-    content = extract_content(transcript, elapsed_seconds=stats["elapsed_seconds"])
+    content = extract_content(transcript, elapsed_seconds=stats.elapsed_seconds)
 
     required = ("services", "problem", "steps", "outcome")
     missing = [k for k in required if k not in content]
@@ -191,13 +192,13 @@ def generate_social_post(
         raise ExtractionError(f"Claude response missing keys: {missing}")
 
     services = content["services"]
-    title = content.get("title") or _fallback_title(len(services), stats["elapsed_seconds"])
-    return {
-        "title": title,
-        "meta_bits": content.get("meta_bits", []),
-        "problem": content["problem"],
-        "steps": content["steps"],
-        "outcome": content["outcome"],
-        "services": services,
-        "stats": stats,
-    }
+    title = content.get("title") or _fallback_title(len(services), stats.elapsed_seconds)
+    return SocialPostPayload(
+        title=title,
+        meta_bits=content.get("meta_bits", []),
+        problem=content["problem"],
+        steps=content["steps"],
+        outcome=content["outcome"],
+        services=services,
+        stats=stats,
+    )

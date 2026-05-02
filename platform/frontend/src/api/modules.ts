@@ -5,7 +5,6 @@ export interface ModuleInfo {
   kind: "integration" | "task" | "workflow";
   summary: string;
   archived: boolean;
-  parent_workflow: string | null;
   has_growth_areas?: boolean;
 }
 
