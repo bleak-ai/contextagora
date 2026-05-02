@@ -1,5 +1,6 @@
 import json
 import logging
+import subprocess
 import time
 from pathlib import Path
 
@@ -287,8 +288,27 @@ async def api_chat(body: ChatRequest, request: Request):
         # Runs on every exit path: normal completion, error yield, and
         # GeneratorExit raised when the client drops the SSE connection
         # (inherits from BaseException, so `except Exception` above does
-        # NOT catch it). The `persisted` guard in _persist_once prevents
-        # double writes.
+        # NOT catch it). Without the proc cleanup below, abandoned streams
+        # leak claude subprocesses (each ~100 MB + 2 pipe FDs) and burn
+        # tokens until the model finishes.
+        proc_local = locals().get("proc")
+        if proc_local is not None:
+            try:
+                if proc_local.poll() is None:
+                    proc_local.terminate()
+                    try:
+                        proc_local.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        proc_local.kill()
+                        proc_local.wait(timeout=2)
+            except Exception:
+                log.exception("failed to terminate claude subprocess")
+            for stream in (proc_local.stdout, proc_local.stderr):
+                if stream is not None:
+                    try:
+                        stream.close()
+                    except Exception:
+                        pass
         _persist_once()
 
     return StreamingResponse(generate(), media_type="text/event-stream")

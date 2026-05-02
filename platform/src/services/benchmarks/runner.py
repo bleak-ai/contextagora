@@ -71,69 +71,92 @@ def run_task_stream(task: Task, run_timeout_s: int = 1800):
         yield {"type": "error", "error": "claude CLI not found"}
         return
 
+    # Outer try/finally guarantees the subprocess and its pipes are
+    # released even when the generator is closed mid-stream (client
+    # disconnect raises GeneratorExit). Without this the Popen was leaked.
     try:
-        for line in proc.stdout:
+        try:
+            for line in proc.stdout:
+                try:
+                    ev = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                ev_type = ev.get("type", "")
+                if not session_id and ev_type == "system":
+                    session_id = ev.get("session_id", "") or ""
+                    yield {"type": "progress", "phase": "session", "session_id": session_id,
+                           "elapsed_s": round(time.time() - started_at, 1)}
+                elif ev_type == "assistant":
+                    for block in ev.get("message", {}).get("content", []):
+                        if block.get("type") == "tool_use":
+                            tool_count += 1
+                            yield {"type": "progress", "phase": "tool",
+                                   "tool": block.get("name", ""),
+                                   "tool_count": tool_count,
+                                   "elapsed_s": round(time.time() - started_at, 1)}
+                elif ev_type == "result":
+                    yield {"type": "progress", "phase": "result",
+                           "elapsed_s": round(time.time() - started_at, 1)}
+            proc.wait(timeout=run_timeout_s)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            yield {"type": "error", "error": "run timed out"}
+            return
+
+        # Drain stderr now, before the finally below closes the pipe.
+        stderr_text = proc.stderr.read() if proc.stderr else ""
+
+        if proc.returncode != 0:
+            yield {"type": "error", "error": stderr_text.strip() or f"claude exited {proc.returncode}"}
+            return
+
+        if not session_id:
+            yield {"type": "error", "error": "no session id captured from claude stream"}
+            return
+
+        project_dir = claude_project_dir(settings.CONTEXT_DIR)
+        jsonl = _wait_for_jsonl(session_id, project_dir)
+        if jsonl is None:
+            yield {"type": "error", "error": f"session jsonl not found: {project_dir}/{session_id}.jsonl"}
+            return
+
+        parsed: ParsedSession = parse_session(jsonl)
+        yield {"type": "judging", "elapsed_s": round(time.time() - started_at, 1)}
+        verdict, reason = judge(task.judge_prompt, parsed.final_text)
+
+        md = render_markdown(
+            task_id=task.id,
+            timestamp=timestamp,
+            session_id=session_id,
+            parsed=parsed,
+            judge_verdict=verdict,
+            judge_reason=reason,
+            context_fingerprint=_fingerprint(settings.CONTEXT_DIR),
+            loaded_modules=_loaded_modules(settings.CONTEXT_DIR),
+        )
+        path = write_run(task.id, timestamp, md)
+        yield {
+            "type": "done",
+            "task_id": task.id,
+            "run_id": timestamp,
+            "path": str(path),
+            "verdict": verdict,
+            "elapsed_s": round(time.time() - started_at, 1),
+        }
+    finally:
+        if proc.poll() is None:
             try:
-                ev = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            ev_type = ev.get("type", "")
-            if not session_id and ev_type == "system":
-                session_id = ev.get("session_id", "") or ""
-                yield {"type": "progress", "phase": "session", "session_id": session_id,
-                       "elapsed_s": round(time.time() - started_at, 1)}
-            elif ev_type == "assistant":
-                for block in ev.get("message", {}).get("content", []):
-                    if block.get("type") == "tool_use":
-                        tool_count += 1
-                        yield {"type": "progress", "phase": "tool",
-                               "tool": block.get("name", ""),
-                               "tool_count": tool_count,
-                               "elapsed_s": round(time.time() - started_at, 1)}
-            elif ev_type == "result":
-                yield {"type": "progress", "phase": "result",
-                       "elapsed_s": round(time.time() - started_at, 1)}
-        proc.wait(timeout=run_timeout_s)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        yield {"type": "error", "error": "run timed out"}
-        return
-
-    if proc.returncode != 0:
-        stderr = proc.stderr.read() if proc.stderr else ""
-        yield {"type": "error", "error": stderr.strip() or f"claude exited {proc.returncode}"}
-        return
-
-    if not session_id:
-        yield {"type": "error", "error": "no session id captured from claude stream"}
-        return
-
-    project_dir = claude_project_dir(settings.CONTEXT_DIR)
-    jsonl = _wait_for_jsonl(session_id, project_dir)
-    if jsonl is None:
-        yield {"type": "error", "error": f"session jsonl not found: {project_dir}/{session_id}.jsonl"}
-        return
-
-    parsed: ParsedSession = parse_session(jsonl)
-    yield {"type": "judging", "elapsed_s": round(time.time() - started_at, 1)}
-    verdict, reason = judge(task.judge_prompt, parsed.final_text)
-
-    md = render_markdown(
-        task_id=task.id,
-        timestamp=timestamp,
-        session_id=session_id,
-        parsed=parsed,
-        judge_verdict=verdict,
-        judge_reason=reason,
-        context_fingerprint=_fingerprint(settings.CONTEXT_DIR),
-        loaded_modules=_loaded_modules(settings.CONTEXT_DIR),
-    )
-    path = write_run(task.id, timestamp, md)
-    yield {
-        "type": "done",
-        "task_id": task.id,
-        "run_id": timestamp,
-        "path": str(path),
-        "verdict": verdict,
-        "elapsed_s": round(time.time() - started_at, 1),
-    }
+                proc.terminate()
+                try:
+                    proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    proc.wait(timeout=2)
+            except Exception:
+                pass
+        for stream in (proc.stdout, proc.stderr):
+            if stream is not None:
+                try:
+                    stream.close()
+                except Exception:
+                    pass
