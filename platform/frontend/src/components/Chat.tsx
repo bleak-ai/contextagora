@@ -120,6 +120,7 @@ function WelcomeScreen({
 }) {
   const composerRuntime = useComposerRuntime();
   const setMode = useChatStore((s) => s.setMode);
+  const [selectedName, setSelectedName] = useState<string | null>(null);
   const tasks = modules.filter((m) => m.kind === "task");
   const workflows = modules.filter((m) => m.kind === "workflow");
   const integrations = modules.filter((m) => m.kind === "integration");
@@ -133,6 +134,7 @@ function WelcomeScreen({
 
   const prefillTask = (name: string) => {
     enableOffloading();
+    setSelectedName(name);
     composerRuntime.setText(
       `Let's continue working on the ${name} task (context: modules-repo/${name}/). Read the main files (and any status notes) and tell me where we left off and what to do next.`,
     );
@@ -140,6 +142,7 @@ function WelcomeScreen({
 
   const prefillWorkflow = (name: string) => {
     enableOffloading();
+    setSelectedName(name);
     composerRuntime.setText(
       `Let's run the ${name} workflow (context: modules-repo/${name}/). Read the main files, then walk me through it step by step starting with step 1.`,
     );
@@ -156,6 +159,7 @@ function WelcomeScreen({
                 key={m.name}
                 module={m}
                 loaded={loadedNames.has(m.name)}
+                selected={selectedName === m.name}
                 onClick={() => prefillTask(m.name)}
               />
             ))}
@@ -173,6 +177,7 @@ function WelcomeScreen({
                 module={m}
                 icon={Zap}
                 loaded={loadedNames.has(m.name)}
+                selected={selectedName === m.name}
                 onClick={() => prefillWorkflow(m.name)}
               />
             ))}
@@ -213,17 +218,21 @@ function SectionHeader({ label, count }: { label: string; count: number }) {
 function TaskTile({
   module: m,
   loaded,
+  selected,
   onClick,
 }: {
   module: ModuleInfo;
   loaded: boolean;
+  selected: boolean;
   onClick: () => void;
 }) {
   const base = "group relative text-left rounded-xl border p-4 transition";
-  const stateClass = loaded
-    ? "border-success/40 bg-success/5 shadow-[inset_2px_0_0_0_var(--color-success)] hover:bg-success/10 hover:border-success/60 cursor-pointer"
-    : "border-border/60 bg-bg-raised opacity-40 cursor-not-allowed";
-  const iconClass = loaded
+  const stateClass = !loaded
+    ? "border-border/60 bg-bg-raised opacity-40 cursor-not-allowed"
+    : selected
+      ? "border-success/40 bg-success/5 shadow-[inset_2px_0_0_0_var(--color-success)] hover:bg-success/10 hover:border-success/60 cursor-pointer"
+      : "border-border/60 bg-bg-raised hover:bg-bg-hover hover:border-border-light cursor-pointer";
+  const iconClass = loaded && selected
     ? "bg-success/15 text-success"
     : "bg-bg text-text-muted";
   return (
@@ -283,19 +292,23 @@ function CompactTile({
   module: m,
   icon: Icon,
   loaded,
+  selected,
   onClick,
 }: {
   module: ModuleInfo;
   icon: ComponentType<{ size?: number }>;
   loaded: boolean;
+  selected: boolean;
   onClick: () => void;
 }) {
   const base =
     "flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition";
-  const stateClass = loaded
-    ? "border-success/40 bg-success/5 shadow-[inset_2px_0_0_0_var(--color-success)] hover:bg-success/10 hover:border-success/60 cursor-pointer"
-    : "border-border/60 bg-bg-raised opacity-40 cursor-not-allowed";
-  const iconWrapClass = loaded
+  const stateClass = !loaded
+    ? "border-border/60 bg-bg-raised opacity-40 cursor-not-allowed"
+    : selected
+      ? "border-success/40 bg-success/5 shadow-[inset_2px_0_0_0_var(--color-success)] hover:bg-success/10 hover:border-success/60 cursor-pointer"
+      : "border-border/60 bg-bg-raised hover:bg-bg-hover hover:border-border-light cursor-pointer";
+  const iconWrapClass = loaded && selected
     ? "text-success bg-success/15"
     : "text-text-muted bg-bg";
 

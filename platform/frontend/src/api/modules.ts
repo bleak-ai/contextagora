@@ -97,7 +97,3 @@ export function deleteModuleFile(
   return apiFetch(`/modules/${name}/files/${path}`, { method: "DELETE" });
 }
 
-export function fetchLegacyArchived(): Promise<string[]> {
-  return apiFetch<string[]>("/legacy-archived");
-}
-

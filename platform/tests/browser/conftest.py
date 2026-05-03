@@ -4,9 +4,8 @@
 `CONTEXTAGORA_E2E_URL=http://localhost:9090` to hit the built SPA served
 directly by FastAPI (CI / Docker shape).
 
-Run with:
-    uv run pytest tests/browser --video on --output test-results
-pytest-playwright writes a WebM per test under test-results/<test>/.
+Run with `make e2e` (all tests) or `make e2e-one T=test_chat` (single file).
+Videos land in `<project-root>/e2e-videos/<test-id>/video.webm`.
 """
 from __future__ import annotations
 

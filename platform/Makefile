@@ -2,8 +2,14 @@
 
 PORT ?= 9090
 
+E2E_VIDEO_DIR ?= ../e2e-videos
+
 e2e:
-	uv run pytest tests/browser --video on --output test-results -v
+	uv run pytest tests/browser --video=on --output=$(E2E_VIDEO_DIR) -v
+
+e2e-one:
+	@if [ -z "$(T)" ]; then echo "Usage: make e2e-one T=test_chat" >&2; exit 1; fi
+	uv run pytest tests/browser/$(T).py --video=on --output=$(E2E_VIDEO_DIR) -v
 
 dev:
 	@cd frontend && [ -d node_modules ] || pnpm install

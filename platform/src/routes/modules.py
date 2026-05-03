@@ -15,6 +15,7 @@ from src.models import (
 )
 from src.config import settings
 from src.services.modules import git_repo
+from src.services.modules.kind_specs import KIND_SPECS
 from src.services.modules.manifest import (
     read_manifest,
     write_manifest,
@@ -23,6 +24,16 @@ from src.services.modules.schemas import validate_module_file_path
 from src.services.modules.workspace import get_loaded_module_names, reload_workspace
 
 router = APIRouter(prefix="/api/modules", tags=["modules"])
+
+
+def _starter_file_for(kind: str) -> str:
+    """Resolve the conceptual body file for a module of the given kind.
+
+    Falls back to info.md for unknown kinds so legacy/malformed modules
+    keep working with the integration-shaped default.
+    """
+    spec = KIND_SPECS.get(kind)
+    return spec.starter_file if spec else "info.md"
 
 
 @router.get("")
@@ -50,16 +61,21 @@ async def api_list_modules():
 
 @router.get("/{name}")
 async def api_get_module(name: str):
-    """Get module detail: info.md content, summary, secrets, dependencies."""
+    """Get module detail: starter-file content, summary, secrets, dependencies.
+
+    The starter file is per-kind (info.md / brief.md / steps.md) -- see
+    KIND_SPECS for the mapping.
+    """
     if not git_repo.module_exists(name):
         return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
 
+    manifest = read_manifest(git_repo.module_dir(name))
+    starter = _starter_file_for(manifest.kind)
+
     try:
-        content = git_repo.read_file(name, "info.md")
+        content = git_repo.read_file(name, starter)
     except FileNotFoundError:
         content = ""
-
-    manifest = read_manifest(git_repo.module_dir(name))
 
     try:
         llms_text = git_repo.read_file(name, "llms.txt")
@@ -133,13 +149,16 @@ def api_run_module_file(name: str, file_path: str):
 
 @router.put("/{name}")
 async def api_update_module(name: str, body: UpdateModuleRequest):
-    """Update a module's info.md, module.yaml, and llms.txt."""
+    """Update a module's starter file (info.md / brief.md / steps.md per kind),
+    plus secrets and dependencies in module.yaml.
+    """
     if not git_repo.module_exists(name):
         return JSONResponse({"error": f"Module '{name}' not found"}, status_code=404)
 
-    git_repo.write_file(name, "info.md", body.content)
-
     existing = read_manifest(git_repo.module_dir(name))
+    starter = _starter_file_for(existing.kind)
+    git_repo.write_file(name, starter, body.content)
+
     manifest = existing.model_copy(update={
         "secrets": body.secrets,
         "dependencies": body.requirements,
@@ -233,8 +252,16 @@ async def api_delete_module_file(name: str, file_path: str):
         file_path = validate_module_file_path(file_path, settings.MANAGED_FILES)
     except ValueError as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
-    if file_path == "info.md":
-        return JSONResponse({"error": "info.md cannot be deleted"}, status_code=400)
+
+    # Block deletion of the kind's starter file (was: hardcoded info.md).
+    if git_repo.module_exists(name):
+        manifest = read_manifest(git_repo.module_dir(name))
+        starter = _starter_file_for(manifest.kind)
+        if file_path == starter:
+            return JSONResponse(
+                {"error": f"{starter} cannot be deleted"}, status_code=400
+            )
+
     try:
         git_repo.delete_file(name, file_path)
     except FileNotFoundError:

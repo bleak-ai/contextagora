@@ -8,7 +8,6 @@ import { TaskCard } from "./cards/TaskCard";
 import { ActiveContextList } from "./ActiveContextList";
 import { AvailableModuleGroups } from "./AvailableModuleGroups";
 import { FilePreviewModal } from "./FilePreviewModal";
-import { LegacyArchivedBanner } from "./LegacyArchivedBanner";
 
 interface WorkspaceGroupProps {
   modules: ModuleInfo[];
@@ -140,8 +139,6 @@ export function WorkspaceGroup({
       </div>
 
       <div className="border border-t-0 border-border rounded-b-md px-2.5 pb-2.5 pt-2">
-        <LegacyArchivedBanner />
-
         <div className="pb-2 mb-2 border-b border-border/60">
           <span className="text-[8px] font-bold uppercase tracking-wider text-text-muted mb-1.5 block">
             Root Files

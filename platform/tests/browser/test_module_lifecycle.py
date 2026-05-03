@@ -7,9 +7,10 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Page
 
-from e2e import scenarios
 from src.services.modules import git_repo
 from src.services.modules.manifest import ModuleManifest, write_manifest
+
+from . import helpers
 
 
 @pytest.fixture
@@ -32,12 +33,12 @@ def seeded_module() -> str:
 def test_module_lifecycle(page: Page, app_url: str, seeded_module: str) -> None:
     name = seeded_module
 
-    scenarios.open_app(page, app_url)
+    helpers.open_app(page, app_url)
     page.reload(wait_until="domcontentloaded")
 
-    scenarios.expect_module_visible(page, name)
+    helpers.expect_module_visible(page, name)
 
-    scenarios.delete_module(page, name)
+    helpers.delete_module(page, name)
 
     page.reload(wait_until="domcontentloaded")
-    scenarios.expect_module_gone(page, name)
+    helpers.expect_module_gone(page, name)

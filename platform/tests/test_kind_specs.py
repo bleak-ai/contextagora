@@ -61,3 +61,13 @@ def test_kindspec_is_frozen():
     import pytest
     with pytest.raises(dataclasses.FrozenInstanceError):
         spec.kind = "other"  # type: ignore[misc]
+
+
+def test_starter_files_are_pinned_per_kind():
+    """Pin the starter_file values per kind. Multiple consumers (chat prompt,
+    slash-command conventions, validator gated block, API routes) read this
+    field; changing it requires conscious updates to every consumer.
+    """
+    assert KIND_SPECS["integration"].starter_file == "info.md"
+    assert KIND_SPECS["task"].starter_file == "brief.md"
+    assert KIND_SPECS["workflow"].starter_file == "steps.md"

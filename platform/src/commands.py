@@ -21,13 +21,28 @@ def _load_prompt(name: str, inject_conventions: bool = False,
     """Read a prompt markdown file from src/prompts/.
 
     If inject_conventions is True, replace {conventions} placeholders
-    with the shared conventions block.
+    with the shared conventions block. Raises ValueError if
+    inject_conventions and the presence of a {conventions} placeholder
+    in the prompt body disagree: both directions of mismatch would
+    silently produce wrong agent output, so we fail at import time.
+
     extra_replacements allows injecting other prompt content (e.g.
     composing prompts from multiple sources).
     Always replaces {base_url} with the configured server URL and
     {modules_repo} with the absolute MODULES_REPO_DIR path.
     """
     raw = (_PROMPTS_DIR / name).read_text()
+    has_placeholder = "{conventions}" in raw
+    if inject_conventions and not has_placeholder:
+        raise ValueError(
+            f"{name}: inject_conventions=True but prompt body has no "
+            "{conventions} placeholder"
+        )
+    if not inject_conventions and has_placeholder:
+        raise ValueError(
+            f"{name}: inject_conventions=False but prompt body contains "
+            "{conventions} placeholder"
+        )
     if inject_conventions:
         raw = raw.replace("{conventions}", _CONVENTIONS)
     if extra_replacements:

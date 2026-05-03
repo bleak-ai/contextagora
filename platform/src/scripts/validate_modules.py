@@ -104,8 +104,19 @@ def _extract_code_blocks(content: str) -> list[str]:
 Issue = tuple[str, str]  # (severity, message)
 
 
-def _validate_module(module_dir: Path, manifest: dict, info_path: Path) -> list[Issue]:
+def _validate_module(module_dir: Path, manifest: dict, info_path: Path, kind: str) -> list[Issue]:
     issues: list[Issue] = []
+
+    # Integration-shape checks: only run when the kind's starter file is info.md.
+    # KIND_SPECS is the source of truth -- if a future kind also uses info.md,
+    # this gate stays correct without code change. Unknown kind (spec is None)
+    # falls through to the existing checks per the safer-fallback policy.
+    #
+    # WARNING: do not add kind-agnostic checks below this gate -- they will be
+    # skipped for non-integration kinds. Hoist them up into `validate_module`.
+    spec = KIND_SPECS.get(kind)
+    if spec is not None and spec.starter_file != "info.md":
+        return issues
 
     info_content = ""
     if info_path.exists():
@@ -283,7 +294,7 @@ def validate_module(module_dir: Path) -> list[Issue]:
         issues.extend(_validate_growth_areas(module_dir, llms_content))
 
     # Universal module validation (handles any kind)
-    issues.extend(_validate_module(module_dir, manifest, info_path))
+    issues.extend(_validate_module(module_dir, manifest, info_path, kind))
 
     return issues
 

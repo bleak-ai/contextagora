@@ -72,3 +72,55 @@ def test_integration_module_with_all_required_files_emits_no_kind_warns(tmp_path
     assert not any("should declare" in m for _, m in issues), (
         f"expected no per-kind WARN, got {issues}"
     )
+
+
+def test_task_module_with_info_md_does_not_get_integration_warns(tmp_path):
+    """A task module that happens to have info.md must not get
+    'missing recommended section' warnings -- those checks are integration-shape."""
+    from src.scripts.validate_modules import validate_module
+    (tmp_path / "module.yaml").write_text("name: foo\nkind: task\n")
+    (tmp_path / "llms.txt").write_text("# foo\n> a task\n")
+    (tmp_path / "brief.md").write_text("# brief")
+    (tmp_path / "status.md").write_text("# status")
+    # Task module with an info.md (unusual but legal).
+    (tmp_path / "info.md").write_text("# random notes")
+
+    issues = validate_module(tmp_path)
+    integration_shape_warns = [
+        m for s, m in issues
+        if s == "WARN" and "recommended section" in m
+    ]
+    assert integration_shape_warns == [], (
+        f"task module should not get integration-shape WARNs, got {integration_shape_warns}"
+    )
+
+
+def test_integration_module_still_gets_recommended_section_warns(tmp_path):
+    """Integration modules must keep the existing recommended-section checks."""
+    from src.scripts.validate_modules import validate_module
+    (tmp_path / "module.yaml").write_text("name: foo\nkind: integration\n")
+    (tmp_path / "llms.txt").write_text("# foo\n> an integration\n")
+    # info.md present but missing the recommended sections.
+    (tmp_path / "info.md").write_text("# foo\n\nNo Purpose section here.\n")
+
+    issues = validate_module(tmp_path)
+    assert any(
+        s == "WARN" and "recommended section: ## Purpose" in m
+        for s, m in issues
+    ), f"expected Purpose section WARN, got {issues}"
+
+
+def test_unknown_kind_still_gets_integration_shape_checks_as_fallback(tmp_path):
+    """Defensive: for a kind not in KIND_SPECS the validator falls through
+    and runs the integration-shape checks (safer than silently skipping).
+    Pins the deviation from the plan's literal code (which would early-return).
+    """
+    from src.scripts.validate_modules import validate_module
+    (tmp_path / "module.yaml").write_text("name: foo\nkind: legacy-unknown\n")
+    (tmp_path / "llms.txt").write_text("# foo\n> a legacy module\n")
+    (tmp_path / "info.md").write_text("# foo\n\nNo Purpose section here.\n")
+    issues = validate_module(tmp_path)
+    assert any(
+        s == "WARN" and "info.md missing recommended section" in m
+        for s, m in issues
+    ), f"unknown-kind fallback should still run integration checks, got {issues}"

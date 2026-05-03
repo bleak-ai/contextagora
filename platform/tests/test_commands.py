@@ -54,3 +54,49 @@ def test_slash_command_prompts_inherit_kind_specs():
             assert "### `integration`" in cmd.prompt, (
                 f"slash command '{cmd.name}' is missing the kind_specs block"
             )
+
+
+def test_load_prompt_raises_when_inject_true_but_placeholder_missing(tmp_path, monkeypatch):
+    """If inject_conventions=True but the prompt has no {conventions} token,
+    that's a silent no-op today. Make it loud."""
+    from src import commands
+
+    fake_prompt = tmp_path / "fake_no_placeholder.md"
+    fake_prompt.write_text("# fake prompt without conventions placeholder\n")
+    monkeypatch.setattr(commands, "_PROMPTS_DIR", tmp_path)
+
+    import pytest
+    with pytest.raises(ValueError, match=r"inject_conventions.*placeholder"):
+        commands._load_prompt("fake_no_placeholder.md", inject_conventions=True)
+
+
+def test_load_prompt_raises_when_inject_false_but_placeholder_present(tmp_path, monkeypatch):
+    """If the prompt contains {conventions} but inject_conventions=False, the
+    literal token would leak into the agent prompt. Make it loud."""
+    from src import commands
+
+    fake_prompt = tmp_path / "fake_with_placeholder.md"
+    fake_prompt.write_text("# fake\n\n{conventions}\n")
+    monkeypatch.setattr(commands, "_PROMPTS_DIR", tmp_path)
+
+    import pytest
+    with pytest.raises(ValueError, match=r"inject_conventions.*placeholder"):
+        commands._load_prompt("fake_with_placeholder.md", inject_conventions=False)
+
+
+def test_load_prompt_succeeds_when_both_agree(tmp_path, monkeypatch):
+    """Sanity check: matched inject + placeholder still works."""
+    from src import commands
+
+    yes_prompt = tmp_path / "yes.md"
+    yes_prompt.write_text("# yes\n\n{conventions}\n")
+    no_prompt = tmp_path / "no.md"
+    no_prompt.write_text("# no\n")
+    monkeypatch.setattr(commands, "_PROMPTS_DIR", tmp_path)
+
+    out_yes = commands._load_prompt("yes.md", inject_conventions=True)
+    assert "{conventions}" not in out_yes
+    assert "## 5. Module Structure" in out_yes  # conventions block expanded
+
+    out_no = commands._load_prompt("no.md", inject_conventions=False)
+    assert out_no.startswith("# no")

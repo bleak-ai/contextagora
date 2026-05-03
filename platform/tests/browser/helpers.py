@@ -1,8 +1,7 @@
-"""Page-driving primitives shared by pytest tests and agent-driven runs.
+"""Shared Playwright helpers for browser tests.
 
-Each helper takes a Playwright Page and uses semantic locators only
-(role, accessible name, placeholder, title) so the agent can also reach
-the same elements from a snapshot, no data-testid required.
+Semantic locators only (role, accessible name, placeholder, title) so
+selectors stay close to user intent.
 """
 from __future__ import annotations
 
@@ -17,12 +16,7 @@ def open_app(page: Page, base_url: str) -> None:
 
 
 def send_chat(page: Page, text: str, timeout_ms: int = 60_000) -> str:
-    """Type into the composer, send, wait for the assistant turn to finish.
-
-    Anchors the wait to a fresh assistant message appearing AND the Stop
-    generating button being gone, so it can't return a stale message from
-    the previous turn.
-    """
+    """Type into the composer, send, wait for the assistant turn to finish."""
     composer = page.get_by_placeholder("Ask anything...")
     asst = page.locator('[data-message-id^="asst-"]')
     initial_count = asst.count()
@@ -37,22 +31,7 @@ def send_chat(page: Page, text: str, timeout_ms: int = 60_000) -> str:
     return asst.last.inner_text()
 
 
-def new_session(page: Page) -> None:
-    page.get_by_role("button", name="New session").click()
-
-
-def toggle_module(page: Page, module_name: str, on: bool) -> None:
-    """Flip a module's ON/OFF switch. No-op if already in the desired state."""
-    name_button = page.get_by_role("button", name=module_name)
-    card = name_button.locator("xpath=ancestor::*[1]")
-    target_title = "Turn on" if on else "Turn off"
-    switch = card.get_by_title(target_title)
-    if switch.count():
-        switch.click()
-
-
 def expect_module_visible(page: Page, module_name: str, timeout_ms: int = 10_000) -> None:
-    """Module name is rendered somewhere on the page (welcome tile or sidebar)."""
     expect(page.get_by_text(module_name, exact=True).first).to_be_visible(
         timeout=timeout_ms
     )
@@ -65,18 +44,12 @@ def expect_module_gone(page: Page, module_name: str, timeout_ms: int = 10_000) -
 
 
 def _sidebar_card_with_menu(page: Page, module_name: str):
-    """The IntegrationCard for `module_name` (the only div.rounded-md card
-    that contains both the name AND a 'More actions' button)."""
     return page.locator("div.rounded-md").filter(has_text=module_name).filter(
         has=page.locator('button[aria-label="More actions"]')
     )
 
 
 def _ensure_module_card_visible(page: Page, module_name: str, timeout_ms: int) -> None:
-    """The Unloaded > Integrations accordion can ship closed when modules
-    load asynchronously. If the seeded card isn't rendered, click the
-    section header to expand it.
-    """
     card = _sidebar_card_with_menu(page, module_name)
     try:
         expect(card.first).to_be_visible(timeout=2_000)

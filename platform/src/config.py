@@ -42,7 +42,6 @@ class Settings(BaseSettings):
     # Overridable paths
     MODULES_REPO_DIR: Path = Path("")  # resolved in validator
     SESSIONS_DB_PATH: Path = Path("")  # resolved in validator
-    LEGACY_ARCHIVED_PATH: Path = Path("")  # resolved in validator
 
     # Derived (not from env)
     BASE_DIR: Path = Path("")  # resolved in validator
@@ -66,12 +65,6 @@ class Settings(BaseSettings):
                 self,
                 "SESSIONS_DB_PATH",
                 Path.home() / ".claude" / "contextagora" / "sessions.db",
-            )
-        if not self.LEGACY_ARCHIVED_PATH or self.LEGACY_ARCHIVED_PATH == Path(""):
-            object.__setattr__(
-                self,
-                "LEGACY_ARCHIVED_PATH",
-                Path.home() / ".claude" / "contextagora" / "legacy_archived.json",
             )
         return self
 
