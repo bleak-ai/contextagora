@@ -4,6 +4,7 @@ import { AssistantRuntimeProvider, useComposerRuntime } from "@assistant-ui/reac
 import { FileCheck, Zap, Package } from "lucide-react";
 import type { ComponentType } from "react";
 import { fetchModules, type ModuleInfo } from "../api/modules";
+import { fetchWorkspace } from "../api/workspace";
 import {
   useActiveSessionId,
   useNavigateToSession,
@@ -23,7 +24,13 @@ export function Chat() {
     queryFn: fetchModules,
   });
 
+  const { data: workspace } = useQuery({
+    queryKey: ["workspace"],
+    queryFn: fetchWorkspace,
+  });
+
   const allModules = (modulesData?.modules || []).filter((m) => !m.archived);
+  const loadedNames = new Set((workspace?.modules ?? []).map((m) => m.name));
 
   const { runtime, hasMessages } = useContextChatRuntime({
     isDisabled: false,
@@ -86,6 +93,7 @@ export function Chat() {
             emptyState={
               <WelcomeScreen
                 modules={allModules}
+                loadedNames={loadedNames}
                 sessionId={activeClaudeSessionId}
               />
             }
@@ -103,9 +111,11 @@ export function Chat() {
 
 function WelcomeScreen({
   modules,
+  loadedNames,
   sessionId,
 }: {
   modules: ModuleInfo[];
+  loadedNames: Set<string>;
   sessionId: string | null;
 }) {
   const composerRuntime = useComposerRuntime();
@@ -124,14 +134,14 @@ function WelcomeScreen({
   const prefillTask = (name: string) => {
     enableOffloading();
     composerRuntime.setText(
-      `Let's continue working on the ${name} task (context: modules-repo/${name}/). Read its info.md (and any status notes) and tell me where we left off and what to do next.`,
+      `Let's continue working on the ${name} task (context: modules-repo/${name}/). Read the main files (and any status notes) and tell me where we left off and what to do next.`,
     );
   };
 
   const prefillWorkflow = (name: string) => {
     enableOffloading();
     composerRuntime.setText(
-      `Let's run the ${name} workflow (context: modules-repo/${name}/). Read its info.md, then walk me through it step by step starting with step 1.`,
+      `Let's run the ${name} workflow (context: modules-repo/${name}/). Read the main files, then walk me through it step by step starting with step 1.`,
     );
   };
 
@@ -145,6 +155,7 @@ function WelcomeScreen({
               <TaskTile
                 key={m.name}
                 module={m}
+                loaded={loadedNames.has(m.name)}
                 onClick={() => prefillTask(m.name)}
               />
             ))}
@@ -161,7 +172,7 @@ function WelcomeScreen({
                 key={m.name}
                 module={m}
                 icon={Zap}
-                tone="accent"
+                loaded={loadedNames.has(m.name)}
                 onClick={() => prefillWorkflow(m.name)}
               />
             ))}
@@ -172,13 +183,12 @@ function WelcomeScreen({
       {integrations.length > 0 && (
         <section>
           <SectionHeader label="Integrations" count={integrations.length} />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {integrations.map((m) => (
-              <CompactTile
+              <IntegrationChip
                 key={m.name}
                 module={m}
-                icon={Package}
-                tone="muted"
+                loaded={loadedNames.has(m.name)}
               />
             ))}
           </div>
@@ -202,19 +212,32 @@ function SectionHeader({ label, count }: { label: string; count: number }) {
 
 function TaskTile({
   module: m,
+  loaded,
   onClick,
 }: {
   module: ModuleInfo;
+  loaded: boolean;
   onClick: () => void;
 }) {
+  const base = "group relative text-left rounded-xl border p-4 transition";
+  const stateClass = loaded
+    ? "border-success/40 bg-success/5 shadow-[inset_2px_0_0_0_var(--color-success)] hover:bg-success/10 hover:border-success/60 cursor-pointer"
+    : "border-border/60 bg-bg-raised opacity-40 cursor-not-allowed";
+  const iconClass = loaded
+    ? "bg-success/15 text-success"
+    : "bg-bg text-text-muted";
   return (
     <button
       type="button"
-      onClick={onClick}
-      className="group relative text-left rounded-xl border border-border bg-bg-raised p-4 hover:bg-bg-hover hover:border-accent/50 transition-colors cursor-pointer"
+      onClick={loaded ? onClick : undefined}
+      disabled={!loaded}
+      title={loaded ? undefined : "Load this task from the sidebar to start"}
+      className={`${base} ${stateClass}`}
     >
       <div className="flex items-start gap-3">
-        <span className="flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg bg-accent-dim text-accent group-hover:bg-accent/20 transition-colors">
+        <span
+          className={`flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${iconClass}`}
+        >
           <FileCheck size={15} />
         </span>
         <div className="min-w-0 flex-1">
@@ -235,41 +258,62 @@ function TaskTile({
   );
 }
 
+function IntegrationChip({
+  module: m,
+  loaded,
+}: {
+  module: ModuleInfo;
+  loaded: boolean;
+}) {
+  const tone = loaded
+    ? "bg-success/10 text-success border-success/30"
+    : "bg-bg text-text-muted border-border/60";
+  return (
+    <span
+      title={m.summary || m.name}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${tone}`}
+    >
+      <Package size={11} />
+      {m.name}
+    </span>
+  );
+}
+
 function CompactTile({
   module: m,
   icon: Icon,
-  tone,
+  loaded,
   onClick,
 }: {
   module: ModuleInfo;
   icon: ComponentType<{ size?: number }>;
-  tone: "accent" | "muted";
-  onClick?: () => void;
+  loaded: boolean;
+  onClick: () => void;
 }) {
-  const interactive = onClick !== undefined;
-  const wrapperClass = `flex items-center gap-3 rounded-lg border bg-bg-raised px-3 py-2.5 text-left ${
-    interactive
-      ? "border-border hover:bg-bg-hover hover:border-accent/40 transition-colors cursor-pointer"
-      : "border-border/60 cursor-default"
-  }`;
-  const iconWrapClass =
-    tone === "accent"
-      ? "text-accent bg-accent-dim"
-      : "text-text-muted bg-bg";
-  const nameClass =
-    tone === "accent"
-      ? "text-xs font-medium text-text"
-      : "text-xs font-medium text-text-secondary";
+  const base =
+    "flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition";
+  const stateClass = loaded
+    ? "border-success/40 bg-success/5 shadow-[inset_2px_0_0_0_var(--color-success)] hover:bg-success/10 hover:border-success/60 cursor-pointer"
+    : "border-border/60 bg-bg-raised opacity-40 cursor-not-allowed";
+  const iconWrapClass = loaded
+    ? "text-success bg-success/15"
+    : "text-text-muted bg-bg";
 
-  const content = (
-    <>
+  return (
+    <button
+      type="button"
+      onClick={loaded ? onClick : undefined}
+      disabled={!loaded}
+      title={loaded ? undefined : "Load this workflow from the sidebar to start"}
+      className={`${base} ${stateClass}`}
+    >
       <span
         className={`flex-shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-md ${iconWrapClass}`}
       >
         <Icon size={13} />
       </span>
       <div className="min-w-0 flex-1">
-        <div className={`${nameClass} truncate`} title={m.name}>
+        <div className="text-xs font-medium text-text truncate" title={m.name}>
           {m.name}
         </div>
         {m.summary && (
@@ -278,16 +322,6 @@ function CompactTile({
           </p>
         )}
       </div>
-    </>
-  );
-
-  if (!interactive) {
-    return <div className={wrapperClass}>{content}</div>;
-  }
-
-  return (
-    <button type="button" onClick={onClick} className={wrapperClass}>
-      {content}
     </button>
   );
 }

@@ -43,7 +43,7 @@ export function TaskCard({
   const openModuleEditor = useModuleEditorStore((s) => s.openModuleEditor);
   const handleEdit = () => (onEdit ? onEdit() : openModuleEditor(info.name));
 
-  const [expanded, setExpanded] = useState(isOn);
+  const [expanded, setExpanded] = useState(false);
   const [previewFile, setPreviewFile] = useState<string | null>(null);
 
   const headerMiddle = (

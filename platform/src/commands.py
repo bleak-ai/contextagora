@@ -4,10 +4,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from src.config import settings
+from src.services.modules.kind_specs import render_kind_specs_md
 
 _PROMPTS_DIR = Path(__file__).parent / "prompts"
 
-_CONVENTIONS = (_PROMPTS_DIR / "_conventions.md").read_text()
+_CONVENTIONS = (_PROMPTS_DIR / "_conventions.md").read_text().replace(
+    "{kind_specs}", render_kind_specs_md()
+)
 
 _BASE_URL = f"http://localhost:{settings.PORT}"
 _MODULES_REPO = str(settings.MODULES_REPO_DIR)
@@ -52,7 +55,7 @@ _STATIC_COMMANDS: list[CommandDef] = [
     CommandDef(
         name="introduction",
         description="First-time setup: explain Context Agora and choose your first integration",
-        prompt=_load_prompt("commands/introduction.md", inject_conventions=True),
+        prompt=_load_prompt("commands/introduction.md", inject_conventions=False),
     ),
     CommandDef(
         name="guide",

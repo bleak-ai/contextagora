@@ -32,6 +32,7 @@
   --color-accent-dim: rgba(34, 230, 163, 0.12);
   --color-accent-text: #052b1d;    /* dark text on accent */
   --color-danger: #f85149;         /* status-error */
+  --color-warning: #c4a35a;
   /* Global success — same value as accent ("good and complete" share a color). */
   --color-success: #22e6a3;
 

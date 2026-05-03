@@ -57,15 +57,10 @@ creds = service_account.Credentials.from_service_account_info(
 
 ## 5. Module Structure
 
-A context module folder contains:
+{kind_specs}
 
-- `module.yaml` (required) — declares `name`, `kind`, optional `secrets`, optional `dependencies`, optional `jobs`. No `summary`, no `archived`, no workflow-specific fields.
-- `llms.txt` (required) — agent's entry point. Starts with `# <name>` and a `> <one-line summary>`. Lists files and directories with one-line descriptions.
-- `info.md` (optional, conventional) — long-form documentation: purpose, entities, operations, examples.
-- `verify.py` (optional) — read-only smoke test at module root; runnable from the sidebar.
-- `scripts/*.py`, `docs/*.md`, growth-area subdirectories — any other content the module needs.
-
-The summary is the `> line` of `llms.txt`. The system reads it from there; do not duplicate it elsewhere.
+The summary is the `> line` of `llms.txt`. The system reads it from there;
+do not duplicate it elsewhere.
 
 ## 6. Python Packages
 
@@ -75,11 +70,13 @@ Declared in `module.yaml` under `dependencies:`, one per entry, no versions unle
 
 Module files live at the absolute path `{modules_repo}/<name>/`. ALWAYS use that absolute path in Write/Bash tool calls — never a relative `modules-repo/<name>/...`, which would resolve under the current cwd and end up in the wrong place.
 
-To save a new or updated module, write the files directly:
+To save a new or updated module, write the files directly. The exact file set depends on the module's kind — see §5 "Module Structure" above for the per-kind required-files list. The order does not matter. Use absolute `{modules_repo}/<name>/<filename>` paths in every Write tool call.
 
-1. Write `info.md` (optional) to `{modules_repo}/<name>/info.md` using the Write tool.
-2. Write `module.yaml` to `{modules_repo}/<name>/module.yaml`.
-3. Write `llms.txt` to `{modules_repo}/<name>/llms.txt` with `# <name>`, `> <summary>`, and a list of files.
+A typical sequence:
+
+1. Write `module.yaml` (every kind).
+2. Write `llms.txt` (every kind) — start with `# <name>`, then `> <summary>`, then a list of the files in this module.
+3. Write each kind-specific starter file declared in §5 (e.g. `info.md` for `integration`, `brief.md` + `status.md` for `task`, `steps.md` for `workflow`).
 
 No registration step. The server picks up the new folder on the next listing call.
 

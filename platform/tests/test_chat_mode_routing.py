@@ -79,3 +79,26 @@ def test_mode_prompt_quick_mentions_read_only():
     p = _build_mode_prompt("quick")
     assert "QUICK" in p
     assert "read-only" in p.lower() or "do not propose writes" in p.lower()
+
+
+def test_system_prompt_contains_kind_specs():
+    from src.routes.chat import _build_system_prompt
+    prompt = _build_system_prompt("normal")
+    # The wrapper section is owned by chat/system.md.
+    assert "## Module structure" in prompt
+    # Per-kind subsections come from the renderer.
+    for kind in ("integration", "task", "workflow"):
+        assert f"### `{kind}`" in prompt
+
+
+def test_system_prompt_kind_specs_render_in_quick_mode_too():
+    from src.routes.chat import _build_system_prompt
+    prompt = _build_system_prompt("quick")
+    assert "## Module structure" in prompt
+    assert "### `task`" in prompt
+
+
+def test_system_prompt_has_no_unexpanded_kind_specs_placeholder():
+    from src.routes.chat import _build_system_prompt
+    prompt = _build_system_prompt("normal")
+    assert "{kind_specs}" not in prompt

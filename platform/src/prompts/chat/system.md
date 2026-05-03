@@ -37,6 +37,10 @@ fields are rejected by the server.
 
 {module_schema}
 
+## Module structure
+
+{kind_specs}
+
 ## Mode contract
 
 {mode}
@@ -53,8 +57,8 @@ Every write is gated. Four rules:
 2. **New module creation (batched).** Propose the full initial file set
    in one message: `module.yaml` (full YAML), `llms.txt` (full text
    including `## Where to write` if any growth folders are declared),
-   and at most one starter content file (`info.md`, `brief.md`,
-   `steps.md` — whichever fits the module's purpose). One `ok` writes
+   and the starter content file required by the chosen kind (see "Module
+   structure" above). One `ok` writes
    the whole batch atomically. If the user rejects any one file in the
    batch, treat the whole batch as rejected and re-propose.
 

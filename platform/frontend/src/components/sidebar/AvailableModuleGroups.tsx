@@ -108,7 +108,6 @@ function KindSection({
               {items.map((m) => {
                 const loadedRecord = loaded.find((l) => l.name === m.name) ?? null;
                 const common = {
-                  key: m.name,
                   info: m,
                   loaded: loadedRecord,
                   onToggle: (enabled: boolean) => onToggleModule(m.name, enabled),
@@ -118,6 +117,7 @@ function KindSection({
                 if (m.kind === "task") {
                   return (
                     <TaskCard
+                      key={m.name}
                       {...common}
                       onArchiveToggle={
                         onArchiveModule
@@ -128,9 +128,9 @@ function KindSection({
                   );
                 }
                 if (m.kind === "workflow") {
-                  return <WorkflowCard {...common} />;
+                  return <WorkflowCard key={m.name} {...common} />;
                 }
-                return <IntegrationCard {...common} />;
+                return <IntegrationCard key={m.name} {...common} />;
               })}
             </div>
           )}

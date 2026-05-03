@@ -38,3 +38,37 @@ def test_task_with_known_parent_workflow_passes(tmp_path):
     issues = _validate(run)
     errors = [i for i in issues if i[0] == "ERROR"]
     assert errors == []
+
+
+def test_task_module_missing_status_md_is_warn(tmp_path):
+    from src.scripts.validate_modules import validate_module
+    (tmp_path / "module.yaml").write_text("name: foo\nkind: task\n")
+    (tmp_path / "llms.txt").write_text("# foo\n> a task\n\n- [brief.md](brief.md)\n")
+    (tmp_path / "brief.md").write_text("# brief")
+    # status.md intentionally missing
+    issues = validate_module(tmp_path)
+    assert any(s == "WARN" and "status.md" in m for s, m in issues), (
+        f"expected WARN mentioning status.md, got {issues}"
+    )
+    # And critically NOT an ERROR -- pre-existing modules must not break.
+    assert not any(s == "ERROR" and "status.md" in m for s, m in issues)
+
+
+def test_workflow_module_missing_steps_md_is_warn(tmp_path):
+    from src.scripts.validate_modules import validate_module
+    (tmp_path / "module.yaml").write_text("name: foo\nkind: workflow\n")
+    (tmp_path / "llms.txt").write_text("# foo\n> a workflow\n")
+    issues = validate_module(tmp_path)
+    assert any(s == "WARN" and "steps.md" in m for s, m in issues)
+
+
+def test_integration_module_with_all_required_files_emits_no_kind_warns(tmp_path):
+    from src.scripts.validate_modules import validate_module
+    (tmp_path / "module.yaml").write_text("name: foo\nkind: integration\n")
+    (tmp_path / "llms.txt").write_text("# foo\n> an integration\n")
+    (tmp_path / "info.md").write_text("# foo")
+    issues = validate_module(tmp_path)
+    # No WARN with the "should declare" phrasing introduced by this task.
+    assert not any("should declare" in m for _, m in issues), (
+        f"expected no per-kind WARN, got {issues}"
+    )

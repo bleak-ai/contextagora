@@ -18,7 +18,7 @@ const VARIANT: Record<ModuleCardVariant, ToneClasses> = {
   },
   idle: {
     border: "border-border",
-    bg: "bg-bg-raised",
+    bg: "bg-bg-hover",
     opacity: "",
   },
   archived: {

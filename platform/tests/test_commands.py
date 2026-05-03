@@ -35,3 +35,22 @@ def test_list_commands_excludes_non_workflow_modules(tmp_path, monkeypatch):
 
     names = {c.name for c in cmd_module.list_commands()}
     assert "linear" not in names
+
+
+def test_conventions_block_contains_kind_specs():
+    from src.commands import _CONVENTIONS
+    # `## 5. Module Structure` wrapper is owned by _conventions.md;
+    # `### \`integration\`` etc. are emitted by render_kind_specs_md.
+    assert "## 5. Module Structure" in _CONVENTIONS
+    assert "### `integration`" in _CONVENTIONS
+    assert "{kind_specs}" not in _CONVENTIONS  # placeholder must be expanded
+
+
+def test_slash_command_prompts_inherit_kind_specs():
+    from src.commands import _STATIC_COMMANDS
+    inject_targets = {"guide", "add-verify", "add-script", "cron-jobs"}
+    for cmd in _STATIC_COMMANDS:
+        if cmd.name in inject_targets:
+            assert "### `integration`" in cmd.prompt, (
+                f"slash command '{cmd.name}' is missing the kind_specs block"
+            )

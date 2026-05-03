@@ -16,6 +16,7 @@ from pathlib import Path
 import yaml
 
 from src.services.modules.growth_areas import parse as parse_growth_areas, NAMING_REGEXES
+from src.services.modules.kind_specs import KIND_SPECS
 
 # Severity
 
@@ -254,6 +255,20 @@ def validate_module(module_dir: Path) -> list[Issue]:
             elif manifest["name"] != name:
                 issues.append((ERROR, f"module.yaml name '{manifest['name']}' does not match directory name '{name}'"))
     kind = (manifest.get("kind") or "integration") if manifest else "integration"
+
+    # Per-kind required-file checks (advisory WARN -- KIND_SPECS is the
+    # single source of truth, see src/services/modules/kind_specs.py).
+    spec = KIND_SPECS.get(kind)
+    if spec is not None:
+        for required in spec.required_files:
+            # module.yaml and llms.txt are already covered above as ERRORs;
+            # skip them so we don't double-report at two severities.
+            if required in ("module.yaml", "llms.txt"):
+                continue
+            if not (module_dir / required).exists():
+                issues.append(
+                    (WARN, f"{kind} module should declare '{required}' (per KIND_SPECS)")
+                )
 
     # Universal: llms.txt + link integrity
     llms_path = module_dir / "llms.txt"
