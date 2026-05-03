@@ -7,14 +7,14 @@
 - [platform/src/server.py](platform/src/server.py) — FastAPI app factory, constants, SPA fallback, entry point
 - [platform/src/models.py](platform/src/models.py) — Pydantic request/response models
 - [platform/src/llms.py](platform/src/llms.py) — llms.txt generation and parsing helpers
-- [platform/src/routes/modules.py](platform/src/routes/modules.py) — Module CRUD and file CRUD endpoints
+- [platform/src/routes/modules.py](platform/src/routes/modules.py) — Module CRUD and file CRUD endpoints; GET/PUT/DELETE handlers are kind-aware via `_starter_file_for(kind)` reading `KIND_SPECS[kind].starter_file` (info.md / brief.md / steps.md)
 - [platform/src/routes/workspace.py](platform/src/routes/workspace.py) — Workspace load, secrets endpoints
 - [platform/src/routes/chat.py](platform/src/routes/chat.py) — Chat SSE streaming that records events into the sessions DB via transcript_recorder; `GET /api/sessions` (list) and `GET /api/sessions/{id}/messages` (hydrate transcript, DB-first with JSONL fallback) via claude_sessions service
 - [platform/src/routes/health.py](platform/src/routes/health.py) — Health check endpoint
 - [platform/src/routes/files.py](platform/src/routes/files.py) — File download endpoint (GET /api/files/download) with path validation against CONTEXT_DIR and /tmp
 - [platform/src/routes/uploads.py](platform/src/routes/uploads.py) — POST /api/uploads/tmp-image: writes PNG uploads to /tmp and returns the absolute path; used by SocialPostCard "Save to /tmp" button
 - [platform/src/routes/commands.py](platform/src/routes/commands.py) — Slash commands listing endpoint (GET /api/commands); calls list_commands() for dynamic registry including workflow commands
-- [platform/src/commands.py](platform/src/commands.py) — Slash-command registry (CommandDef, _STATIC_COMMANDS, list_commands()); loads prompts from .md files and auto-registers one command per workflow module
+- [platform/src/commands.py](platform/src/commands.py) — Slash-command registry (CommandDef, _STATIC_COMMANDS, list_commands()); loads prompts from .md files and auto-registers one command per workflow module; `_load_prompt` raises ValueError at module load if `inject_conventions` flag and `{conventions}` placeholder presence disagree
 - [platform/src/prompts/llms.txt](platform/src/prompts/llms.txt) — Prompt directory: commands/ (user-facing slash commands) and templates/ (internal prompts)
 - [platform/src/prompts/_conventions.md](platform/src/prompts/_conventions.md) — Single source of truth for varlock, TRY markers, secret naming, and execution conventions; auto-injected into all prompts
 - [platform/src/services/claude.py](platform/src/services/claude.py) — Single source of truth for spawning the claude CLI (run_headless, stream); unified env build (telemetry-off + LLM_* → ANTHROPIC_* mapping)
@@ -29,6 +29,7 @@
 - [platform/frontend/src/api/jobs.ts](platform/frontend/src/api/jobs.ts) — Jobs API client (fetchJobs, fetchJobRuns, triggerJob; Job and JobRun types)
 - [platform/frontend/src/components/SyncControls.tsx](platform/frontend/src/components/SyncControls.tsx) — Pull/Push buttons driven by sync status
 - [platform/src/services/manifest.py](platform/src/services/manifest.py) — ModuleManifest Pydantic model + read_manifest/write_manifest I/O; replaces per-module .env.schema and requirements.txt with a single module.yaml
+- [platform/src/services/modules/kind_specs.py](platform/src/services/modules/kind_specs.py) - KindSpec dataclass + KIND_SPECS dict (single source of truth for per-kind module structure: required files, default growth folders, starter file); rendered into chat/system.md and _conventions.md, consumed by validate_modules.py and routes/modules.py
 - [platform/src/services/jobs.py](platform/src/services/jobs.py) — In-process JobScheduler: ticks every 30s, fires due module cron jobs as subprocesses, supports manual trigger_now; RunRecord + module-level singleton
 - [platform/src/services/schemas.py](platform/src/services/schemas.py) — generate_global_schema(dict[str,list[str]]) builds workspace .env.schema from manifest secret lists; validate_module_name/validate_module_file_path for input sanitization
 - [platform/src/services/workflows.py](platform/src/services/workflows.py) — Workflow listing and run-creation service: list_workflows() returns WorkflowSummary list (kind=workflow modules with in-flight run counts); start_run(workflow_name, title) creates a run task directory with module.yaml/status.md/info.md/llms.txt and triggers reload_workspace
@@ -42,18 +43,27 @@
 - [platform/frontend/src/components/social-post/imageActions.ts](platform/frontend/src/components/social-post/imageActions.ts) — shared rasterize/saveToTmp/downloadAsPng helpers used by TweetSection and LinkedinSection
 - [platform/frontend/src/components/chat/SlashCommandSelector.tsx](platform/frontend/src/components/chat/SlashCommandSelector.tsx) — Slash command dropdown selector component and useSlashCommands hook
 - [platform/frontend/src/components/chat/MentionSelector.tsx](platform/frontend/src/components/chat/MentionSelector.tsx) — @-mention file picker component (MentionSelector), useMentionPicker hook, and findActiveMention utility
-- [platform/frontend/src/components/chat/DecisionTreePanel.tsx](platform/frontend/src/components/chat/DecisionTreePanel.tsx) — Tree navigation visualization with breadcrumbs and module access counts
+- [platform/frontend/src/components/chat/DecisionTreePanel.tsx](platform/frontend/src/components/chat/DecisionTreePanel.tsx) — Renders the live decision tree (read/write states per file); pure renderer, mounted by FloatingTreePanel
+- [platform/frontend/src/components/chat/FloatingTreePanel.tsx](platform/frontend/src/components/chat/FloatingTreePanel.tsx) — Toggleable floating bottom-right shell that wraps DecisionTreePanel; visibility driven by useTreePanelStore
+- [platform/frontend/src/hooks/useTreePanelStore.ts](platform/frontend/src/hooks/useTreePanelStore.ts) — Zustand store for the floating tree panel's open/closed state, persisted to localStorage
 - [platform/frontend/src/api/sessions.ts](platform/frontend/src/api/sessions.ts) — Sessions API client (fetchSessions, fetchSessionMessages; SessionInfo type)
 - [platform/frontend/src/hooks/useSessionStore.ts](platform/frontend/src/hooks/useSessionStore.ts) — Zustand store holding only `activeClaudeSessionId` (localStorage-persisted); session list comes from the server
 - [platform/frontend/src/components/](platform/frontend/src/components/) — React components (Chat, ModuleRegistry, IconRail, ContextPanel, etc.)
 - [platform/frontend/src/components/sidebar/ModuleCard.tsx](platform/frontend/src/components/sidebar/ModuleCard.tsx) — Unified card component for tasks and integrations; renders name, summary, files, secrets, packages with expand/collapse
 - [platform/frontend/src/components/sidebar/WorkspaceGroup.tsx](platform/frontend/src/components/sidebar/WorkspaceGroup.tsx) — Collapsible integrations group with root files (CLAUDE.md, llms.txt), integration cards with ON/OFF toggles, and create/refresh actions
-- [platform/frontend/src/components/sidebar/JobsPanel.tsx](platform/frontend/src/components/sidebar/JobsPanel.tsx) — Sidebar panel listing all scheduled jobs with status dots, schedule cadence, last-run time, and inline Run button; polls every 5s
 - [platform/frontend/src/components/sidebar/JobRunsModal.tsx](platform/frontend/src/components/sidebar/JobRunsModal.tsx) — Modal showing the run history for a single job with expandable stdout/stderr panes; polls every 5s
 - [platform/frontend/src/components/Modal.tsx](platform/frontend/src/components/Modal.tsx) — Shared modal wrapper: backdrop, click-outside, Escape-key handling with opt-out props
 - [platform/frontend/src/routes/](platform/frontend/src/routes/) — TanStack Router file-based routes
 - [platform/frontend/src/utils/humanizeToolCall.ts](platform/frontend/src/utils/humanizeToolCall.ts) — Utility to translate raw tool call names/args into human-readable labels with module resolution
 - [platform/Dockerfile](platform/Dockerfile) — Multi-stage container image (Node build + Python runtime)
+
+## E2E / Browser Testing
+Selective Playwright tests for critical flows only. Run with `make e2e` (frontend at :5173 + backend must be up).
+- [platform/tests/browser/helpers.py](platform/tests/browser/helpers.py) — Shared Playwright helpers using semantic locators (open_app, send_chat, expect_module_visible/gone, delete_module)
+- [platform/tests/browser/conftest.py](platform/tests/browser/conftest.py) — Pytest fixtures: app_url (env override CONTEXTAGORA_E2E_URL) and 1280x800 viewport
+- [platform/tests/browser/test_chat.py](platform/tests/browser/test_chat.py) — Chat round-trip smoke test
+- [platform/tests/browser/test_module_lifecycle.py](platform/tests/browser/test_module_lifecycle.py) — Seeds a module, asserts it renders, deletes it via the sidebar menu
+
 ## Landing Page
 - [landing/](landing/) — Astro-based landing site and deploy guide
 - [landing/src/pages/index.astro](landing/src/pages/index.astro) — Landing page home

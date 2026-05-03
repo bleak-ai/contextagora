@@ -9,6 +9,7 @@ import { ModuleCardShell } from "./ModuleCardShell";
 import { ModuleFilePreview } from "./ModuleFilePreview";
 import { JobRunsModal } from "../JobRunsModal";
 import { OverflowMenu, type OverflowMenuItem } from "./OverflowMenu";
+import { ModuleSubSection, SubItem, SubEmpty, SubPill } from "./ModuleSubSection";
 
 function statusOf(m: LoadedModule): "ok" | "warn" {
   const missingSecret = Object.values(m.secrets).some((v) => v === null);
@@ -128,7 +129,7 @@ export function IntegrationCard({
         </span>
       )}
       {!expanded && missingCount > 0 && (
-        <span className="text-[10px] font-semibold text-red-400">
+        <span className="text-[10px] font-semibold text-danger">
           {missingCount} missing
         </span>
       )}
@@ -206,16 +207,16 @@ export function IntegrationCard({
         <div className="border-t border-border bg-bg-raised px-3 py-2.5">
           {isOn && (
             <>
-              <Section
+              <ModuleSubSection
                 title={<><FileText className="w-3.5 h-3.5 shrink-0" /> FILES</>}
                 count={`${docFiles.length}`}
                 defaultOpen={false}
               >
                 {docFiles.length === 0 ? (
-                  <Empty>no files</Empty>
+                  <SubEmpty>no files</SubEmpty>
                 ) : (
                   docFiles.map((f) => (
-                    <Item
+                    <SubItem
                       key={f}
                       name={f}
                       bullet="text-accent/60"
@@ -223,79 +224,79 @@ export function IntegrationCard({
                     />
                   ))
                 )}
-              </Section>
+              </ModuleSubSection>
 
               {scriptFiles.length > 0 && (
-                <Section
+                <ModuleSubSection
                   title={<><Zap className="w-3.5 h-3.5 text-accent shrink-0" /> SCRIPTS</>}
                   count={`${scriptFiles.length}`}
                   defaultOpen={false}
                 >
                   {scriptFiles.map((f) => (
-                    <Item
+                    <SubItem
                       key={f}
                       name={f}
                       bullet="text-accent/60"
                       onClick={() => setPreviewFile(f)}
                     />
                   ))}
-                </Section>
+                </ModuleSubSection>
               )}
 
-              <Section
+              <ModuleSubSection
                 title={<><Key className="w-3.5 h-3.5 text-accent shrink-0" /> SECRETS</>}
                 count={totalSecretCount === 0 ? "0" : secretCountLabel}
                 warn={secretCountWarn}
                 defaultOpen={secretCountWarn}
               >
                 {totalSecretCount === 0 ? (
-                  <Empty>none declared</Empty>
+                  <SubEmpty>none declared</SubEmpty>
                 ) : (
                   Object.entries(loaded.secrets).map(([key, val]) => (
-                    <Item
+                    <SubItem
                       key={key}
                       name={key}
                       bullet={
-                        val === null ? "text-red-400/70" : "text-accent/60"
+                        val === null ? "text-danger/70" : "text-accent/60"
                       }
                       trailing={
                         val === null ? (
-                          <Pill tone="bad">missing</Pill>
+                          <SubPill tone="bad">missing</SubPill>
                         ) : (
-                          <Pill tone="ok" mono>
+                          <SubPill tone="ok" mono>
                             {val}
-                          </Pill>
+                          </SubPill>
                         )
                       }
                     />
                   ))
                 )}
-              </Section>
+              </ModuleSubSection>
 
-              <Section
+              <ModuleSubSection
                 title={<><Package className="w-3.5 h-3.5 text-accent shrink-0" /> PACKAGES</>}
                 count={`${loaded.packages.length}`}
                 warn={loaded.packages.some((p) => !p.installed)}
                 defaultOpen={loaded.packages.some((p) => !p.installed)}
               >
                 {loaded.packages.length === 0 ? (
-                  <Empty>none declared</Empty>
+                  <SubEmpty>none declared</SubEmpty>
                 ) : (
                   <>
                     {loaded.packages.map((p) => (
-                      <Item
+                      <SubItem
                         key={p.name}
                         name={p.name}
                         bullet={
-                          p.installed ? "text-accent/60" : "text-red-400/70"
+                          p.installed ? "text-accent/60" : "text-danger/70"
                         }
                         trailing={
                           p.installed ? (
-                            <Pill tone="ok" mono>
+                            <SubPill tone="ok" mono>
                               v{p.version}
-                            </Pill>
+                            </SubPill>
                           ) : (
-                            <Pill tone="bad">not installed</Pill>
+                            <SubPill tone="bad">not installed</SubPill>
                           )
                         }
                       />
@@ -316,20 +317,20 @@ export function IntegrationCard({
                     )}
                     {installError && (
                       <details className="mt-1.5">
-                        <summary className="cursor-pointer text-[10px] font-semibold text-red-400">
+                        <summary className="cursor-pointer text-[10px] font-semibold text-danger">
                           Install failed — click for details
                         </summary>
-                        <pre className="mt-1 max-h-32 overflow-auto rounded bg-bg p-2 text-[9px] text-red-300">
+                        <pre className="mt-1 max-h-32 overflow-auto rounded bg-bg p-2 text-[9px] text-danger">
                           {installError}
                         </pre>
                       </details>
                     )}
                   </>
                 )}
-              </Section>
+              </ModuleSubSection>
 
               {jobs.length > 0 && (
-                <Section
+                <ModuleSubSection
                   title={<><Clock className="w-3.5 h-3.5 text-accent shrink-0" /> JOBS</>}
                   count={`${jobs.length}`}
                   defaultOpen={false}
@@ -345,7 +346,7 @@ export function IntegrationCard({
                       }
                     />
                   ))}
-                </Section>
+                </ModuleSubSection>
               )}
             </>
           )}
@@ -360,33 +361,33 @@ export function IntegrationCard({
 
               {!detailLoading && detail && (
                 <>
-                  <Section
+                  <ModuleSubSection
                     title={<><Key className="w-3.5 h-3.5 text-accent shrink-0" /> SECRETS</>}
                     count={`${detail.secrets.length}`}
                     defaultOpen={false}
                   >
                     {detail.secrets.length === 0 ? (
-                      <Empty>none declared</Empty>
+                      <SubEmpty>none declared</SubEmpty>
                     ) : (
                       detail.secrets.map((key) => (
-                        <Item key={key} name={key} bullet="text-text-muted" />
+                        <SubItem key={key} name={key} bullet="text-text-muted" />
                       ))
                     )}
-                  </Section>
+                  </ModuleSubSection>
 
-                  <Section
+                  <ModuleSubSection
                     title={<><Package className="w-3.5 h-3.5 text-accent shrink-0" /> PACKAGES</>}
                     count={`${detail.requirements.length}`}
                     defaultOpen={false}
                   >
                     {detail.requirements.length === 0 ? (
-                      <Empty>none declared</Empty>
+                      <SubEmpty>none declared</SubEmpty>
                     ) : (
                       detail.requirements.map((p) => (
-                        <Item key={p} name={p} bullet="text-text-muted" />
+                        <SubItem key={p} name={p} bullet="text-text-muted" />
                       ))
                     )}
-                  </Section>
+                  </ModuleSubSection>
                 </>
               )}
             </>
@@ -423,7 +424,7 @@ function relativeTime(epochSec: number): string {
 function jobDotClass(job: Job): string {
   if (job.running) return "bg-accent animate-pulse";
   if (!job.last_run) return "bg-text-muted";
-  return job.last_run.succeeded ? "bg-success" : "bg-red-400";
+  return job.last_run.succeeded ? "bg-success" : "bg-danger";
 }
 
 function JobRow({
@@ -464,99 +465,3 @@ function JobRow({
   );
 }
 
-function Section({
-  title,
-  count,
-  warn,
-  defaultOpen = false,
-  children,
-}: {
-  title: React.ReactNode;
-  count: string;
-  warn?: boolean;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div className="mt-2 first:mt-0">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-2 rounded border-l-2 border-accent py-1 pl-2 pr-1.5 text-[10px] font-bold uppercase tracking-wider text-text hover:bg-accent/5"
-      >
-        <span className="flex items-center gap-1.5">
-          {open
-            ? <ChevronDown className="w-3 h-3 text-text-muted shrink-0" />
-            : <ChevronRight className="w-3 h-3 text-text-muted shrink-0" />}
-          {title}
-        </span>
-        <span
-          className={`font-mono rounded px-1.5 py-0.5 text-[10px] font-semibold ${warn ? "bg-amber-400/20 text-amber-300" : "bg-accent/20 text-accent"}`}
-        >
-          {count}
-        </span>
-      </button>
-      {open && <div className="mt-1 space-y-px">{children}</div>}
-    </div>
-  );
-}
-
-function Item({
-  name,
-  trailing,
-  bullet,
-  onClick,
-}: {
-  name: string;
-  trailing?: React.ReactNode;
-  bullet?: string;
-  onClick?: () => void;
-}) {
-  const className =
-    "group flex w-full items-center gap-2 rounded px-1.5 py-1 text-left text-[11px] font-mono transition-colors hover:bg-accent/10";
-  const inner = (
-    <>
-      <span className={`text-[9px] leading-none ${bullet ?? "text-accent"}`}>
-        ●
-      </span>
-      <span className="flex-1 truncate text-text font-medium">{name}</span>
-      {trailing}
-    </>
-  );
-  return onClick ? (
-    <button type="button" onClick={onClick} className={className}>
-      {inner}
-    </button>
-  ) : (
-    <div className={className}>{inner}</div>
-  );
-}
-
-function Empty({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="px-1.5 py-1 text-[10px] italic text-text-muted">{children}</p>
-  );
-}
-
-function Pill({
-  children,
-  tone,
-  mono,
-}: {
-  children: React.ReactNode;
-  tone: "ok" | "bad";
-  mono?: boolean;
-}) {
-  const toneClass =
-    tone === "bad"
-      ? "border-red-500/50 bg-red-500/15 text-red-300"
-      : "border-accent/50 bg-accent/15 text-accent";
-  return (
-    <span
-      className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${toneClass} ${mono ? "font-mono" : ""}`}
-    >
-      {children}
-    </span>
-  );
-}

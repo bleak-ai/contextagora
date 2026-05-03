@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Archive,
   ArchiveRestore,
+  FileText,
 } from "lucide-react";
 import type { ModuleInfo } from "../../../api/modules";
 import type { LoadedModule } from "../../../api/workspace";
@@ -13,6 +14,7 @@ import { useModuleEditorStore } from "../../../hooks/useModuleEditorStore";
 import { ModuleCardShell } from "./ModuleCardShell";
 import { ModuleFilePreview } from "./ModuleFilePreview";
 import { FileTree } from "./FileTree";
+import { ModuleSubSection } from "./ModuleSubSection";
 import { OverflowMenu, type OverflowMenuItem } from "./OverflowMenu";
 
 interface TaskCardProps {
@@ -163,11 +165,21 @@ export function TaskCard({
             <p className="text-[11px] text-text-muted mb-2">{info.summary}</p>
           )}
           {isOn && loaded.files.length > 0 && (
-            <FileTree
-              paths={loaded.files}
-              onSelect={setPreviewFile}
-              checkboxes={loaded.checkboxes}
-            />
+            <ModuleSubSection
+              title={
+                <>
+                  <FileText className="w-3.5 h-3.5 shrink-0" /> FILES
+                </>
+              }
+              count={`${loaded.files.length}`}
+              defaultOpen
+            >
+              <FileTree
+                paths={loaded.files}
+                onSelect={setPreviewFile}
+                checkboxes={loaded.checkboxes}
+              />
+            </ModuleSubSection>
           )}
           {!isOn && !isArchived && (
             <p className="text-[10px] italic text-text-muted">

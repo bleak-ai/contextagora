@@ -2,10 +2,16 @@ import { Plug, ListTodo, Workflow } from "lucide-react";
 
 type Kind = "integration" | "task" | "workflow";
 
-const SPEC: Record<Kind, { Icon: typeof Plug; label: string; tint: string }> = {
-  integration: { Icon: Plug, label: "Integration", tint: "text-cyan-400" },
-  task: { Icon: ListTodo, label: "Task", tint: "text-amber-400" },
-  workflow: { Icon: Workflow, label: "Workflow", tint: "text-violet-400" },
+const TINT_BY_KIND: Record<Kind, string> = {
+  integration: "text-accent-secondary",  // cyan from --color-accent-secondary
+  task: "text-accent",                   // mint from --color-accent
+  workflow: "text-warning",              // gold from --color-warning
+};
+
+const SPEC: Record<Kind, { Icon: typeof Plug; label: string }> = {
+  integration: { Icon: Plug, label: "Integration" },
+  task: { Icon: ListTodo, label: "Task" },
+  workflow: { Icon: Workflow, label: "Workflow" },
 };
 
 interface KindIconProps {
@@ -14,11 +20,12 @@ interface KindIconProps {
 }
 
 export function KindIcon({ kind, active = false }: KindIconProps) {
-  const { Icon, label, tint } = SPEC[kind];
+  const { Icon, label } = SPEC[kind];
+  const tintClass = active ? TINT_BY_KIND[kind] : "text-text-muted";
   return (
     <Icon
       aria-label={label}
-      className={`h-3.5 w-3.5 shrink-0 ${active ? tint : "text-text-muted"}`}
+      className={`h-3.5 w-3.5 shrink-0 ${tintClass}`}
     />
   );
 }

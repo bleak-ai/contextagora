@@ -285,6 +285,7 @@ export function ContextPanel({ mobileOpen = false, onMobileClose }: ContextPanel
                 onArchiveModule={(name, archived) =>
                   archiveMutation.mutate({ name, archived })
                 }
+                onCreateModule={undefined}
               />
             </div>
 
