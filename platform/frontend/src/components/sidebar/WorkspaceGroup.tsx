@@ -18,7 +18,6 @@ interface WorkspaceGroupProps {
   onEditModule: (name: string) => void;
   onDeleteModule: (name: string, kind: "task" | "integration" | "workflow") => void;
   onArchiveModule?: (name: string, archived: boolean) => void;
-  onCreateModule?: () => void;
 }
 
 function computeWarnCount(loaded: LoadedModule[]): number {
@@ -38,7 +37,6 @@ export function WorkspaceGroup({
   onEditModule,
   onDeleteModule,
   onArchiveModule,
-  onCreateModule,
 }: WorkspaceGroupProps) {
   const [rootPreview, setRootPreview] = useState<"claude_md" | "llms_txt" | null>(null);
 
@@ -145,7 +143,6 @@ export function WorkspaceGroup({
           onEditModule={onEditModule}
           onDeleteModule={(name, kind) => onDeleteModule(name, kind)}
           onArchiveModule={onArchiveModule}
-          onCreateModule={onCreateModule}
         />
 
         <div className="flex items-center justify-end border-t border-border/50 pt-1.5 mt-1.5">

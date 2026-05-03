@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { MapPin } from "lucide-react";
 import { KindIcon } from "./KindIcon";
 
 export type ModuleCardVariant = "active" | "idle" | "archived";
@@ -31,7 +30,6 @@ const VARIANT: Record<ModuleCardVariant, ToneClasses> = {
 interface ModuleCardShellProps {
   variant: ModuleCardVariant;
   kind: "integration" | "task" | "workflow";
-  hasGrowthAreas?: boolean;
   warn?: boolean;
   headerMiddle: ReactNode;
   headerRight?: ReactNode;
@@ -41,7 +39,6 @@ interface ModuleCardShellProps {
 export function ModuleCardShell({
   variant,
   kind,
-  hasGrowthAreas,
   warn,
   headerMiddle,
   headerRight,
@@ -56,11 +53,6 @@ export function ModuleCardShell({
       <div className="flex w-full items-center gap-2 px-2.5 py-2">
         <KindIcon kind={kind} active={variant === "active"} />
         {headerMiddle}
-        {hasGrowthAreas && (
-          <span title="Has declared growth areas" className="text-text-muted shrink-0">
-            <MapPin className="w-3 h-3" />
-          </span>
-        )}
         {headerRight}
       </div>
       {children}

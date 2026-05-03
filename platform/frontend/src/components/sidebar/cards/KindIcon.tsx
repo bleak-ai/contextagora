@@ -1,4 +1,4 @@
-import { Plug, ListTodo, Workflow } from "lucide-react";
+import { Plug, ListTodo, Workflow, SquareCheck, Package, Route } from "lucide-react";
 
 type Kind = "integration" | "task" | "workflow";
 
@@ -9,9 +9,9 @@ const TINT_BY_KIND: Record<Kind, string> = {
 };
 
 const SPEC: Record<Kind, { Icon: typeof Plug; label: string }> = {
-  integration: { Icon: Plug, label: "Integration" },
-  task: { Icon: ListTodo, label: "Task" },
-  workflow: { Icon: Workflow, label: "Workflow" },
+  integration: { Icon: Package, label: "Integration" },
+  task: { Icon: SquareCheck, label: "Task" },
+  workflow: { Icon: Route, label: "Workflow" },
 };
 
 interface KindIconProps {

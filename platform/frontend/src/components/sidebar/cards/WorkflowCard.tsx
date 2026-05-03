@@ -122,7 +122,6 @@ export function WorkflowCard({
       variant={variant}
       kind="workflow"
       warn={false}
-      hasGrowthAreas={info.has_growth_areas}
       headerMiddle={headerMiddle}
       headerRight={headerRight}
     >

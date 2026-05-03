@@ -8,65 +8,32 @@
 }
 
 @theme {
-  /* Slate + teal/cyan palette with stock-green accent.
-     Source: docs/design/color-tokens.md (2026-05-02). */
-  /* Dark surface ladder lifted to zinc-equivalent luminance (~L*11) while
-     keeping the cool slate hue from the spec. The spec's #0a0c10 / #11151d
-     tier reads as OLED-black; this tier matches the old #1c1c1a / #252523
-     comfort level. Spec tokens below (--color-surface-*) keep the original
-     darker values for components that explicitly want them. */
-  --color-bg: #181c25;             /* cool zinc, matches old --color-bg luminance */
-  --color-bg-raised: #232838;      /* clear step above bg for cards */
-  --color-bg-input: #1e2333;       /* small lift over bg, between bg and raised */
-  --color-bg-hover: #2c324a;       /* clear hover state above raised */
-  --color-border: #2a3550;         /* border-secondary — visible on lifted bg */
-  --color-border-light: #3a4663;   /* lighter step above --color-border */
-  --color-text: #e6ecf5;           /* text-strong — slightly brighter for crisp readout */
-  --color-text-secondary: #7e8aa0; /* text-muted */
-  --color-text-muted: #5e6b80;     /* text-faint */
-  --color-bg-chat: #161a22;        /* slightly darker than --color-bg, like old chat */
-  --color-user-bubble: #1c2538;    /* surface-secondary */
+  --color-bg: #1c1c1a;
+  --color-bg-raised: #252523;
+  --color-bg-input: #222220;
+  --color-bg-hover: #2e2d2b;
+  --color-border: #403e3a;
+  --color-border-light: #4d4b46;
+  --color-text: #d8d6d4;
+  --color-text-secondary: #908e8c;
+  --color-text-muted: #5a5856;
+  --color-bg-chat: #1a1816;
+  --color-user-bubble: #1a1a18;
+
+
+
+
+
+
+
   --color-user-bubble-border: transparent;
-  --color-accent: #22e6a3;         /* electric mint — brighter than spec's #10b981 for visual pop */
-  --color-accent-hover: #5cefb8;   /* lightened electric mint */
-  --color-accent-dim: rgba(34, 230, 163, 0.12);
-  --color-accent-text: #052b1d;    /* dark text on accent */
-  --color-danger: #f85149;         /* status-error */
-  --color-warning: #c4a35a;
-  /* Global success — same value as accent ("good and complete" share a color). */
-  --color-success: #22e6a3;
-
-  /* Extended semantic tokens (new spec). Available app-wide for future code. */
-  --color-surface-screen: #0a0c10;
-  --color-surface-card: #11151d;
-  --color-surface-card-alt: #0e1a1a;
-  --color-surface-elevated: #1a2740;
-  --color-surface-elevated-end: #0d1b2a;
-  --color-surface-elevated-flat: #0d1117;
-  --color-surface-secondary: #1c2538;
-  --color-surface-track: #1c2230;
-  --color-surface-mode-active: #1c3530;
-  --color-surface-icon-workflow: #0c252a;
-
-  --color-border-card: #1c2230;
-  --color-border-card-alt: #1a2f2f;
-  --color-border-elevated: #1f2a40;
-  --color-border-secondary: #2a3550;
-  --color-border-mode-active: #2a554a;
-  --color-border-faint: #1f2a40;
-
-  --color-accent-primary: #22e6a3;   /* electric mint — synced with --color-accent */
-  --color-accent-secondary: #22d3ee; /* brighter cyan for workflows (was #06b6d4) */
-
-  --color-status-ok: #22e6a3;        /* synced with accent */
-  --color-status-warn: #fbbf24;
-  --color-status-error: #f85149;
-
-  --color-text-strong: #cfd6e4;
-  --color-text-faint: #5e6b80;
-  --color-text-muted-workflow: #6a8a8e;
-  --color-text-on-accent: #06281f;
-  --color-text-on-elevated: #ffffff;
+  --color-accent: #c4a35a;
+  --color-accent-hover: #d4b36a;
+  --color-accent-dim: rgba(196, 163, 90, 0.1);
+  --color-accent-text: #0a0a0a;
+  --color-danger: #e06060;
+  /* Global success green — used for completion badges, healthy states, run-ok feedback */
+  --color-success: #4ade80;
 }
 
 html,

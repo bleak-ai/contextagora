@@ -199,7 +199,6 @@ export function IntegrationCard({
       variant={variant}
       kind="integration"
       warn={warn}
-      hasGrowthAreas={info.has_growth_areas}
       headerMiddle={headerMiddle}
       headerRight={headerRight}
     >

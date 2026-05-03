@@ -50,8 +50,9 @@ class Settings(BaseSettings):
 
     # Constants (not from env)
     PRESERVED_FILES: frozenset[str] = frozenset({"CLAUDE.md"})
-    MANAGED_FILES: frozenset[str] = frozenset({"llms.txt", "module.yaml"})
-
+    # MANAGED_FILES: frozenset[str] = frozenset({"llms.txt", "module.yaml"})
+    MANAGED_FILES: frozenset[str] = frozenset()
+    
     @model_validator(mode="after")
     def _resolve_paths(self) -> "Settings":
         base = Path(__file__).resolve().parent

@@ -9,7 +9,6 @@ interface LibraryZoneProps {
   onEditModule: (name: string) => void;
   onDeleteModule: (name: string, kind: "task" | "workflow") => void;
   onArchiveModule?: (name: string, archived: boolean) => void;
-  onCreateModule?: () => void;
 }
 
 export function LibraryZone({
@@ -17,7 +16,6 @@ export function LibraryZone({
   onEditModule,
   onDeleteModule,
   onArchiveModule,
-  onCreateModule,
 }: LibraryZoneProps) {
   const [open, setOpen] = useState(false);
 
@@ -85,18 +83,6 @@ export function LibraryZone({
             </p>
           )}
 
-          <div className="border-t border-border pt-2">
-            <button
-              type="button"
-              onClick={onCreateModule}
-              disabled={!onCreateModule}
-              className="flex w-full items-center justify-center gap-1.5 rounded border border-dashed border-accent/40 bg-accent/5 px-2 py-1.5 text-[11px] font-semibold text-accent hover:bg-accent/10 disabled:opacity-50 disabled:hover:bg-accent/5"
-              title={onCreateModule ? "Create a new module" : "New-module flow not wired yet"}
-            >
-              <Plus className="w-3 h-3" />
-              New module
-            </button>
-          </div>
         </div>
       )}
     </div>

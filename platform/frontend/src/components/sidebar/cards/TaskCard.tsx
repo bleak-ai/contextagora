@@ -155,7 +155,6 @@ export function TaskCard({
       variant={variant}
       kind="task"
       warn={false}
-      hasGrowthAreas={info.has_growth_areas}
       headerMiddle={headerMiddle}
       headerRight={headerRight}
     >
