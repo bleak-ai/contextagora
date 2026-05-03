@@ -21,8 +21,25 @@ export type {
 
 export const NEW_CHAT_KEY = "__new_chat__";
 
+// Per-session token accounting. `lastTurn*` mirrors the most recent
+// `result.usage` from the model (used to render "context % filled" the
+// same way Claude Code's status line does). `total*` is a running sum
+// across every turn we observed in this session — what users mean by
+// "tokens spent this session".
+export interface SessionUsage {
+  lastTurnInputTokens: number;
+  lastTurnCacheReadTokens: number;
+  lastTurnCacheCreationTokens: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalCacheReadTokens: number;
+  totalCacheCreationTokens: number;
+  totalCostUsd: number;
+}
+
 interface ChatState {
   messagesBySession: Record<string, ChatMessage[]>;
+  usageBySession: Record<string, SessionUsage>;
   streamingSessionId: string | null;
   abortController: AbortController | null;
   model: string | null;
@@ -46,6 +63,7 @@ export const useChatStore = create<ChatState>()(
   persist(
     (set, get) => ({
       messagesBySession: {},
+      usageBySession: {},
       streamingSessionId: null,
       abortController: null,
       model: null,
@@ -193,6 +211,7 @@ export const useChatStore = create<ChatState>()(
                   const oldId = sessionId;
                   set((state) => {
                     const oldMsgs = state.messagesBySession[oldId] ?? [];
+                    const oldUsage = state.usageBySession[oldId];
                     // Alias both keys to the same snapshot. The URL update is
                     // async (Chat.tsx subscribes to streamingSessionId and then
                     // calls navigate), so for one render the Thread is still
@@ -204,6 +223,13 @@ export const useChatStore = create<ChatState>()(
                         [oldId]: oldMsgs,
                         [newId]: oldMsgs,
                       },
+                      usageBySession: oldUsage
+                        ? {
+                            ...state.usageBySession,
+                            [oldId]: oldUsage,
+                            [newId]: oldUsage,
+                          }
+                        : state.usageBySession,
                       streamingSessionId:
                         state.streamingSessionId === oldId
                           ? newId
@@ -214,6 +240,44 @@ export const useChatStore = create<ChatState>()(
                 }
                 break;
               }
+              case "usage":
+                set((state) => {
+                  const prev = state.usageBySession[sessionId] ?? {
+                    lastTurnInputTokens: 0,
+                    lastTurnCacheReadTokens: 0,
+                    lastTurnCacheCreationTokens: 0,
+                    totalInputTokens: 0,
+                    totalOutputTokens: 0,
+                    totalCacheReadTokens: 0,
+                    totalCacheCreationTokens: 0,
+                    totalCostUsd: 0,
+                  };
+                  const next: SessionUsage = {
+                    lastTurnInputTokens: event.input_tokens,
+                    lastTurnCacheReadTokens: event.cache_read_input_tokens,
+                    lastTurnCacheCreationTokens:
+                      event.cache_creation_input_tokens,
+                    totalInputTokens:
+                      prev.totalInputTokens + event.input_tokens,
+                    totalOutputTokens:
+                      prev.totalOutputTokens + event.output_tokens,
+                    totalCacheReadTokens:
+                      prev.totalCacheReadTokens +
+                      event.cache_read_input_tokens,
+                    totalCacheCreationTokens:
+                      prev.totalCacheCreationTokens +
+                      event.cache_creation_input_tokens,
+                    totalCostUsd:
+                      prev.totalCostUsd + (event.total_cost_usd ?? 0),
+                  };
+                  return {
+                    usageBySession: {
+                      ...state.usageBySession,
+                      [sessionId]: next,
+                    },
+                  };
+                });
+                break;
               case "suggestion":
                 updateAssistant((m) => ({
                   ...m,
@@ -292,7 +356,8 @@ export const useChatStore = create<ChatState>()(
       deleteSessionMessages: (sessionId: string) => {
         set((state) => {
           const { [sessionId]: _, ...rest } = state.messagesBySession;
-          return { messagesBySession: rest };
+          const { [sessionId]: __, ...restUsage } = state.usageBySession;
+          return { messagesBySession: rest, usageBySession: restUsage };
         });
       },
 

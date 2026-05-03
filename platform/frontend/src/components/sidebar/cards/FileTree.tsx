@@ -78,7 +78,7 @@ function CheckboxBadge({ counts }: { counts: CheckboxCount }) {
     >
       <span className="relative h-3 w-3 shrink-0 overflow-hidden rounded-[2px] bg-bg-input ring-1 ring-border">
         <span
-          className={`absolute inset-x-0 bottom-0 transition-all duration-300 ${counts.checked === counts.total ? "bg-success" : "bg-warning"}`}
+          className={`absolute inset-x-0 bottom-0 transition-all duration-300 ${counts.checked === counts.total ? "bg-success" : "bg-accent"}`}
           style={{ height: `${ratio}%` }}
         />
       </span>

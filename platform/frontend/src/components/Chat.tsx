@@ -136,7 +136,7 @@ function WelcomeScreen({
     enableOffloading();
     setSelectedName(name);
     composerRuntime.setText(
-      `Let's continue working on the ${name} task (context: modules-repo/${name}/). Read the main files (and any status notes) and tell me where we left off and what to do next.`,
+      `Load the context of the ${name} task (modules-repo/${name}/)`,
     );
   };
 
@@ -144,7 +144,7 @@ function WelcomeScreen({
     enableOffloading();
     setSelectedName(name);
     composerRuntime.setText(
-      `Let's run the ${name} workflow (context: modules-repo/${name}/). Read the main files, then walk me through it step by step starting with step 1.`,
+      `Load the context of the ${name} workflow (modules-repo/${name}/)`,
     );
   };
 

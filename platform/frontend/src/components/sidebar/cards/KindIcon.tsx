@@ -1,4 +1,4 @@
-import { Plug, ListTodo, Workflow, SquareCheck, Package, Route } from "lucide-react";
+import { Plug, SquareCheck, Package, Route } from "lucide-react";
 
 type Kind = "integration" | "task" | "workflow";
 

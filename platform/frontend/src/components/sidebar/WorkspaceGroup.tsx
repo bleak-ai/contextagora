@@ -67,7 +67,7 @@ export function WorkspaceGroup({
   const inContextCount = loaded.length;
   const dotClass =
     warnCount > 0
-      ? "bg-warning shadow-[0_0_6px_var(--color-warning)]"
+      ? "bg-accent shadow-[0_0_6px_var(--color-warning)]"
       : "bg-accent shadow-[0_0_6px_var(--color-accent)]";
 
   const ROOT_FILES = [

@@ -386,6 +386,28 @@ async def api_chat(body: ChatRequest, request: Request):
                         yield f"event: tool_result\ndata: {json.dumps({'tool_id': tool_use_id, 'output': result_content})}\n\n"
 
             elif event_type == "result":
+                # Forward token accounting before signalling done so the
+                # frontend can update its "tokens spent / context used"
+                # badge in the same render as the message finalisation.
+                # Claude's stream-json `result` event carries cumulative
+                # usage for the just-completed assistant turn at the top
+                # level; older builds may omit the field.
+                usage = event.get("usage")
+                if isinstance(usage, dict):
+                    payload = {
+                        "input_tokens": usage.get("input_tokens", 0),
+                        "output_tokens": usage.get("output_tokens", 0),
+                        "cache_creation_input_tokens": usage.get(
+                            "cache_creation_input_tokens", 0
+                        ),
+                        "cache_read_input_tokens": usage.get(
+                            "cache_read_input_tokens", 0
+                        ),
+                    }
+                    cost = event.get("total_cost_usd")
+                    if isinstance(cost, (int, float)):
+                        payload["total_cost_usd"] = cost
+                    yield f"event: usage\ndata: {json.dumps(payload)}\n\n"
                 yield f"event: done\ndata: {{}}\n\n"
 
         tail = suggestion_buf.finalize()

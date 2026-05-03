@@ -12,6 +12,14 @@ export interface ValidationErrorPayload {
   errors: string[];
 }
 
+export interface UsagePayload {
+  input_tokens: number;
+  output_tokens: number;
+  cache_creation_input_tokens: number;
+  cache_read_input_tokens: number;
+  total_cost_usd?: number;
+}
+
 export type ChatEvent =
   | { type: "thinking"; text: string }
   | { type: "text"; text: string }
@@ -24,7 +32,8 @@ export type ChatEvent =
   | { type: "done" }
   | ({ type: "tree_navigation" } & TreeNavigationPayload)
   | { type: "suggestion"; prompt: string }
-  | ({ type: "validation_error" } & ValidationErrorPayload);
+  | ({ type: "validation_error" } & ValidationErrorPayload)
+  | ({ type: "usage" } & UsagePayload);
 
 export async function streamChat(
   prompt: string,

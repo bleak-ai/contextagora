@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Plus, Archive } from "lucide-react";
+import { ChevronDown, ChevronRight, Archive } from "lucide-react";
 import type { ModuleInfo } from "../../api/modules";
 import { TaskCard } from "./cards/TaskCard";
 import { WorkflowCard } from "./cards/WorkflowCard";

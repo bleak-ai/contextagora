@@ -35,7 +35,7 @@ export function ModuleSubSection({
         <span
           className={`font-mono rounded px-1.5 py-0.5 text-[10px] font-semibold ${
             warn
-              ? "bg-warning/20 text-warning"
+              ? "bg-accent/20 text-warning"
               : "bg-accent/20 text-accent"
           }`}
         >

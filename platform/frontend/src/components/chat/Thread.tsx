@@ -11,6 +11,7 @@ import {
 import { SlashCommandSelector, useSlashCommands } from "./SlashCommandSelector";
 import { MentionSelector, useMentionPicker } from "./MentionSelector";
 import { ModeToggle } from "./ModeToggle";
+import { UsageBadge } from "./UsageBadge";
 import { SuggestionPill } from "./SuggestionPill";
 import type { WorkspaceFile } from "../../api/workspace";
 import { MarkdownText } from "./MarkdownText";
@@ -352,7 +353,8 @@ const Composer: FC<{ onNewSession?: () => void }> = ({ onNewSession }) => {
   return (
     <div className="border-t border-border bg-bg px-4 sm:px-8 md:px-16 py-4">
       <div className="relative max-w-[900px] mx-auto">
-        <div className="mb-2 flex justify-end">
+        <div className="mb-2 flex justify-end items-center gap-2">
+          <UsageBadge />
           <ModeToggle
             mode={mode}
             onChange={(m) => {
