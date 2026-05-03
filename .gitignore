@@ -20,3 +20,5 @@ platform/frontend/package-lock.json
 
 platform/src/benchmarks/runs/*
 !platform/src/benchmarks/runs/.gitkeep
+
+platform/test-results/

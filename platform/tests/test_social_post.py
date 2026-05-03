@@ -169,7 +169,7 @@ def _proc(stdout: str, returncode: int = 0) -> CompletedProcess[str]:
 
 
 def test_extract_content_parses_valid_json():
-    with patch("src.services.social.social_post.run_headless", return_value=_proc(json.dumps(_VALID_PAYLOAD))):
+    with patch("src.services.chat.extract.run_headless", return_value=_proc(json.dumps(_VALID_PAYLOAD))):
         result = social_post.extract_content("some transcript")
     assert result["services"] == ["Linear", "Supabase"]
     assert result["problem"]["meta"].startswith("Linear DEMO-5")
@@ -179,7 +179,7 @@ def test_extract_content_parses_valid_json():
 def test_extract_content_retries_once_on_bad_json_then_succeeds():
     bad = _proc("here is some prose\n{not json")
     good = _proc(json.dumps(_VALID_PAYLOAD))
-    with patch("src.services.social.social_post.run_headless", side_effect=[bad, good]) as m:
+    with patch("src.services.chat.extract.run_headless", side_effect=[bad, good]) as m:
         result = social_post.extract_content("t")
     assert m.call_count == 2
     assert result["services"] == ["Linear", "Supabase"]
@@ -187,7 +187,7 @@ def test_extract_content_retries_once_on_bad_json_then_succeeds():
 
 def test_extract_content_raises_after_two_failures():
     bad = _proc("totally not json")
-    with patch("src.services.social.social_post.run_headless", return_value=bad):
+    with patch("src.services.chat.extract.run_headless", return_value=bad):
         import pytest
         with pytest.raises(social_post.ExtractionError):
             social_post.extract_content("t")
@@ -196,7 +196,7 @@ def test_extract_content_raises_after_two_failures():
 def test_extract_content_strips_markdown_fences():
     # Claude sometimes wraps JSON in ```json ... ```
     fenced = "```json\n" + json.dumps(_VALID_PAYLOAD) + "\n```"
-    with patch("src.services.social.social_post.run_headless", return_value=_proc(fenced)):
+    with patch("src.services.chat.extract.run_headless", return_value=_proc(fenced)):
         result = social_post.extract_content("t")
     assert result["services"] == ["Linear", "Supabase"]
 
@@ -208,7 +208,7 @@ def test_extract_content_injects_transcript_into_prompt():
         captured["prompt"] = prompt
         return _proc(json.dumps(_VALID_PAYLOAD))
 
-    with patch("src.services.social.social_post.run_headless", side_effect=fake_run):
+    with patch("src.services.chat.extract.run_headless", side_effect=fake_run):
         social_post.extract_content("MY UNIQUE TRANSCRIPT MARKER", elapsed_seconds=42)
 
     assert "MY UNIQUE TRANSCRIPT MARKER" in captured["prompt"]
@@ -234,7 +234,7 @@ def test_generate_social_post_returns_full_payload():
     ]
 
     with patch("src.services.social.social_post.load_session_messages", return_value=messages), \
-         patch("src.services.social.social_post.run_headless", return_value=_proc(json.dumps(_VALID_PAYLOAD))):
+         patch("src.services.chat.extract.run_headless", return_value=_proc(json.dumps(_VALID_PAYLOAD))):
         payload = social_post.generate_social_post(
             session_id="abc",
             conn=_FakeConn(),
@@ -268,7 +268,7 @@ def test_generate_social_post_raises_no_tool_calls():
 
 def test_extract_content_raises_on_subprocess_failure():
     bad_proc = CompletedProcess(args=["claude"], returncode=1, stdout="", stderr="rate limited")
-    with patch("src.services.social.social_post.run_headless", return_value=bad_proc):
+    with patch("src.services.chat.extract.run_headless", return_value=bad_proc):
         import pytest
         with pytest.raises(social_post.ExtractionError, match="claude CLI exited"):
             social_post.extract_content("t")
@@ -282,7 +282,7 @@ def test_generate_social_post_raises_when_claude_response_missing_keys():
     incomplete_response = {"services": ["Linear"], "problem": {"headline": "x", "meta": "y"}}
     # steps + outcome missing
     with patch("src.services.social.social_post.load_session_messages", return_value=messages), \
-         patch("src.services.social.social_post.run_headless", return_value=_proc(json.dumps(incomplete_response))):
+         patch("src.services.chat.extract.run_headless", return_value=_proc(json.dumps(incomplete_response))):
         import pytest
         with pytest.raises(social_post.ExtractionError, match="missing keys"):
             social_post.generate_social_post("x", _FakeConn(), Path("/tmp/x"))

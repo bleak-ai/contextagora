@@ -1,6 +1,9 @@
-.PHONY: dev reset
+.PHONY: dev reset e2e
 
 PORT ?= 9090
+
+e2e:
+	uv run pytest tests/browser --video on --output test-results -v
 
 dev:
 	@cd frontend && [ -d node_modules ] || pnpm install
