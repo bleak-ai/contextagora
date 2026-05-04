@@ -1,4 +1,5 @@
 import { type FC, type ReactNode, useState, useCallback, useEffect } from "react";
+import { Trash2, ExternalLink } from "lucide-react";
 import type { TextMessagePartProps } from "@assistant-ui/react";
 import {
   ThreadPrimitive,
@@ -353,14 +354,41 @@ const Composer: FC<{ onNewSession?: () => void }> = ({ onNewSession }) => {
   return (
     <div className="border-t border-border bg-bg px-4 sm:px-8 md:px-16 py-4">
       <div className="relative max-w-[900px] mx-auto">
-        <div className="mb-2 flex justify-end items-center gap-2">
-          <UsageBadge />
-          <ModeToggle
-            mode={mode}
-            onChange={(m) => {
-              void setMode(m, activeSessionId);
-            }}
-          />
+        <div className="mb-2 flex justify-between items-center gap-2">
+          <div className="flex items-center gap-1">
+            {onNewSession && (
+              <button
+                type="button"
+                onClick={onNewSession}
+                aria-label="Clear sessions"
+                title="Clear the current session and return to a fresh chat"
+                className="flex items-center gap-1.5 h-7 px-2 text-text-muted rounded-md hover:bg-bg-hover hover:text-text-secondary transition-colors text-[11px]"
+              >
+                <Trash2 size={13} aria-hidden="true" />
+                Clear Session
+              </button>
+            )}
+            <a
+              href="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Open a new session in a new tab"
+              title="Open a new session in a new tab"
+              className="flex items-center gap-1.5 h-7 px-2 text-text-muted rounded-md hover:bg-bg-hover hover:text-text-secondary transition-colors text-[11px]"
+            >
+              <ExternalLink size={13} aria-hidden="true" />
+              New session
+            </a>
+          </div>
+          <div className="flex items-center gap-2">
+            <UsageBadge />
+            <ModeToggle
+              mode={mode}
+              onChange={(m) => {
+                void setMode(m, activeSessionId);
+              }}
+            />
+          </div>
         </div>
         {showSelector && filtered.length > 0 && (
           <SlashCommandSelector
@@ -395,22 +423,6 @@ const Composer: FC<{ onNewSession?: () => void }> = ({ onNewSession }) => {
             }
             className="w-full resize-none bg-transparent px-5 py-3.5 pb-13 text-sm text-text placeholder:text-text-secondary/70 outline-none disabled:opacity-50"
           />
-          {onNewSession && (
-            <div className="absolute left-3 bottom-2.5">
-              <button
-                onClick={onNewSession}
-                aria-label="New session"
-                title="New session"
-                className="flex items-center gap-1.5 h-8 px-2 text-text-muted rounded-lg hover:bg-bg-hover hover:text-text-secondary transition-colors"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-                <span className="text-[11px]">New session</span>
-              </button>
-            </div>
-          )}
           <div className="absolute right-3 bottom-2.5 flex gap-2">
             <AuiIf condition={(s: { thread: { isRunning: boolean } }) => !s.thread.isRunning}>
               <ComposerPrimitive.Send asChild>
