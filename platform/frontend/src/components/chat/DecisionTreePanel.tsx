@@ -10,6 +10,19 @@ interface TreeNode {
   children?: TreeNode[];
 }
 
+function hasAccessedDescendant(
+  node: TreeNode,
+  modulePrefix: string,
+  accessed: Set<string>,
+): boolean {
+  if (!node.children) {
+    return accessed.has(`${modulePrefix}/${node.fullPath}`);
+  }
+  return node.children.some((c) =>
+    hasAccessedDescendant(c, modulePrefix, accessed),
+  );
+}
+
 function buildTree(files: { path: string }[]): TreeNode[] {
   const root: TreeNode[] = [];
 
@@ -64,9 +77,7 @@ function TreeNodeView({
   if (node.children) {
     const children = node.children;
     const hasReadChildren = children.some((child) =>
-      child.children
-        ? child.children.some((c) => accessedFiles.has(`${module}/${c.fullPath}`))
-        : accessedFiles.has(`${module}/${child.fullPath}`)
+      hasAccessedDescendant(child, module, accessedFiles),
     );
     const hasActiveChild = active
       ? active.path.startsWith(`${module}/${node.fullPath}/`)
@@ -104,11 +115,11 @@ function TreeNodeView({
 
   const rowClass = isActive
     ? activeMode === "writing"
-      ? "text-text bg-accent-secondary/10"
+      ? "text-text bg-success/10"
       : "text-text bg-accent-dim"
     : isRead
       ? "text-text"
-      : "text-text-muted";
+      : "text-text-secondary";
 
   return (
     <div
@@ -120,7 +131,7 @@ function TreeNodeView({
         activeMode === "writing" ? (
           <FileCheck
             size={10}
-            className="ml-auto text-accent-secondary animate-pulse shrink-0"
+            className="ml-auto text-success animate-pulse shrink-0"
           />
         ) : (
           <Search
