@@ -306,10 +306,10 @@ function CompactTile({
   const stateClass = !loaded
     ? "border-border/60 bg-bg-raised opacity-40 cursor-not-allowed"
     : selected
-      ? "border-success/40 bg-success/5 shadow-[inset_2px_0_0_0_var(--color-success)] hover:bg-success/10 hover:border-success/60 cursor-pointer"
+      ? "border-accent/40 bg-accent/5 shadow-[inset_2px_0_0_0_var(--color-accent)] hover:bg-accent/10 hover:border-accent/60 cursor-pointer"
       : "border-border/60 bg-bg-raised hover:bg-bg-hover hover:border-border-light cursor-pointer";
   const iconWrapClass = loaded && selected
-    ? "text-success bg-success/15"
+    ? "text-accent bg-accent/15"
     : "text-text-muted bg-bg";
 
   return (

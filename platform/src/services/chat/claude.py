@@ -23,6 +23,12 @@ _TELEMETRY_OFF_ENV: dict[str, str] = {
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
 }
 
+# Shared by every claude invocation in this process. The streamed chat
+# subprocess has no TTY (stdin is DEVNULL), so any prompt-triggering tool
+# call would otherwise stall; matching the headless path keeps both entry
+# points on one permission contract.
+_PERMISSION_MODE = "bypassPermissions"
+
 
 def build_env() -> dict[str, str]:
     env: dict[str, str] = {**os.environ, **_TELEMETRY_OFF_ENV}
@@ -58,7 +64,7 @@ def run_headless(
             "--output-format", "text",
             "--max-turns", str(max_turns),
             "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}',
-            "--permission-mode", "bypassPermissions",
+            "--permission-mode", _PERMISSION_MODE,
             "--no-session-persistence",
         ],
         capture_output=True,
@@ -89,6 +95,7 @@ def stream(
         "--verbose",
         "--output-format", "stream-json",
         "--include-partial-messages",
+        "--permission-mode", _PERMISSION_MODE,
     ]
     if allowed_tools:
         cmd.extend(["--allowedTools", *allowed_tools])

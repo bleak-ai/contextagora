@@ -19,7 +19,7 @@ dev:
 	    wait 2>/dev/null; \
 	  }; \
 	  trap cleanup INT TERM EXIT; \
-	  uv run python -m uvicorn src.server:app --reload --port $(PORT) & \
+	  PORT=$(PORT) uv run python -m src.dev & \
 	  (cd frontend && PORT=$(PORT) pnpm dev)
 
 reset:

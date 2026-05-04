@@ -114,7 +114,7 @@ interface RowProps {
 }
 
 function TreeRow({ node, depth, onSelect, checkboxes }: RowProps) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const indent = { paddingLeft: `${depth * 10 + 6}px` };
 
   if (node.kind === "file") {
