@@ -1,0 +1,426 @@
+---
+import Base from '../layouts/Base.astro';
+import ArchitectureDiagram from '../components/ArchitectureDiagram.astro';
+import IntegrationMarquee from '../components/IntegrationMarquee.astro';
+import Testimonial from '../components/Testimonial.astro';
+import FAQ from '../components/FAQ.astro';
+
+const faqItems = [
+	{
+		question: 'Do I bring my own agent?',
+		answer: 'We provide the agent. Your modules, integrations, and rules live in your GitHub repo.',
+	},
+	{
+		question: 'How is this different from Zapier or n8n?',
+		answer: 'Zapier and n8n are workflow builders where you define the steps. ContextAgora gives your agent the context to decide the steps itself, grounded in your docs and tools.',
+	},
+	{
+		question: 'Self-hosted or SaaS?',
+		answer: 'Both. Run the Docker container on your own infrastructure, or let us host it for you.',
+	},
+	{
+		question: 'Where does my data live?',
+		answer: 'Your modules live in your GitHub. Chat history persists in a Docker volume on your own infrastructure. Nothing is stored on our side.',
+	},
+	{
+		question: 'Can the agent write, or only read?',
+		answer: 'Both. API keys are loaded per task and discarded when the task ends, so the agent has no standing access between runs.',
+	},
+];
+---
+
+<Base title="ContextAgora app: the AI support layer for startups">
+
+	<!-- Hero -->
+	<section class="mb-20 sm:mb-32 text-center pt-12 sm:pt-20">
+		<p class="text-xs font-medium text-text-muted uppercase tracking-widest mb-4">
+			The context layer for AI agents
+		</p>
+		<h1 class="text-4xl sm:text-6xl font-semibold text-accent tracking-tight mb-6 leading-[1.05]">
+			Stop re-explaining your product to AI.
+		</h1>
+		<p class="text-base text-text-secondary leading-relaxed max-w-md mx-auto mb-8">
+			Your ContextAgora agent reads the Context of your product: API docs, runbooks, integration keys. Acts on real data. Live in 30 minutes.
+		</p>
+		<button
+			id="hero-cta"
+			class="bg-accent text-bg text-sm font-medium px-6 py-2.5 hover:bg-accent-hover transition-colors cursor-pointer"
+		>
+			Apply for early access
+		</button>
+
+		<div class="mt-10 max-w-md mx-auto flex items-start gap-3 text-left">
+			<img src="/people/brando.jpg" alt="" class="w-10 h-10 rounded-full shrink-0 mt-0.5 object-cover" width="40" height="40" loading="lazy" />
+			<div>
+				<p class="text-sm text-text-secondary leading-relaxed italic">"It found the gym in the db on its own and pulled up the data I asked for."</p>
+				<p class="text-xs text-text-muted mt-1.5">Brando Rossi, CEO at MAAT (SaaS for martial arts gyms)</p>
+			</div>
+		</div>
+	</section>
+
+	<!-- Value props -->
+	<section class="mb-20 sm:mb-32">
+		<div class="grid grid-cols-2 gap-3 sm:gap-4 max-w-2xl mx-auto">
+			<div class="border border-border bg-bg-raised px-4 py-8 sm:px-8 sm:py-12 text-center flex flex-col items-center justify-center">
+				<svg class="w-6 h-6 sm:w-8 sm:h-8 text-accent mb-3 sm:mb-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
+				<p class="text-sm sm:text-lg text-text leading-snug"><span class="text-accent font-bold">MAAT</span> resolves support 90% faster</p>
+			</div>
+			<div class="border border-border bg-bg-raised px-4 py-8 sm:px-8 sm:py-12 text-center flex flex-col items-center justify-center">
+				<svg class="w-6 h-6 sm:w-8 sm:h-8 text-accent mb-3 sm:mb-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg>
+				<p class="text-sm sm:text-lg text-text leading-snug"><span class="text-accent font-bold">One agent</span> to access all your integrations</p>
+			</div>
+			<div class="border border-border bg-bg-raised px-4 py-8 sm:px-8 sm:py-12 text-center flex flex-col items-center justify-center">
+				<svg class="w-6 h-6 sm:w-8 sm:h-8 text-accent mb-3 sm:mb-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+				<p class="text-sm sm:text-lg text-text leading-snug">Add a new integration in <span class="text-accent font-bold">5 minutes</span></p>
+			</div>
+			<div class="border border-border bg-bg-raised px-4 py-8 sm:px-8 sm:py-12 text-center flex flex-col items-center justify-center">
+				<svg class="w-6 h-6 sm:w-8 sm:h-8 text-accent mb-3 sm:mb-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456Z" /></svg>
+				<p class="text-sm sm:text-lg text-text leading-snug">No stale exports. <span class="text-accent font-bold">Live data</span>, every query.</p>
+			</div>
+		</div>
+
+		<IntegrationMarquee />
+	</section>
+
+	<!-- Demo video -->
+	<section class="mb-20 sm:mb-32">
+		<h2 class="text-xs font-medium text-text-muted uppercase tracking-widest mb-3">See it in action</h2>
+		<button
+			id="video-trigger"
+			class="relative w-full aspect-video bg-bg border border-border cursor-pointer group overflow-hidden"
+			aria-label="Play demo video"
+		>
+			<img src="/demo-poster.webp" alt="" class="w-full h-full object-cover" />
+			<div class="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
+				<svg class="w-16 h-16 text-white/90 drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24">
+					<path d="M8 5v14l11-7z"/>
+				</svg>
+			</div>
+		</button>
+	</section>
+
+	<!-- Video modal -->
+	<div id="video-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 p-4 sm:p-8">
+		<div class="relative w-full max-w-[95vw] sm:max-w-[90vw]">
+			<button id="video-close" class="absolute -top-10 right-0 text-white/70 hover:text-white text-sm font-medium transition-colors cursor-pointer">
+				Close
+			</button>
+			<video id="video-player" controls preload="none" aria-label="Context Agora demo walkthrough" class="w-full aspect-video bg-black">
+				<source src="/demo.webm?v=2" type="video/webm" />
+				<source src="/demo.mp4?v=2" type="video/mp4" />
+			</video>
+		</div>
+	</div>
+
+	<!-- How it works + Architecture -->
+	<section id="how-it-works" class="mb-20 sm:mb-32">
+		<h2 class="text-xs font-medium text-text-muted uppercase tracking-widest mb-10">How it works</h2>
+		<dl class="space-y-10 mb-12">
+			<div class="flex gap-5">
+				<svg class="w-6 h-6 text-accent shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776" /></svg>
+				<div>
+					<dt class="text-lg font-semibold text-text mb-1">Drop integrations into one GitHub repo</dt>
+					<dd class="text-sm text-text-secondary leading-relaxed">Modules bundle tools, docs, and secret pointers. Your agent reads what it needs and acts on it.</dd>
+				</div>
+			</div>
+			<div class="flex gap-5">
+				<svg class="w-6 h-6 text-accent shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
+				<div>
+					<dt class="text-lg font-semibold text-text mb-1">Store secrets in Infisical</dt>
+					<dd class="text-sm text-text-secondary leading-relaxed">Resolved per task and discarded when done. Never stored by us, never visible to the agent between runs.</dd>
+				</div>
+			</div>
+		</dl>
+
+		<ArchitectureDiagram />
+
+		<dl class="space-y-10 mt-12">
+			<div class="flex gap-5">
+				<svg class="w-6 h-6 text-accent shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg>
+				<div>
+					<dt class="text-lg font-semibold text-text mb-1">Deploy one Docker container</dt>
+					<dd class="text-sm text-text-secondary leading-relaxed">Self-host on your own infra or let us host it. You're live in 30 minutes.</dd>
+				</div>
+			</div>
+			<div class="flex gap-5">
+				<svg class="w-6 h-6 text-accent shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" /></svg>
+				<div>
+					<dt class="text-lg font-semibold text-text mb-1">Ship new integrations in two prompts</dt>
+					<dd class="text-sm text-text-secondary leading-relaxed">The agent scaffolds the module for you. Every action stays grounded in your docs, your tools, your data.</dd>
+				</div>
+			</div>
+		</dl>
+	</section>
+
+
+	<!-- Case studies -->
+	<section id="case-studies" class="mb-20 sm:mb-32">
+		<h2 class="text-xs font-medium text-text-muted uppercase tracking-widest mb-3">Case studies</h2>
+
+		<div class="flex flex-col gap-10">
+
+			<!-- MAAT -->
+			<div class="border border-border bg-bg-raised px-6 py-8 sm:px-8 sm:py-10 max-w-3xl mx-auto">
+				<!-- Company -->
+				<a href="https://maatapp.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-4 mb-6 group">
+					<img src="/logos/maat.svg" alt="MAAT logo" class="w-14 h-14 shrink-0" width="56" height="56" loading="lazy" />
+					<p class="text-sm text-text-muted group-hover:text-accent transition-colors">Gym management for BJJ, MMA & martial arts</p>
+					<svg class="w-4 h-4 text-text-muted group-hover:text-accent transition-colors ml-1 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
+				</a>
+
+				<!-- Testimonials -->
+				<div class="flex flex-col gap-5 mb-8">
+					<Testimonial
+						quote="This is so sick btw, it found the gym in the db in it's own and pulled up the data I asked for."
+						name="Brando Rossi"
+						role="CEO & Co-Founder"
+						photo="/people/brando.jpg"
+						socials={[{ platform: 'linkedin', url: 'https://www.linkedin.com/in/brando-rossi/' }]}
+					/>
+					<Testimonial
+						quote="It has transformed how I approach solving support tasks. From a boring task I was always procrastinating into something actually fun to do. Now my mission is to shape the playbook so well that the next version can do the task super easily."
+						name="Stefano Saitta"
+						role="CTO & Co-Founder"
+						photo="/people/stefano.jpg"
+						socials={[
+							{ platform: 'linkedin', url: 'https://www.linkedin.com/in/etcpasswd/' },
+							{ platform: 'x', url: 'https://x.com/nerder_' },
+						]}
+					/>
+				</div>
+
+				<!-- Video -->
+				<button
+					class="case-video-trigger relative w-full aspect-video bg-bg border border-border cursor-pointer group overflow-hidden"
+					data-webm="/maat-demo.webm"
+					data-mp4="/maat-demo.mp4"
+					aria-label="Play MAAT demo video"
+				>
+					<img src="/maat-demo-poster.webp" alt="" class="w-full h-full object-cover" />
+					<div class="absolute inset-0 bg-black/60 group-hover:bg-black/70 transition-colors flex flex-col items-center justify-center gap-3">
+						<div class="flex items-center gap-2.5">
+							<img src="/logos/maat.svg" alt="" class="w-8 h-8" width="32" height="32" />
+							<span class="text-white text-base sm:text-lg font-semibold tracking-tight">Demo</span>
+						</div>
+						<svg class="w-10 h-10 text-white/50" fill="currentColor" viewBox="0 0 24 24">
+							<path d="M8 5v14l11-7z"/>
+						</svg>
+					</div>
+				</button>
+			</div>
+
+			<!-- Soundmurai -->
+			<div class="border border-border bg-bg-raised px-6 py-8 sm:px-8 sm:py-10 max-w-3xl mx-auto">
+				<!-- Company -->
+				<a href="https://soundmurai.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-4 mb-6 group">
+					<img src="/logos/soundmurai.svg" alt="Soundmurai logo" class="w-12 h-12 shrink-0" width="48" height="48" loading="lazy" />
+					<div>
+						<p class="text-lg font-bold text-text tracking-tight group-hover:text-accent transition-colors">Soundmurai</p>
+						<p class="text-xs text-text-muted">Live music marketplace</p>
+					</div>
+					<svg class="w-4 h-4 text-text-muted group-hover:text-accent transition-colors ml-1 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
+				</a>
+
+				<!-- Testimonial -->
+				<div class="mb-8">
+					<Testimonial
+						quote="Our ContextAgora agent helps us build posts for insights.soundmurai.com. It pulls global live-music from our database that we use to generate the insights."
+						name="Eduard Aymerich"
+						role="Co-Founder"
+						photo="/people/eduard.jpg"
+						socials={[
+							{ platform: 'linkedin', url: 'https://www.linkedin.com/in/eduayme/' },
+							{ platform: 'x', url: 'https://x.com/eduardaymerich' },
+						]}
+					/>
+				</div>
+
+				<!-- Video -->
+				<button
+					class="case-video-trigger relative w-full aspect-video bg-bg border border-border cursor-pointer group overflow-hidden"
+					data-webm="/soundmurai-demo.webm"
+					data-mp4="/soundmurai-demo.mp4"
+					aria-label="Play Soundmurai demo video"
+				>
+					<img src="/soundmurai-demo-poster.webp" alt="" class="w-full h-full object-cover" />
+					<div class="absolute inset-0 bg-black/60 group-hover:bg-black/70 transition-colors flex flex-col items-center justify-center gap-3">
+						<div class="flex items-center gap-2.5">
+							<img src="/logos/soundmurai.svg" alt="" class="w-8 h-8" width="32" height="32" />
+							<span class="text-white text-base sm:text-lg font-semibold tracking-tight">Soundmurai Demo</span>
+						</div>
+						<svg class="w-10 h-10 text-white/50" fill="currentColor" viewBox="0 0 24 24">
+							<path d="M8 5v14l11-7z"/>
+						</svg>
+					</div>
+				</button>
+			</div>
+
+		</div>
+	</section>
+
+	<!-- FAQ -->
+	<section id="faq" class="mb-20 sm:mb-32">
+		<h2 class="text-xs font-medium text-text-muted uppercase tracking-widest mb-10">Before you ask</h2>
+		<FAQ items={faqItems} />
+	</section>
+
+	<!-- Bottom CTA -->
+	<section id="waitlist" class="mb-20 sm:mb-32">
+		<div class="border border-accent/20 bg-bg-raised px-6 py-8 sm:px-8 max-w-lg mx-auto text-center">
+			<h2 class="text-lg font-medium text-text mb-1">Apply for access.</h2>
+			<p class="text-sm text-text-secondary mb-6">We review every application personally.</p>
+			<form id="bottom-form" class="flex flex-col gap-3 text-left">
+				<input
+					type="text"
+					name="name"
+					required
+					placeholder="Your name"
+					class="w-full bg-bg border border-border text-text text-sm px-3 py-2 outline-none focus:border-accent/50 placeholder:text-text-muted transition-colors"
+				/>
+				<input
+					type="email"
+					name="email"
+					required
+					placeholder="your@email.com"
+					class="w-full bg-bg border border-border text-text text-sm px-3 py-2 outline-none focus:border-accent/50 placeholder:text-text-muted transition-colors"
+				/>
+				<input
+					type="text"
+					name="company"
+					required
+					placeholder="Your company"
+					class="w-full bg-bg border border-border text-text text-sm px-3 py-2 outline-none focus:border-accent/50 placeholder:text-text-muted transition-colors"
+				/>
+				<input
+					type="text"
+					name="social"
+					required
+					placeholder="linkedin.com/in/you or x.com/you"
+					class="w-full bg-bg border border-border text-text text-sm px-3 py-2 outline-none focus:border-accent/50 placeholder:text-text-muted transition-colors"
+				/>
+				<div>
+					<label for="bottom-usecase" class="block text-xs text-text-muted mb-1.5">
+						What's the first thing you want your AI to do?
+					</label>
+					<textarea
+						id="bottom-usecase"
+						name="useCase"
+						rows="3"
+						required
+						placeholder="e.g. Query our Supabase DB to answer customer support questions."
+						class="w-full bg-bg border border-border text-text text-sm px-3 py-2 outline-none focus:border-accent/50 placeholder:text-text-muted transition-colors resize-none"
+					></textarea>
+				</div>
+				<button
+					type="submit"
+					id="bottom-btn"
+					class="bg-accent text-bg text-sm font-medium px-4 py-2 hover:bg-accent-hover transition-colors cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed w-full"
+				>
+					Apply
+				</button>
+			</form>
+			<p id="bottom-success" class="hidden text-sm text-text-secondary mt-3">Application received. We'll review it personally and be in touch.</p>
+			<p id="bottom-error" class="hidden text-sm text-red-400 mt-3">Something went wrong. Try emailing us directly at <a href="mailto:hello@contextagora.com" class="underline">hello@contextagora.com</a>.</p>
+		</div>
+	</section>
+
+	<script>
+		const LOOPS_FORM_ID = 'cmnwwvqz704ex0i1e6ahjp465';
+
+		function setupForm(formId: string, btnId: string, successId: string, errorId: string) {
+			const form = document.getElementById(formId) as HTMLFormElement;
+			const btn = document.getElementById(btnId) as HTMLButtonElement;
+			const success = document.getElementById(successId) as HTMLParagraphElement;
+			const error = document.getElementById(errorId) as HTMLParagraphElement;
+			if (!form) return;
+
+			form.addEventListener('submit', async (e) => {
+				e.preventDefault();
+				btn.disabled = true;
+				btn.textContent = 'Submitting...';
+
+				const getValue = (field: string) =>
+					(form.elements.namedItem(field) as HTMLInputElement | HTMLTextAreaElement | null)?.value.trim() ?? '';
+
+				const params: Record<string, string> = {
+					email: getValue('email'),
+					name: getValue('name'),
+					company: getValue('company'),
+					social: getValue('social'),
+					useCase: getValue('useCase'),
+				};
+
+				try {
+					const res = await fetch(`https://app.loops.so/api/newsletter-form/${LOOPS_FORM_ID}`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+						body: new URLSearchParams(params),
+					});
+					if (!res.ok) throw new Error('Request failed');
+					form.classList.add('hidden');
+					success.classList.remove('hidden');
+				} catch {
+					btn.disabled = false;
+					btn.textContent = 'Apply';
+					error.classList.remove('hidden');
+				}
+			});
+		}
+
+		function scrollToWaitlist() {
+			document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth' });
+			setTimeout(() => {
+				const bottomForm = document.getElementById('bottom-form') as HTMLFormElement | null;
+				(bottomForm?.elements.namedItem('name') as HTMLInputElement | null)?.focus();
+			}, 500);
+		}
+
+		// Video modal
+		const modal = document.getElementById('video-modal') as HTMLDivElement;
+		const player = document.getElementById('video-player') as HTMLVideoElement;
+
+		function openVideo() {
+			modal.classList.remove('hidden');
+			modal.classList.add('flex');
+			player.play();
+		}
+
+		function closeVideo() {
+			player.pause();
+			modal.classList.add('hidden');
+			modal.classList.remove('flex');
+		}
+
+		function openVideoWithSrc(webm: string, mp4: string) {
+			const sources = player.querySelectorAll('source');
+			sources[0].src = webm;
+			sources[1].src = mp4;
+			player.load();
+			openVideo();
+		}
+
+		document.getElementById('video-trigger')?.addEventListener('click', () => {
+			openVideoWithSrc('/demo.webm?v=2', '/demo.mp4?v=2');
+		});
+
+		document.querySelectorAll('.case-video-trigger').forEach(btn => {
+			btn.addEventListener('click', () => {
+				const el = btn as HTMLElement;
+				openVideoWithSrc(el.dataset.webm!, el.dataset.mp4!);
+			});
+		});
+
+		document.getElementById('video-close')?.addEventListener('click', closeVideo);
+		modal?.addEventListener('click', (e) => {
+			if (e.target === modal) closeVideo();
+		});
+		document.addEventListener('keydown', (e) => {
+			if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeVideo();
+		});
+
+		document.getElementById('hero-cta')?.addEventListener('click', scrollToWaitlist);
+
+		setupForm('bottom-form', 'bottom-btn', 'bottom-success', 'bottom-error');
+	</script>
+
+</Base>
